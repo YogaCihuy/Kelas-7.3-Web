@@ -36,6 +36,32 @@ p { margin: 0; }
 
 button { font-family: inherit; cursor: pointer; }
 
+/* ===== Tombol Sound Toggle ===== */
+.sound-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 200;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  color: var(--forest);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.sound-toggle svg { width: 20px; height: 20px; }
+
+.sound-toggle:hover { transform: scale(1.08); background: var(--white); }
+
+.sound-toggle[aria-pressed="true"] { color: var(--muted); }
+
 /* ===== Hero ===== */
 .hero {
   position: relative;
