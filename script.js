@@ -1,10 +1,98 @@
 // script.js
 
 document.addEventListener("DOMContentLoaded", () => {
+  setupSoundToggle();
   renderGridSiswa();
   setupDetailModal();
   setupPickerModal();
 });
+
+/* ===================================================
+   0. SOUND EFFECTS
+   Sintesis nada pendek pakai Web Audio API, jadi gak
+   butuh file audio eksternal — semuanya self-contained.
+=================================================== */
+const SoundFX = (() => {
+  let ctx = null;
+  let enabled = true;
+
+  const saved = localStorage.getItem("kelas73-sound");
+  if (saved !== null) enabled = saved === "on";
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  function tone({ freq = 440, duration = 0.12, type = "sine", gain = 0.16, glideTo = null, delay = 0 }) {
+    if (!enabled) return;
+    try {
+      const audioCtx = getCtx();
+      const startAt = audioCtx.currentTime + delay;
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startAt);
+      if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, startAt + duration);
+
+      gainNode.gain.setValueAtTime(0.0001, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(gain, startAt + 0.012);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      osc.connect(gainNode).connect(audioCtx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + duration + 0.02);
+    } catch (err) {
+      /* diamkan kalau browser blokir audio */
+    }
+  }
+
+  return {
+    isEnabled: () => enabled,
+    setEnabled(v) {
+      enabled = v;
+      localStorage.setItem("kelas73-sound", v ? "on" : "off");
+    },
+    cardOpen: () => tone({ freq: 480, glideTo: 720, duration: 0.15, type: "sine", gain: 0.14 }),
+    modalClose: () => tone({ freq: 420, glideTo: 260, duration: 0.12, type: "sine", gain: 0.1 }),
+    tabSwitch: () => tone({ freq: 560, duration: 0.07, type: "triangle", gain: 0.09 }),
+    buttonClick: () => tone({ freq: 380, duration: 0.06, type: "triangle", gain: 0.1 }),
+    shuffleTick: () => tone({ freq: 320 + Math.random() * 180, duration: 0.04, type: "square", gain: 0.045 }),
+    resultReveal: () => {
+      tone({ freq: 440, duration: 0.1, type: "sine", gain: 0.15 });
+      tone({ freq: 660, duration: 0.18, type: "sine", gain: 0.13, delay: 0.09 });
+    },
+    teamsReady: () => {
+      [440, 550, 660].forEach((f, i) => tone({ freq: f, duration: 0.12, type: "sine", gain: 0.12, delay: i * 0.08 }));
+    },
+    resetSound: () => tone({ freq: 300, glideTo: 180, duration: 0.16, type: "sine", gain: 0.1 }),
+    lockedPick: () => tone({ freq: 220, duration: 0.14, type: "sine", gain: 0.1 }),
+  };
+})();
+
+function setupSoundToggle() {
+  const btn = document.getElementById("btn-sound-toggle");
+  const iconOn = btn.querySelector(".icon-sound-on");
+  const iconOff = btn.querySelector(".icon-sound-off");
+
+  function syncIcon() {
+    const on = SoundFX.isEnabled();
+    btn.setAttribute("aria-pressed", String(!on));
+    btn.setAttribute("aria-label", on ? "Matikan suara efek" : "Nyalakan suara efek");
+    iconOn.hidden = !on;
+    iconOff.hidden = on;
+  }
+
+  btn.addEventListener("click", () => {
+    SoundFX.setEnabled(!SoundFX.isEnabled());
+    syncIcon();
+    if (SoundFX.isEnabled()) SoundFX.buttonClick();
+  });
+
+  syncIcon();
+}
 
 /* ===================================================
    1. RENDER GRID SISWA
@@ -51,6 +139,7 @@ function setupDetailModal() {
 
     openModal(modal);
     playSproutAnimation(modalBox, card);
+    SoundFX.cardOpen();
   });
 
   setupModalDismiss(modal);
@@ -90,6 +179,7 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   document.body.style.overflow = "";
+  SoundFX.modalClose();
 }
 
 function setupModalDismiss(modal) {
@@ -111,7 +201,10 @@ function setupPickerModal() {
   const modal = document.getElementById("modal-picker");
   const openBtn = document.getElementById("btn-open-picker");
 
-  openBtn.addEventListener("click", () => openModal(modal));
+  openBtn.addEventListener("click", () => {
+    openModal(modal);
+    SoundFX.buttonClick();
+  });
   setupModalDismiss(modal);
 
   setupTabs();
@@ -121,6 +214,7 @@ function setupPickerModal() {
   document.getElementById("btn-reset").addEventListener("click", () => {
     personPicker.reset();
     teamsPicker.reset();
+    SoundFX.resetSound();
   });
 }
 
@@ -133,6 +227,7 @@ function setupTabs() {
     btn.addEventListener("click", () => {
       tabBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      SoundFX.tabSwitch();
 
       const target = btn.dataset.tab;
       panels.forEach((panel) => {
@@ -170,6 +265,7 @@ function setupPersonPicker() {
       resultBox.innerHTML = `<span class="person-placeholder">Semua siswa sudah terpilih. Tekan Reset.</span>`;
       nextBtn.disabled = true;
       pickBtn.disabled = true;
+      SoundFX.lockedPick();
       return;
     }
 
@@ -182,6 +278,7 @@ function setupPersonPicker() {
     const interval = setInterval(() => {
       const acakSementara = pool[Math.floor(Math.random() * pool.length)];
       resultBox.innerHTML = `<div class="person-name">${acakSementara.namaPanggilan}</div>`;
+      SoundFX.shuffleTick();
       ticks++;
 
       if (ticks >= maxTicks) {
@@ -189,6 +286,7 @@ function setupPersonPicker() {
         resultBox.classList.remove("shuffling");
         const terpilih = pool[Math.floor(Math.random() * pool.length)];
         showResult(terpilih);
+        SoundFX.resultReveal();
         onDone(terpilih);
       }
     }, 70);
@@ -271,6 +369,7 @@ function setupTeamsPicker() {
         </div>
       `)
       .join("");
+    SoundFX.teamsReady();
   }
 
   makeBtn.addEventListener("click", buatTim);
