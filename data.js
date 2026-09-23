@@ -11,7 +11,7 @@ const dataSiswa = [
   { absen: 6, namaLengkap: "ALYANDRA FAUZI", namaPanggilan: "Al", citaCita: "tidak diketahui", laguFavorit: "Sempurna" },
   { absen: 7, namaLengkap: "APPLE CAHAYA WINATA", namaPanggilan: "Apple", citaCita: "Pengusaha bengkel otomotif terbesar", laguFavorit: "Laskar Pelangi" },
   { absen: 8, namaLengkap: "AYLA DWI PUTRI", namaPanggilan: "Ayla", citaCita: "Chef", laguFavorit: "Sakadung Sakading" },
-  { absen: 9, namaLengkap: "AYU RIA MERI IBRAHIM", namaPanggilan: "Charles", citaCita: "Mangaka", laguFavorit: "Mi Vida Loca - AKUGETSU" },
+  { absen: 9, namaLengkap: "AYU RIA MERI IBRAHIM", namaPanggilan: "Charles", citaCita: "Mangaka", laguFavorit: "shoujo rei - KurageP" },
   { absen: 10, namaLengkap: "BAYU RAMADHAN", namaPanggilan: "Bayu", citaCita: "Top global MC", laguFavorit: "Love Me Not" },
   { absen: 11, namaLengkap: "FAEYZA WICAKSONO DANASYAPUTRO", namaPanggilan: "Eza", citaCita: "Miliader", laguFavorit: "Monokrom - Tulus" },
   { absen: 12, namaLengkap: "GUINANDRA FAYYAD WISHAKA", namaPanggilan: "Fayyad", citaCita: "tidak diketahui", laguFavorit: "Country Roads - John Denver" },
