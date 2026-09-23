@@ -1,0 +1,38 @@
+// data.js
+// Data asli siswa Kelas 7.3
+// Setiap siswa punya: absen, namaLengkap, namaPanggilan, citaCita, laguFavorit
+
+const dataSiswa = [
+  { absen: 1, namaLengkap: "ABI AMAR SAPUTRA", namaPanggilan: "Amar", citaCita: "tidak diketahui", laguFavorit: "tidak diketahui" },
+  { absen: 2, namaLengkap: "AKMAL FAKHRI AL-HISYAM", namaPanggilan: "Akmal", citaCita: "tidak diketahui", laguFavorit: "Komang - Raim Laode" },
+  { absen: 3, namaLengkap: "ALBIANSYAH DWI FAJAR", namaPanggilan: "Bian", citaCita: "tidak diketahui", laguFavorit: "Dunia Yg Nnt" },
+  { absen: 4, namaLengkap: "ALEXA KHAIRANA SHADIQAH", namaPanggilan: "Alek", citaCita: "Gitaris", laguFavorit: "Hilang Naluri - Once Mekel" },
+  { absen: 5, namaLengkap: "ALISHA KHAIRA WILDA", namaPanggilan: "Icha", citaCita: "Dokter", laguFavorit: "Ini Abadi - Perunggu" },
+  { absen: 6, namaLengkap: "ALYANDRA FAUZI", namaPanggilan: "Al", citaCita: "tidak diketahui", laguFavorit: "Sempurna" },
+  { absen: 7, namaLengkap: "APPLE CAHAYA WINATA", namaPanggilan: "Apple", citaCita: "Pengusaha bengkel otomotif terbesar", laguFavorit: "Laskar Pelangi" },
+  { absen: 8, namaLengkap: "AYLA DWI PUTRI", namaPanggilan: "Ayla", citaCita: "Chef", laguFavorit: "Sakadung Sakading" },
+  { absen: 9, namaLengkap: "AYU RIA MERI IBRAHIM", namaPanggilan: "Charles", citaCita: "Mangaka", laguFavorit: "Mi Vida Loca - AKUGETSU" },
+  { absen: 10, namaLengkap: "BAYU RAMADHAN", namaPanggilan: "Bayu", citaCita: "Top global MC", laguFavorit: "Love Me Not" },
+  { absen: 11, namaLengkap: "FAEYZA WICAKSONO DANASYAPUTRO", namaPanggilan: "Eza", citaCita: "Miliader", laguFavorit: "Monokrom - Tulus" },
+  { absen: 12, namaLengkap: "GUINANDRA FAYYAD WISHAKA", namaPanggilan: "Fayyad", citaCita: "tidak diketahui", laguFavorit: "Country Roads - John Denver" },
+  { absen: 13, namaLengkap: "IBRAHIM REYZA ALHAJJ", namaPanggilan: "Reja", citaCita: "Dokter Anak", laguFavorit: "Supernatural - Ariana Grande" },
+  { absen: 14, namaLengkap: "INAYA AZMI ATHIFA", namaPanggilan: "Inaya", citaCita: "Billionaire", laguFavorit: "Rahasia Hati - Nidji" },
+  { absen: 15, namaLengkap: "JAVAS NATAN PUTRA YAKI", namaPanggilan: "Natan", citaCita: "tidak diketahui", laguFavorit: "tidak diketahui" },
+  { absen: 16, namaLengkap: "KAYYISHA BIANCA ANINDIAS", namaPanggilan: "Bianca", citaCita: "Dokter", laguFavorit: "Lantas - Juicy Luicy" },
+  { absen: 17, namaLengkap: "KEENAN ASSAKHA SARA", namaPanggilan: "Keenan", citaCita: "Atlet Badminton", laguFavorit: "Kangen - Dewa 19" },
+  { absen: 18, namaLengkap: "KENZIE ARZACKY ZATMIKA PRATAMA", namaPanggilan: "Kenzie", citaCita: "tidak diketahui", laguFavorit: "Sesi Potret - Ari Lesmana" },
+  { absen: 19, namaLengkap: "KEYVAN PUFFINO APRIYANO", namaPanggilan: "Keyvan", citaCita: "Pilot", laguFavorit: "Happiness - Rex Orange County" },
+  { absen: 20, namaLengkap: "KHAIRUNNISA RAJWA RAMADHANI", namaPanggilan: "Nisa", citaCita: "CEO", laguFavorit: "Now I Know - Kaleb J" },
+  { absen: 21, namaLengkap: "KHALIFTA LAILA SEGARA", namaPanggilan: "Rindu", citaCita: "Content Creator", laguFavorit: "Bukan Cinta Biasa - Afgan" },
+  { absen: 22, namaLengkap: "M. NAUFAL EL FAEYZA RAHYAWAN", namaPanggilan: "Naufal", citaCita: "tidak diketahui", laguFavorit: "AMAZING - Rex Orange County" },
+  { absen: 23, namaLengkap: "MECCA ANTARIKSA KHALIM", namaPanggilan: "Aksara", citaCita: "Quadrillionaire", laguFavorit: "Est Ce Que Tu M'aimes - GIMS" },
+  { absen: 24, namaLengkap: "MUHAMMAD ABI DZULFIQOR", namaPanggilan: "Abi", citaCita: "tidak diketahui", laguFavorit: "Mau Dibawa Kemana - Armada" },
+  { absen: 25, namaLengkap: "MUHAMMAD FAHRI RENJIRO", namaPanggilan: "Fahri", citaCita: "Player Esport Role EXP", laguFavorit: "All Night - Icona Pop" },
+  { absen: 26, namaLengkap: "MUHAMMAD RAFA AULIA KHAN HANDOYO", namaPanggilan: "Rafa", citaCita: "tidak diketahui", laguFavorit: "Menangisi Akhir Pekan - Jenny" },
+  { absen: 27, namaLengkap: "MUHAMMAD SAIF HAFIZ", namaPanggilan: "Saif", citaCita: "tidak diketahui", laguFavorit: "tidak diketahui" },
+  { absen: 28, namaLengkap: "NARAYANA BENJAMIN BASAYEV SAEPUDIN", namaPanggilan: "Ben", citaCita: "tidak diketahui", laguFavorit: "tidak diketahui" },
+  { absen: 29, namaLengkap: "PUTU YOGA PRADHANA AMARTA", namaPanggilan: "Yoga", citaCita: "Programmer", laguFavorit: "Cincin - Hindia" },
+  { absen: 30, namaLengkap: "RABYATUL UMAIRA", namaPanggilan: "Aira", citaCita: "CEO", laguFavorit: "Titik Nadir - Kahitna" },
+  { absen: 31, namaLengkap: "RAISA AYUNINDYA PUTRI", namaPanggilan: "Raisa", citaCita: "Dokter", laguFavorit: "Pemuja Rahasia" },
+  { absen: 32, namaLengkap: "SOFIA GRATYA ZAHRA", namaPanggilan: "Sofia", citaCita: "Billionaire", laguFavorit: "Pangeran Cinta - Dewa 19" },
+];
