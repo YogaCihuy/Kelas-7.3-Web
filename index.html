@@ -24,6 +24,30 @@
     </svg>
   </button>
 
+  <!-- AKUN -->
+  <div class="account-wrap">
+    <button id="btn-account" class="account-toggle" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" fill="currentColor"/><path d="M4 20c1.2-4 4.4-6 8-6s6.8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span id="account-label">Akun</span>
+    </button>
+
+    <!-- Panel saat BELUM login -->
+    <div id="panel-guest" class="account-panel" hidden>
+      <p class="account-question">Apakah kamu siswa 7.3?</p>
+      <button id="btn-show-login" class="btn-primary btn-block">Ya, Login</button>
+      <button id="btn-stay-guest" class="btn-text-only">Lanjut sebagai Guest</button>
+    </div>
+
+    <!-- Panel saat SUDAH login -->
+    <div id="panel-account" class="account-panel" hidden>
+      <p class="account-hello">Halo, <strong id="account-hello-name"></strong> <span id="account-role-badge" class="role-badge" hidden></span></p>
+      <button id="btn-edit-profil" class="account-menu-item">Edit Profil</button>
+      <button id="btn-edit-credentials" class="account-menu-item">Ganti Username & Password</button>
+      <button id="btn-kelola-admin" class="account-menu-item" hidden>Kelola Admin</button>
+      <button id="btn-logout" class="account-menu-item account-menu-danger">Logout</button>
+    </div>
+  </div>
+
   <!-- HERO -->
   <header class="hero">
     <div class="hero-inner">
@@ -46,24 +70,77 @@
     </svg>
   </header>
 
-  <!-- GRID SISWA -->
-  <main>
-    <section class="siswa-section" aria-labelledby="siswa-heading">
-      <div class="section-head">
-        <h2 id="siswa-heading">Daftar Siswa</h2>
-        <p class="section-sub">Klik kartu untuk lihat detail</p>
-      </div>
-      <div id="grid-siswa" class="grid-siswa"></div>
-    </section>
+  <!-- NAV HOME / INFO -->
+  <nav class="page-nav">
+    <button class="page-tab-btn active" data-page-tab="home">Home</button>
+    <button class="page-tab-btn" data-page-tab="info">Info</button>
+  </nav>
 
-    <!-- FITUR SPESIAL -->
-    <section class="picker-section">
-      <div class="picker-card">
-        <h2>Bingung mau pilih siapa?</h2>
-        <p>Pakai fitur pengacak buat milih satu orang atau bikin tim dadakan.</p>
-        <button id="btn-open-picker" class="btn-primary">Random Teams or Person Picker</button>
-      </div>
-    </section>
+  <main>
+    <!-- HALAMAN HOME -->
+    <div class="page-panel" data-page-panel="home">
+      <section class="siswa-section" aria-labelledby="siswa-heading">
+        <div class="section-head">
+          <h2 id="siswa-heading">Daftar Siswa</h2>
+          <p class="section-sub">Klik kartu untuk lihat detail</p>
+        </div>
+        <div id="grid-siswa" class="grid-siswa"></div>
+      </section>
+
+      <!-- FITUR SPESIAL -->
+      <section class="picker-section">
+        <div class="picker-card">
+          <h2>Bingung mau pilih siapa?</h2>
+          <p>Pakai fitur pengacak buat milih satu orang atau bikin tim dadakan.</p>
+          <button id="btn-open-picker" class="btn-primary">Random Teams or Person Picker</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- HALAMAN INFO -->
+    <div class="page-panel" data-page-panel="info" hidden>
+      <section class="info-section">
+        <div class="section-head">
+          <h2 id="info-tanggal">Info Besok</h2>
+          <p class="section-sub" id="info-hari-label">-</p>
+        </div>
+
+        <button id="btn-edit-info" class="btn-secondary btn-edit-info" hidden>Edit Info Besok</button>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <span class="info-icon">&#128218;</span>
+            <h4>Mata Pelajaran</h4>
+            <p id="info-mapel">-</p>
+          </div>
+          <div class="info-card">
+            <span class="info-icon">&#128085;</span>
+            <h4>Seragam</h4>
+            <p id="info-seragam">-</p>
+          </div>
+          <div class="info-card">
+            <span class="info-icon">&#129529;</span>
+            <h4>Piket</h4>
+            <p id="info-piket">-</p>
+          </div>
+          <div class="info-card">
+            <span class="info-icon">&#9917;</span>
+            <h4>Eskul</h4>
+            <p id="info-eskul">-</p>
+          </div>
+          <div class="info-card info-card-pr">
+            <span class="info-icon">&#128221;</span>
+            <h4>PR</h4>
+            <p id="info-pr">Belum ada info PR</p>
+          </div>
+          <div class="info-card info-card-catatan" id="info-catatan-card" hidden>
+            <span class="info-icon">&#128276;</span>
+            <h4>Catatan Tambahan</h4>
+            <p id="info-catatan">-</p>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer class="footer">
@@ -92,7 +169,15 @@
           <dt>Lagu favorit</dt>
           <dd id="detail-lagu"></dd>
         </div>
+        <div class="detail-row">
+          <dt>Bio</dt>
+          <dd>
+            <p id="detail-bio" class="detail-bio"></p>
+            <button id="btn-bio-toggle" class="bio-toggle" type="button" hidden>Baca selengkapnya</button>
+          </dd>
+        </div>
       </dl>
+      <button id="btn-edit-this-profil" class="btn-secondary btn-block btn-edit-own" hidden>Edit Profil Aku</button>
     </div>
   </div>
 
@@ -135,6 +220,99 @@
     </div>
   </div>
 
+  <!-- MODAL LOGIN -->
+  <div id="modal-login" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="login-title">Login Siswa 7.3</h3>
+      <p class="form-hint">Masukan Username kamu dan Password.</p>
+      <form id="form-login" class="account-form">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" autocomplete="username" required>
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+        <p id="login-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT PROFIL -->
+  <div id="modal-edit-profil" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="profil-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="profil-title">Edit Profil</h3>
+      <form id="form-edit-profil" class="account-form">
+        <label for="profil-panggilan">Nama Panggilan</label>
+        <input id="profil-panggilan" type="text" required maxlength="30">
+        <label for="profil-cita">Cita-cita</label>
+        <input id="profil-cita" type="text" maxlength="60">
+        <label for="profil-lagu">Lagu Favorit</label>
+        <input id="profil-lagu" type="text" maxlength="80">
+        <label for="profil-bio">Bio <span id="profil-bio-count">0/150</span></label>
+        <textarea id="profil-bio" maxlength="150" rows="3"></textarea>
+        <p id="profil-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Simpan Perubahan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL GANTI USERNAME & PASSWORD -->
+  <div id="modal-edit-credentials" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cred-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="cred-title">Ganti Username & Password</h3>
+      <form id="form-edit-credentials" class="account-form">
+        <label for="cred-password-lama">Password Sekarang</label>
+        <input id="cred-password-lama" type="password" required>
+        <label for="cred-username-baru">Username Baru</label>
+        <input id="cred-username-baru" type="text" required>
+        <label for="cred-password-baru">Password Baru (kosongkan kalau gak mau ganti)</label>
+        <input id="cred-password-baru" type="password">
+        <p id="cred-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Simpan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT INFO BESOK (Admin & Owner) -->
+  <div id="modal-edit-info" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="info-edit-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="info-edit-title">Edit Info Besok</h3>
+      <form id="form-edit-info" class="account-form">
+        <label for="edit-mapel">Mata Pelajaran Besok (kosongkan = pakai jadwal biasa)</label>
+        <input id="edit-mapel" type="text" placeholder="Contoh: MTK, IPA, B.Indo">
+        <label for="edit-eskul">Eskul Besok (kosongkan = pakai jadwal biasa)</label>
+        <input id="edit-eskul" type="text" placeholder="Contoh: Basket (dipindah dari Selasa)">
+        <label for="edit-pr">PR</label>
+        <textarea id="edit-pr" rows="2" placeholder="Contoh: MTK halaman 20 no 1-5"></textarea>
+        <label class="checkbox-label">
+          <input id="edit-eskul-libur" type="checkbox">
+          Eskul besok diliburkan
+        </label>
+        <label for="edit-catatan">Catatan Tambahan (opsional)</label>
+        <textarea id="edit-catatan" rows="2" placeholder="Contoh: pakai baju bebas karena ada acara"></textarea>
+        <p id="edit-info-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Simpan Info</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL KELOLA ADMIN (Owner) -->
+  <div id="modal-kelola-admin" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="admin-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="admin-title">Kelola Admin</h3>
+      <p class="form-hint">Centang siapa aja yang jadi Admin (bisa ubah Tab Info).</p>
+      <div id="daftar-kelola-admin" class="kelola-admin-list"></div>
+    </div>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="firebase-init.js"></script>
+<script src="schedule.js"></script>
 <script src="data.js"></script>
 <script src="script.js"></script>
 </body>
