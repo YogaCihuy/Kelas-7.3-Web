@@ -1,16 +1,24 @@
 // script.js
 
+let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
+let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
+let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
+let infoOverrideData = {};   // override PR / eskul libur / catatan dari Firestore utk besok
+
 document.addEventListener("DOMContentLoaded", () => {
   setupSoundToggle();
+  setupAccountsListener();
+  setupPageTabs();
   renderGridSiswa();
   setupDetailModal();
   setupPickerModal();
+  setupAccountUI();
+  setupInfoTab();
+  restoreSession();
 });
 
 /* ===================================================
    0. SOUND EFFECTS
-   Sintesis nada pendek pakai Web Audio API, jadi gak
-   butuh file audio eksternal — semuanya self-contained.
 =================================================== */
 const SoundFX = (() => {
   let ctx = null;
@@ -69,6 +77,7 @@ const SoundFX = (() => {
     },
     resetSound: () => tone({ freq: 300, glideTo: 180, duration: 0.16, type: "sine", gain: 0.1 }),
     lockedPick: () => tone({ freq: 220, duration: 0.14, type: "sine", gain: 0.1 }),
+    errorSound: () => tone({ freq: 200, duration: 0.14, type: "sawtooth", gain: 0.08 }),
   };
 })();
 
@@ -95,20 +104,103 @@ function setupSoundToggle() {
 }
 
 /* ===================================================
-   1. RENDER GRID SISWA
+   1. AKUN & DATA SISWA (Firestore)
+=================================================== */
+function getDefaultAccount(siswa) {
+  return {
+    absen: siswa.absen,
+    namaLengkap: siswa.namaLengkap,
+    namaPanggilan: siswa.namaPanggilan,
+    citaCita: siswa.citaCita,
+    laguFavorit: siswa.laguFavorit,
+    bio: "",
+    username: siswa.namaPanggilan,
+    password: `73${siswa.absen}`,
+    role: siswa.absen === 29 ? "owner" : "member",
+  };
+}
+
+function getMergedAccount(absen) {
+  const siswa = dataSiswa.find((s) => s.absen === Number(absen));
+  if (!siswa) return null;
+  const def = getDefaultAccount(siswa);
+  const override = accountsData[String(absen)];
+  if (!override) return def;
+  return {
+    ...def,
+    ...override,
+    absen: siswa.absen,
+    namaLengkap: siswa.namaLengkap, // nama lengkap selalu terkunci dari data.js
+    bio: override.bio !== undefined ? override.bio : "",
+  };
+}
+
+function getLiveSiswaList() {
+  return dataSiswa.map((s) => ({ ...s, namaPanggilan: getMergedAccount(s.absen).namaPanggilan }));
+}
+
+function setupAccountsListener() {
+  db.collection("accounts").onSnapshot(
+    (snap) => {
+      const next = {};
+      snap.forEach((doc) => {
+        next[doc.id] = doc.data();
+      });
+      accountsData = next;
+      renderGridSiswa();
+      if (currentUser) {
+        const refreshed = getMergedAccount(currentUser.absen);
+        if (refreshed) {
+          currentUser = refreshed;
+          updateAccountUI();
+        }
+      }
+    },
+    (err) => {
+      console.error("Gagal konek ke Firestore:", err);
+    }
+  );
+}
+
+function restoreSession() {
+  const saved = localStorage.getItem("kelas73-session");
+  if (saved) {
+    const merged = getMergedAccount(Number(saved));
+    if (merged) currentUser = merged;
+  }
+  updateAccountUI();
+}
+
+function loginUser(absen) {
+  currentUser = getMergedAccount(absen);
+  localStorage.setItem("kelas73-session", String(absen));
+  updateAccountUI();
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem("kelas73-session");
+  updateAccountUI();
+}
+
+/* ===================================================
+   2. RENDER GRID SISWA
 =================================================== */
 function renderGridSiswa() {
   const grid = document.getElementById("grid-siswa");
+  if (!grid) return;
+  grid.innerHTML = "";
   const fragment = document.createDocumentFragment();
 
   dataSiswa.forEach((siswa) => {
+    const merged = getMergedAccount(siswa.absen);
     const card = document.createElement("button");
     card.className = "siswa-card";
     card.type = "button";
     card.dataset.absen = siswa.absen;
     card.innerHTML = `
       <span class="siswa-absen">${String(siswa.absen).padStart(2, "0")}</span>
-      <div class="siswa-nama">${siswa.namaPanggilan}</div>
+      <div class="siswa-nama">${merged.namaPanggilan}</div>
     `;
     fragment.appendChild(card);
   });
@@ -117,7 +209,7 @@ function renderGridSiswa() {
 }
 
 /* ===================================================
-   2. MODAL DETAIL SISWA
+   3. MODAL DETAIL SISWA
 =================================================== */
 function setupDetailModal() {
   const grid = document.getElementById("grid-siswa");
@@ -128,33 +220,58 @@ function setupDetailModal() {
     const card = e.target.closest(".siswa-card");
     if (!card) return;
 
-    const siswa = dataSiswa.find((s) => s.absen === Number(card.dataset.absen));
+    const absen = Number(card.dataset.absen);
+    const siswa = dataSiswa.find((s) => s.absen === absen);
     if (!siswa) return;
+    const merged = getMergedAccount(absen);
 
     document.getElementById("detail-absen").textContent = String(siswa.absen).padStart(2, "0");
     document.getElementById("detail-nama").textContent = siswa.namaLengkap;
-    document.getElementById("detail-panggilan").textContent = siswa.namaPanggilan;
-    document.getElementById("detail-cita").textContent = siswa.citaCita;
-    document.getElementById("detail-lagu").textContent = siswa.laguFavorit;
+    document.getElementById("detail-panggilan").textContent = merged.namaPanggilan;
+    document.getElementById("detail-cita").textContent = merged.citaCita;
+    document.getElementById("detail-lagu").textContent = merged.laguFavorit;
+
+    const bioEl = document.getElementById("detail-bio");
+    const bioToggle = document.getElementById("btn-bio-toggle");
+    bioEl.textContent = merged.bio && merged.bio.trim() ? merged.bio : "belom ada Bio";
+    bioEl.classList.remove("expanded");
+    bioToggle.textContent = "Baca selengkapnya";
+    bioToggle.hidden = true;
+    requestAnimationFrame(() => {
+      if (bioEl.scrollHeight > bioEl.clientHeight + 2) bioToggle.hidden = false;
+    });
+
+    document.getElementById("btn-edit-this-profil").hidden = !(currentUser && currentUser.absen === absen);
 
     openModal(modal);
     playSproutAnimation(modalBox, card);
     SoundFX.cardOpen();
   });
 
+  document.getElementById("btn-bio-toggle").addEventListener("click", () => {
+    const bioEl = document.getElementById("detail-bio");
+    const btn = document.getElementById("btn-bio-toggle");
+    const expand = !bioEl.classList.contains("expanded");
+    bioEl.classList.toggle("expanded", expand);
+    btn.textContent = expand ? "Sembunyikan" : "Baca selengkapnya";
+  });
+
+  document.getElementById("btn-edit-this-profil").addEventListener("click", () => {
+    if (!currentUser) return;
+    closeModal(modal);
+    openEditProfilModal(currentUser.absen);
+  });
+
   setupModalDismiss(modal);
 }
 
-/* Animasi "tumbuh" dari titik kartu yang diklik, kayak daun yang mekar */
 function playSproutAnimation(modalBox, originEl) {
-  // reset dulu biar animasi bisa diputar ulang tiap kali modal dibuka
   modalBox.classList.remove("sprout");
 
   const originRect = originEl.getBoundingClientRect();
   const clickX = originRect.left + originRect.width / 2;
   const clickY = originRect.top + originRect.height / 2;
 
-  // paksa reflow supaya posisi box sudah final sebelum dihitung
   void modalBox.offsetWidth;
   const boxRect = modalBox.getBoundingClientRect();
 
@@ -163,13 +280,12 @@ function playSproutAnimation(modalBox, originEl) {
   modalBox.style.setProperty("--ox", `${ox}px`);
   modalBox.style.setProperty("--oy", `${oy}px`);
 
-  // paksa reflow lagi supaya class bisa ditambahkan ulang (restart animasi)
   void modalBox.offsetWidth;
   modalBox.classList.add("sprout");
 }
 
 /* ===================================================
-   3. GENERIC MODAL HELPERS
+   4. GENERIC MODAL HELPERS
 =================================================== */
 function openModal(modal) {
   modal.hidden = false;
@@ -195,7 +311,7 @@ function setupModalDismiss(modal) {
 }
 
 /* ===================================================
-   4. PICKER MODAL (Person & Teams)
+   5. PICKER MODAL (Person & Teams)
 =================================================== */
 function setupPickerModal() {
   const modal = document.getElementById("modal-picker");
@@ -207,7 +323,7 @@ function setupPickerModal() {
   });
   setupModalDismiss(modal);
 
-  setupTabs();
+  setupPickerTabs();
   const personPicker = setupPersonPicker();
   const teamsPicker = setupTeamsPicker();
 
@@ -218,10 +334,9 @@ function setupPickerModal() {
   });
 }
 
-/* ---- Tabs ---- */
-function setupTabs() {
-  const tabBtns = document.querySelectorAll(".tab-btn");
-  const panels = document.querySelectorAll(".tab-panel");
+function setupPickerTabs() {
+  const tabBtns = document.querySelectorAll("#modal-picker .tab-btn");
+  const panels = document.querySelectorAll("#modal-picker .tab-panel");
 
   tabBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -245,7 +360,7 @@ function setupPersonPicker() {
   const nextBtn = document.getElementById("btn-next");
 
   let sudahTerpilih = [];
-  const isSisa = () => dataSiswa.filter((s) => !sudahTerpilih.includes(s.absen));
+  const isSisa = () => getLiveSiswaList().filter((s) => !sudahTerpilih.includes(s.absen));
 
   function updateRemainingLabel() {
     remainingLabel.textContent = isSisa().length;
@@ -293,11 +408,10 @@ function setupPersonPicker() {
   }
 
   pickBtn.addEventListener("click", () => {
-    shuffleAndPick(dataSiswa, (terpilih) => {
+    shuffleAndPick(getLiveSiswaList(), (terpilih) => {
       sudahTerpilih = [terpilih.absen];
       updateRemainingLabel();
       pickBtn.disabled = false;
-      pickBtn.textContent = "Pick Randomly";
       nextBtn.disabled = isSisa().length === 0;
     });
   });
@@ -329,9 +443,7 @@ function setupTeamsPicker() {
   const sizeSelect = document.getElementById("teamSize");
   const makeBtn = document.getElementById("btn-make-teams");
   const resultBox = document.getElementById("teams-result");
-  const total = dataSiswa.length;
 
-  // Isi dropdown ukuran tim: 2 sampai 8 orang per tim
   for (let n = 2; n <= 8; n++) {
     const opt = document.createElement("option");
     opt.value = n;
@@ -351,8 +463,8 @@ function setupTeamsPicker() {
 
   function buatTim() {
     const ukuran = Number(sizeSelect.value);
-    const acak = acakArray(dataSiswa);
-    const jumlahTim = Math.ceil(total / ukuran);
+    const acak = acakArray(getLiveSiswaList());
+    const jumlahTim = Math.ceil(acak.length / ukuran);
     const tim = Array.from({ length: jumlahTim }, () => []);
 
     acak.forEach((siswa, idx) => {
@@ -360,14 +472,16 @@ function setupTeamsPicker() {
     });
 
     resultBox.innerHTML = tim
-      .map((anggota, i) => `
+      .map(
+        (anggota, i) => `
         <div class="team-block">
           <h4>Tim ${i + 1}</h4>
           <ul>
             ${anggota.map((s) => `<li>${s.namaPanggilan} (absen ${String(s.absen).padStart(2, "0")})</li>`).join("")}
           </ul>
         </div>
-      `)
+      `
+      )
       .join("");
     SoundFX.teamsReady();
   }
@@ -380,4 +494,388 @@ function setupTeamsPicker() {
   }
 
   return { reset };
+}
+
+/* ===================================================
+   6. NAV HOME / INFO
+=================================================== */
+function setupPageTabs() {
+  const btns = document.querySelectorAll(".page-tab-btn");
+  const panels = document.querySelectorAll(".page-panel");
+
+  btns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const target = btn.dataset.pageTab;
+      panels.forEach((p) => {
+        p.hidden = p.dataset.pagePanel !== target;
+      });
+      SoundFX.tabSwitch();
+    });
+  });
+}
+
+/* ===================================================
+   7. TAB INFO (jadwal otomatis + override admin)
+=================================================== */
+function setupInfoTab() {
+  infoBesok = getInfoBesok();
+
+  document.getElementById("info-hari-label").textContent = infoBesok.tanggalFormatted;
+  document.getElementById("info-mapel").textContent = infoBesok.mapel.join(", ") || "-";
+  document.getElementById("info-seragam").textContent = infoBesok.seragam;
+  document.getElementById("info-piket").textContent = infoBesok.piket.join(", ") || "-";
+  document.getElementById("info-eskul").textContent = infoBesok.eskul.join(", ") || "Gak ada eskul";
+
+  db.collection("infoOverrides")
+    .doc(infoBesok.key)
+    .onSnapshot(
+      (doc) => {
+        infoOverrideData = doc.exists ? doc.data() : {};
+        renderInfoOverrides();
+      },
+      (err) => console.error("Gagal ambil info besok:", err)
+    );
+
+  document.getElementById("btn-edit-info").addEventListener("click", openEditInfoModal);
+  document.getElementById("form-edit-info").addEventListener("submit", handleEditInfoSubmit);
+  setupModalDismiss(document.getElementById("modal-edit-info"));
+}
+
+function renderInfoOverrides() {
+  document.getElementById("info-mapel").textContent =
+    infoOverrideData.mapelOverride && infoOverrideData.mapelOverride.trim()
+      ? infoOverrideData.mapelOverride
+      : infoBesok.mapel.join(", ") || "-";
+
+  document.getElementById("info-pr").textContent =
+    infoOverrideData.pr && infoOverrideData.pr.trim() ? infoOverrideData.pr : "Belum ada info PR";
+
+  if (infoOverrideData.eskulLibur) {
+    document.getElementById("info-eskul").textContent = "Diliburkan besok";
+  } else if (infoOverrideData.eskulOverride && infoOverrideData.eskulOverride.trim()) {
+    document.getElementById("info-eskul").textContent = infoOverrideData.eskulOverride;
+  } else {
+    document.getElementById("info-eskul").textContent = infoBesok.eskul.join(", ") || "Gak ada eskul";
+  }
+
+  const catatanCard = document.getElementById("info-catatan-card");
+  if (infoOverrideData.catatan && infoOverrideData.catatan.trim()) {
+    document.getElementById("info-catatan").textContent = infoOverrideData.catatan;
+    catatanCard.hidden = false;
+  } else {
+    catatanCard.hidden = true;
+  }
+}
+
+function updateInfoEditButtonVisibility() {
+  const btn = document.getElementById("btn-edit-info");
+  if (!btn) return;
+  btn.hidden = !(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
+}
+
+function openEditInfoModal() {
+  document.getElementById("edit-mapel").value = infoOverrideData.mapelOverride || "";
+  document.getElementById("edit-eskul").value = infoOverrideData.eskulOverride || "";
+  document.getElementById("edit-pr").value = infoOverrideData.pr || "";
+  document.getElementById("edit-eskul-libur").checked = !!infoOverrideData.eskulLibur;
+  document.getElementById("edit-catatan").value = infoOverrideData.catatan || "";
+  document.getElementById("edit-info-error").hidden = true;
+  openModal(document.getElementById("modal-edit-info"));
+}
+
+async function handleEditInfoSubmit(e) {
+  e.preventDefault();
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
+  const errorEl = document.getElementById("edit-info-error");
+  const payload = {
+    mapelOverride: document.getElementById("edit-mapel").value.trim(),
+    eskulOverride: document.getElementById("edit-eskul").value.trim(),
+    pr: document.getElementById("edit-pr").value.trim(),
+    eskulLibur: document.getElementById("edit-eskul-libur").checked,
+    catatan: document.getElementById("edit-catatan").value.trim(),
+  };
+  try {
+    await db.collection("infoOverrides").doc(infoBesok.key).set(payload, { merge: true });
+    closeModal(document.getElementById("modal-edit-info"));
+    SoundFX.resultReveal();
+  } catch (err) {
+    errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+/* ===================================================
+   8. UI AKUN (login, edit profil, kredensial, kelola admin)
+=================================================== */
+function setupAccountUI() {
+  const btnAccount = document.getElementById("btn-account");
+  const panelGuest = document.getElementById("panel-guest");
+  const panelAccount = document.getElementById("panel-account");
+
+  btnAccount.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = !panelGuest.hidden || !panelAccount.hidden;
+    closeAccountPanels();
+    if (!wasOpen) {
+      if (currentUser) panelAccount.hidden = false;
+      else panelGuest.hidden = false;
+    }
+    SoundFX.buttonClick();
+  });
+
+  [panelGuest, panelAccount].forEach((panel) => panel.addEventListener("click", (e) => e.stopPropagation()));
+  document.addEventListener("click", () => closeAccountPanels());
+
+  document.getElementById("btn-show-login").addEventListener("click", () => {
+    closeAccountPanels();
+    document.getElementById("form-login").reset();
+    document.getElementById("login-error").hidden = true;
+    openModal(document.getElementById("modal-login"));
+  });
+
+  document.getElementById("btn-stay-guest").addEventListener("click", () => {
+    closeAccountPanels();
+    SoundFX.buttonClick();
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    logoutUser();
+    closeAccountPanels();
+    SoundFX.resetSound();
+  });
+
+  document.getElementById("btn-edit-profil").addEventListener("click", () => {
+    closeAccountPanels();
+    openEditProfilModal(currentUser.absen);
+  });
+
+  document.getElementById("btn-edit-credentials").addEventListener("click", () => {
+    closeAccountPanels();
+    document.getElementById("form-edit-credentials").reset();
+    document.getElementById("cred-error").hidden = true;
+    openModal(document.getElementById("modal-edit-credentials"));
+  });
+
+  document.getElementById("btn-kelola-admin").addEventListener("click", () => {
+    closeAccountPanels();
+    renderKelolaAdmin();
+    openModal(document.getElementById("modal-kelola-admin"));
+  });
+
+  setupModalDismiss(document.getElementById("modal-login"));
+  setupModalDismiss(document.getElementById("modal-edit-profil"));
+  setupModalDismiss(document.getElementById("modal-edit-credentials"));
+  setupModalDismiss(document.getElementById("modal-kelola-admin"));
+
+  document.getElementById("form-login").addEventListener("submit", handleLoginSubmit);
+  document.getElementById("form-edit-profil").addEventListener("submit", handleEditProfilSubmit);
+  document.getElementById("form-edit-credentials").addEventListener("submit", handleEditCredentialsSubmit);
+
+  document.getElementById("profil-bio").addEventListener("input", (e) => {
+    document.getElementById("profil-bio-count").textContent = `${e.target.value.length}/150`;
+  });
+}
+
+function closeAccountPanels() {
+  document.getElementById("panel-guest").hidden = true;
+  document.getElementById("panel-account").hidden = true;
+}
+
+function updateAccountUI() {
+  const label = document.getElementById("account-label");
+  const helloName = document.getElementById("account-hello-name");
+  const roleBadge = document.getElementById("account-role-badge");
+  const btnKelolaAdmin = document.getElementById("btn-kelola-admin");
+
+  if (currentUser) {
+    label.textContent = currentUser.namaPanggilan;
+    helloName.textContent = currentUser.namaPanggilan;
+    if (currentUser.role === "owner" || currentUser.role === "admin") {
+      roleBadge.textContent = currentUser.role;
+      roleBadge.hidden = false;
+    } else {
+      roleBadge.hidden = true;
+    }
+    btnKelolaAdmin.hidden = currentUser.role !== "owner";
+  } else {
+    label.textContent = "Akun";
+  }
+  updateInfoEditButtonVisibility();
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const username = document.getElementById("login-username").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errorEl = document.getElementById("login-error");
+  errorEl.hidden = true;
+
+  let matchedAbsen = null;
+  for (const siswa of dataSiswa) {
+    const merged = getMergedAccount(siswa.absen);
+    if (merged.username === username) {
+      matchedAbsen = siswa.absen;
+      break;
+    }
+  }
+
+  if (matchedAbsen === null) {
+    errorEl.textContent = "Username gak ditemukan.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+    return;
+  }
+
+  const merged = getMergedAccount(matchedAbsen);
+  if (merged.password !== password) {
+    errorEl.textContent = "Password salah.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+    return;
+  }
+
+  try {
+    if (!accountsData[String(matchedAbsen)]) {
+      const siswa = dataSiswa.find((s) => s.absen === matchedAbsen);
+      await db.collection("accounts").doc(String(matchedAbsen)).set(getDefaultAccount(siswa));
+    }
+    loginUser(matchedAbsen);
+    closeModal(document.getElementById("modal-login"));
+    SoundFX.resultReveal();
+  } catch (err) {
+    errorEl.textContent = "Gagal login, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+function openEditProfilModal(absen) {
+  const merged = getMergedAccount(absen);
+  document.getElementById("profil-panggilan").value = merged.namaPanggilan;
+  document.getElementById("profil-cita").value = merged.citaCita;
+  document.getElementById("profil-lagu").value = merged.laguFavorit;
+  document.getElementById("profil-bio").value = merged.bio;
+  document.getElementById("profil-bio-count").textContent = `${merged.bio.length}/150`;
+  document.getElementById("profil-error").hidden = true;
+  openModal(document.getElementById("modal-edit-profil"));
+}
+
+async function handleEditProfilSubmit(e) {
+  e.preventDefault();
+  if (!currentUser) return;
+  const errorEl = document.getElementById("profil-error");
+
+  const namaPanggilan = document.getElementById("profil-panggilan").value.trim();
+  if (!namaPanggilan) {
+    errorEl.textContent = "Nama panggilan gak boleh kosong.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  const payload = {
+    namaPanggilan,
+    citaCita: document.getElementById("profil-cita").value.trim() || "tidak diketahui",
+    laguFavorit: document.getElementById("profil-lagu").value.trim() || "tidak diketahui",
+    bio: document.getElementById("profil-bio").value.trim(),
+  };
+
+  try {
+    await db.collection("accounts").doc(String(currentUser.absen)).set(payload, { merge: true });
+    closeModal(document.getElementById("modal-edit-profil"));
+    SoundFX.resultReveal();
+  } catch (err) {
+    errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+async function handleEditCredentialsSubmit(e) {
+  e.preventDefault();
+  if (!currentUser) return;
+  const errorEl = document.getElementById("cred-error");
+
+  const passwordLama = document.getElementById("cred-password-lama").value;
+  const usernameBaru = document.getElementById("cred-username-baru").value.trim();
+  const passwordBaru = document.getElementById("cred-password-baru").value;
+
+  const merged = getMergedAccount(currentUser.absen);
+  if (merged.password !== passwordLama) {
+    errorEl.textContent = "Password sekarang salah.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+    return;
+  }
+  if (!usernameBaru) {
+    errorEl.textContent = "Username gak boleh kosong.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  const dipakaiOrangLain = dataSiswa.some(
+    (s) => s.absen !== currentUser.absen && getMergedAccount(s.absen).username === usernameBaru
+  );
+  if (dipakaiOrangLain) {
+    errorEl.textContent = "Username udah dipake orang lain.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+    return;
+  }
+
+  const payload = { username: usernameBaru };
+  if (passwordBaru) payload.password = passwordBaru;
+
+  try {
+    await db.collection("accounts").doc(String(currentUser.absen)).set(payload, { merge: true });
+    closeModal(document.getElementById("modal-edit-credentials"));
+    SoundFX.resultReveal();
+  } catch (err) {
+    errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+/* ===================================================
+   9. KELOLA ADMIN (Owner)
+=================================================== */
+function renderKelolaAdmin() {
+  const container = document.getElementById("daftar-kelola-admin");
+  container.innerHTML = "";
+
+  dataSiswa.forEach((siswa) => {
+    if (siswa.absen === 29) return; // Owner (Yoga) gak perlu di-toggle
+    const merged = getMergedAccount(siswa.absen);
+    const row = document.createElement("div");
+    row.className = "kelola-admin-row";
+    row.innerHTML = `
+      <label>
+        <input type="checkbox" data-admin-absen="${siswa.absen}" ${merged.role === "admin" ? "checked" : ""}>
+        ${merged.namaPanggilan} (absen ${String(siswa.absen).padStart(2, "0")})
+      </label>
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll("input[type=checkbox]").forEach((chk) => {
+    chk.addEventListener("change", async (e) => {
+      const absen = Number(e.target.dataset.adminAbsen);
+      const newRole = e.target.checked ? "admin" : "member";
+      const siswa = dataSiswa.find((s) => s.absen === absen);
+      try {
+        if (!accountsData[String(absen)]) {
+          await db.collection("accounts").doc(String(absen)).set({ ...getDefaultAccount(siswa), role: newRole });
+        } else {
+          await db.collection("accounts").doc(String(absen)).set({ role: newRole }, { merge: true });
+        }
+        SoundFX.buttonClick();
+      } catch (err) {
+        e.target.checked = !e.target.checked;
+        SoundFX.errorSound();
+      }
+    });
+  });
 }
