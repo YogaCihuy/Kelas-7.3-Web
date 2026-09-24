@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /accounts/{absen} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /infoOverrides/{tanggal} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
