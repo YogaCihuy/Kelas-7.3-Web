@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPickerModal();
   setupAccountUI();
   setupInfoTab();
+  setupMedsosTab();
+  setupPollingTab();
   restoreSession();
 });
 
@@ -502,17 +504,36 @@ function setupTeamsPicker() {
 function setupPageTabs() {
   const btns = document.querySelectorAll(".page-tab-btn");
   const panels = document.querySelectorAll(".page-panel");
+  const indicator = document.getElementById("tab-indicator");
 
-  btns.forEach((btn) => {
+  function moveIndicator(btn) {
+    if (!indicator) return;
+    indicator.style.transform = `translateX(${btn.offsetLeft - btns[0].offsetLeft}px)`;
+  }
+
+  btns.forEach((btn, idx) => {
     btn.addEventListener("click", () => {
       btns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      moveIndicator(btn);
       const target = btn.dataset.pageTab;
       panels.forEach((p) => {
-        p.hidden = p.dataset.pagePanel !== target;
+        const tampilkan = p.dataset.pagePanel === target;
+        p.hidden = !tampilkan;
+        if (tampilkan) {
+          p.classList.remove("panel-enter");
+          void p.offsetWidth; // reset biar animasinya bisa diputer ulang
+          p.classList.add("panel-enter");
+        }
       });
       SoundFX.tabSwitch();
     });
+    if (idx === 0) requestAnimationFrame(() => moveIndicator(btn));
+  });
+
+  window.addEventListener("resize", () => {
+    const active = document.querySelector(".page-tab-btn.active");
+    if (active) moveIndicator(active);
   });
 }
 
@@ -704,6 +725,8 @@ function updateAccountUI() {
     label.textContent = "Akun";
   }
   updateInfoEditButtonVisibility();
+  updateMedsosEditVisibility();
+  updatePollingCreateVisibility();
 }
 
 async function handleLoginSubmit(e) {
@@ -878,4 +901,235 @@ function renderKelolaAdmin() {
       }
     });
   });
+}
+
+/* ===================================================
+   10. TAB MEDIA SOSIAL (Admin & Owner bisa edit)
+=================================================== */
+function setupMedsosTab() {
+  db.collection("settings")
+    .doc("medsos")
+    .onSnapshot(
+      (doc) => {
+        const data = doc.exists ? doc.data() : {};
+        const tiktok = data.tiktok || "";
+        const ig = data.ig || "";
+
+        const tiktokLink = document.getElementById("medsos-tiktok");
+        const igLink = document.getElementById("medsos-ig");
+
+        document.getElementById("medsos-tiktok-handle").textContent = tiktok ? `@${tiktok}` : "Belum diatur";
+        document.getElementById("medsos-ig-handle").textContent = ig ? `@${ig}` : "Belum diatur";
+
+        tiktokLink.href = tiktok ? `https://www.tiktok.com/@${tiktok}` : "#";
+        igLink.href = ig ? `https://www.instagram.com/${ig}` : "#";
+
+        window._medsosData = { tiktok, ig };
+      },
+      (err) => console.error("Gagal ambil data medsos:", err)
+    );
+
+  document.getElementById("btn-edit-medsos").addEventListener("click", openEditMedsosModal);
+  document.getElementById("form-edit-medsos").addEventListener("submit", handleEditMedsosSubmit);
+  setupModalDismiss(document.getElementById("modal-edit-medsos"));
+}
+
+function updateMedsosEditVisibility() {
+  const btn = document.getElementById("btn-edit-medsos");
+  if (!btn) return;
+  btn.hidden = !(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
+}
+
+function openEditMedsosModal() {
+  const data = window._medsosData || {};
+  document.getElementById("medsos-tiktok-input").value = data.tiktok || "";
+  document.getElementById("medsos-ig-input").value = data.ig || "";
+  document.getElementById("medsos-error").hidden = true;
+  openModal(document.getElementById("modal-edit-medsos"));
+}
+
+async function handleEditMedsosSubmit(e) {
+  e.preventDefault();
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
+  const errorEl = document.getElementById("medsos-error");
+  const payload = {
+    tiktok: document.getElementById("medsos-tiktok-input").value.trim().replace(/^@/, ""),
+    ig: document.getElementById("medsos-ig-input").value.trim().replace(/^@/, ""),
+  };
+  try {
+    await db.collection("settings").doc("medsos").set(payload, { merge: true });
+    closeModal(document.getElementById("modal-edit-medsos"));
+    SoundFX.resultReveal();
+  } catch (err) {
+    errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+/* ===================================================
+   11. TAB POLLING (Admin & Owner bikin, semua vote)
+=================================================== */
+function setupPollingTab() {
+  db.collection("polling")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(
+      (snap) => {
+        const daftar = [];
+        snap.forEach((doc) => daftar.push({ id: doc.id, ...doc.data() }));
+        renderPollingList(daftar);
+      },
+      (err) => console.error("Gagal ambil polling:", err)
+    );
+
+  document.getElementById("btn-buat-polling").addEventListener("click", openBuatPollingModal);
+  document.getElementById("btn-tambah-opsi").addEventListener("click", () => {
+    const list = document.getElementById("polling-opsi-list");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "polling-opsi-input";
+    input.placeholder = `Pilihan ${list.children.length + 1}`;
+    list.appendChild(input);
+    SoundFX.buttonClick();
+  });
+  document.getElementById("form-buat-polling").addEventListener("submit", handleBuatPollingSubmit);
+  setupModalDismiss(document.getElementById("modal-buat-polling"));
+}
+
+function updatePollingCreateVisibility() {
+  const btn = document.getElementById("btn-buat-polling");
+  if (!btn) return;
+  btn.hidden = !(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
+}
+
+function renderPollingList(daftar) {
+  const container = document.getElementById("daftar-polling");
+  const isAdminOrOwner = currentUser && (currentUser.role === "admin" || currentUser.role === "owner");
+
+  if (daftar.length === 0) {
+    container.innerHTML = `<p class="section-sub">Belum ada polling. ${isAdminOrOwner ? "Bikin yang pertama yuk!" : "Cek lagi nanti ya."}</p>`;
+    return;
+  }
+
+  container.innerHTML = daftar
+    .map((poll) => {
+      const votes = poll.votes || {};
+      const totalVotes = Object.keys(votes).length;
+      const myVote = currentUser ? votes[String(currentUser.absen)] : undefined;
+
+      const opsiHtml = poll.opsi
+        .map((opsi, i) => {
+          const pemilih = Object.entries(votes)
+            .filter(([, v]) => v === i)
+            .map(([absen]) => getMergedAccount(Number(absen))?.namaPanggilan || "?");
+          const jumlah = pemilih.length;
+          const persen = totalVotes > 0 ? Math.round((jumlah / totalVotes) * 100) : 0;
+          const votedMine = myVote === i;
+
+          return `
+            <div class="polling-opsi-row ${votedMine ? "voted-mine" : ""}" data-poll-id="${poll.id}" data-opsi-index="${i}">
+              <div class="polling-opsi-label">
+                <span>${opsi} ${votedMine ? "&#9989;" : ""}</span>
+                <span class="polling-opsi-persen">${persen}% (${jumlah})</span>
+              </div>
+              <div class="polling-opsi-track"><div class="polling-opsi-bar" style="width:${persen}%"></div></div>
+              ${pemilih.length ? `<div class="polling-opsi-voters">${pemilih.join(", ")}</div>` : ""}
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="polling-card">
+          <h4 class="polling-pertanyaan">${poll.pertanyaan}</h4>
+          ${opsiHtml}
+          <div class="polling-meta">
+            <span>${totalVotes} orang udah vote</span>
+            ${isAdminOrOwner ? `<button class="btn-hapus-polling" data-hapus-poll-id="${poll.id}">Hapus Polling</button>` : ""}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  container.querySelectorAll(".polling-opsi-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const pollId = row.dataset.pollId;
+      const opsiIndex = Number(row.dataset.opsiIndex);
+      handleVotePolling(pollId, opsiIndex);
+    });
+  });
+
+  container.querySelectorAll("[data-hapus-poll-id]").forEach((btn) => {
+    btn.addEventListener("click", () => handleHapusPolling(btn.dataset.hapusPollId));
+  });
+}
+
+async function handleVotePolling(pollId, opsiIndex) {
+  if (!currentUser) {
+    document.getElementById("btn-account").click();
+    return;
+  }
+  try {
+    await db
+      .collection("polling")
+      .doc(pollId)
+      .set({ votes: { [String(currentUser.absen)]: opsiIndex } }, { merge: true });
+    SoundFX.buttonClick();
+  } catch (err) {
+    SoundFX.errorSound();
+  }
+}
+
+async function handleHapusPolling(pollId) {
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
+  try {
+    await db.collection("polling").doc(pollId).delete();
+    SoundFX.resetSound();
+  } catch (err) {
+    SoundFX.errorSound();
+  }
+}
+
+function openBuatPollingModal() {
+  document.getElementById("polling-pertanyaan").value = "";
+  document.getElementById("polling-opsi-list").innerHTML = `
+    <input type="text" class="polling-opsi-input" placeholder="Pilihan 1" required>
+    <input type="text" class="polling-opsi-input" placeholder="Pilihan 2" required>
+  `;
+  document.getElementById("polling-error").hidden = true;
+  openModal(document.getElementById("modal-buat-polling"));
+}
+
+async function handleBuatPollingSubmit(e) {
+  e.preventDefault();
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
+  const errorEl = document.getElementById("polling-error");
+
+  const pertanyaan = document.getElementById("polling-pertanyaan").value.trim();
+  const opsi = Array.from(document.querySelectorAll(".polling-opsi-input"))
+    .map((el) => el.value.trim())
+    .filter(Boolean);
+
+  if (!pertanyaan || opsi.length < 2) {
+    errorEl.textContent = "Isi pertanyaan & minimal 2 pilihan.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  try {
+    await db.collection("polling").add({
+      pertanyaan,
+      opsi,
+      votes: {},
+      dibuatOleh: currentUser.namaPanggilan,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeModal(document.getElementById("modal-buat-polling"));
+    SoundFX.teamsReady();
+  } catch (err) {
+    errorEl.textContent = "Gagal bikin polling, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
 }
