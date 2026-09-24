@@ -20,6 +20,9 @@
 
 * { box-sizing: border-box; }
 
+/* Pastikan atribut hidden SELALU menang dari class display manapun */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
