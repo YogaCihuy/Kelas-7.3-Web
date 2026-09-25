@@ -271,7 +271,7 @@
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
       <h3 id="login-title">Login Siswa 7.3</h3>
-      <p class="form-hint">Masukan Username dan Password Kalian. (lupa password atau Username? Chat Yoga)</p>
+      <p class="form-hint">Default: username = nama panggilan, password = 73 + nomor absen kamu.</p>
       <form id="form-login" class="account-form">
         <label for="login-username">Username</label>
         <input id="login-username" type="text" autocomplete="username" required>
@@ -297,6 +297,18 @@
         <input id="profil-lagu" type="text" maxlength="80">
         <label for="profil-bio">Bio <span id="profil-bio-count">0/150</span></label>
         <textarea id="profil-bio" maxlength="150" rows="3"></textarea>
+
+        <label>Eskul Wajib (pilih 1)</label>
+        <div id="profil-eskul-wajib-list" class="polling-opsi-list"></div>
+
+        <label>Eskul Pilihan (pilih minimal 1, gak boleh bentrok hari)</label>
+        <div id="profil-eskul-pilihan-list" class="polling-opsi-list"></div>
+
+        <label class="checkbox-label">
+          <input id="profil-notif" type="checkbox">
+          Aktifin notifikasi 5 menit sebelum eskul (pas web ini lagi kebuka)
+        </label>
+
         <p id="profil-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Simpan Perubahan</button>
       </form>
@@ -325,18 +337,19 @@
   <div id="modal-edit-info" class="modal-overlay" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="info-edit-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
-      <h3 id="info-edit-title">Edit Info Besok</h3>
+      <h3 id="info-edit-title">Edit Info</h3>
       <form id="form-edit-info" class="account-form">
-        <label for="edit-mapel">Mata Pelajaran Besok (kosongkan = pakai jadwal biasa)</label>
+        <label for="edit-info-tanggal">Tanggal yang Diatur (Pre-Info: bisa buat lusa / minggu depan)</label>
+        <input id="edit-info-tanggal" type="date">
+        <p class="form-hint">Pilih tanggal sekolah (Senin-Jumat). Simpen sekarang, nanti otomatis kepake pas tanggalnya tiba.</p>
+        <label for="edit-mapel">Mata Pelajaran (kosongkan = pakai jadwal biasa)</label>
         <input id="edit-mapel" type="text" placeholder="Contoh: MTK, IPA, B.Indo">
-        <label for="edit-eskul">Eskul Besok (kosongkan = pakai jadwal biasa)</label>
-        <input id="edit-eskul" type="text" placeholder="Contoh: Basket (dipindah dari Selasa)">
+        <label for="edit-seragam">Seragam (kosongkan = pakai jadwal biasa)</label>
+        <input id="edit-seragam" type="text" placeholder="Contoh: Baju Bebas Sopan">
         <label for="edit-pr">PR</label>
         <textarea id="edit-pr" rows="2" placeholder="Contoh: MTK halaman 20 no 1-5"></textarea>
-        <label class="checkbox-label">
-          <input id="edit-eskul-libur" type="checkbox">
-          Eskul besok diliburkan
-        </label>
+        <label>Eskul yang Diliburkan</label>
+        <div id="edit-eskul-libur-list" class="polling-opsi-list"></div>
         <label for="edit-catatan">Catatan Tambahan (opsional)</label>
         <textarea id="edit-catatan" rows="2" placeholder="Contoh: pakai baju bebas karena ada acara"></textarea>
         <p id="edit-info-error" class="form-error" hidden></p>
@@ -385,8 +398,17 @@
           <input type="text" class="polling-opsi-input" placeholder="Pilihan 2" required>
         </div>
         <button type="button" id="btn-tambah-opsi" class="btn-text-only">+ Tambah Pilihan</button>
+        <label for="polling-max">Maksimal Pilihan</label>
+        <select id="polling-max">
+          <option value="1">Cuma boleh milih 1</option>
+          <option value="2">Boleh milih 2</option>
+          <option value="3">Boleh milih 3</option>
+          <option value="4">Boleh milih 4</option>
+          <option value="5">Boleh milih 5</option>
+          <option value="semua">Boleh milih semuanya</option>
+        </select>
         <p id="polling-error" class="form-error" hidden></p>
-        <button type="submit" class="btn-primary btn-block">Buat Polling</button>
+        <button type="submit" class="btn-primary btn-block" id="btn-submit-polling">Buat Polling</button>
       </form>
     </div>
   </div>

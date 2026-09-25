@@ -4,6 +4,7 @@ let currentUser = null;      // objek akun (merged) yang lagi login, atau null k
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
 let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
 let infoOverrideData = {};   // override PR / eskul libur / catatan dari Firestore utk besok
+let pollingCache = [];       // cache data polling terbaru buat referensi klik vote/setting
 
 document.addEventListener("DOMContentLoaded", () => {
   setupSoundToggle();
@@ -16,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupInfoTab();
   setupMedsosTab();
   setupPollingTab();
+  setupNotifikasiEskul();
   restoreSession();
 });
 
@@ -119,6 +121,9 @@ function getDefaultAccount(siswa) {
     username: siswa.namaPanggilan,
     password: `73${siswa.absen}`,
     role: siswa.absen === 29 ? "owner" : "member",
+    eskulWajib: "",
+    eskulPilihan: [],
+    notifEskul: false,
   };
 }
 
@@ -508,6 +513,7 @@ function setupPageTabs() {
 
   function moveIndicator(btn) {
     if (!indicator) return;
+    indicator.style.width = `${btn.offsetWidth}px`;
     indicator.style.transform = `translateX(${btn.offsetLeft - btns[0].offsetLeft}px)`;
   }
 
@@ -540,28 +546,58 @@ function setupPageTabs() {
 /* ===================================================
    7. TAB INFO (jadwal otomatis + override admin)
 =================================================== */
+let unsubscribeInfoOverrides = null;
+
 function setupInfoTab() {
   infoBesok = getInfoBesok();
+  renderJadwalOtomatis();
+  updateInfoHeading();
+  subscribeInfoOverrides();
 
+  setInterval(refreshInfoBesok, 5 * 60 * 1000); // jaga-jaga kalau web dibiarin kebuka lewat jam 12 siang / tengah malam
+
+  document.getElementById("btn-edit-info").addEventListener("click", openEditInfoModal);
+  document.getElementById("form-edit-info").addEventListener("submit", handleEditInfoSubmit);
+  document.getElementById("edit-info-tanggal").addEventListener("change", handleEditInfoTanggalChange);
+  setupModalDismiss(document.getElementById("modal-edit-info"));
+}
+
+function renderJadwalOtomatis() {
   document.getElementById("info-hari-label").textContent = infoBesok.tanggalFormatted;
   document.getElementById("info-mapel").textContent = infoBesok.mapel.join(", ") || "-";
   document.getElementById("info-seragam").textContent = infoBesok.seragam;
   document.getElementById("info-piket").textContent = infoBesok.piket.join(", ") || "-";
   document.getElementById("info-eskul").textContent = infoBesok.eskul.join(", ") || "Gak ada eskul";
+}
 
-  db.collection("infoOverrides")
+function updateInfoHeading() {
+  const heading = document.getElementById("info-tanggal");
+  if (!heading) return;
+  heading.textContent = infoBesok.key === dateKey(new Date()) ? "Info Hari Ini" : "Info Besok";
+}
+
+function subscribeInfoOverrides() {
+  if (unsubscribeInfoOverrides) unsubscribeInfoOverrides();
+  unsubscribeInfoOverrides = db
+    .collection("infoOverrides")
     .doc(infoBesok.key)
     .onSnapshot(
       (doc) => {
         infoOverrideData = doc.exists ? doc.data() : {};
         renderInfoOverrides();
       },
-      (err) => console.error("Gagal ambil info besok:", err)
+      (err) => console.error("Gagal ambil info:", err)
     );
+}
 
-  document.getElementById("btn-edit-info").addEventListener("click", openEditInfoModal);
-  document.getElementById("form-edit-info").addEventListener("submit", handleEditInfoSubmit);
-  setupModalDismiss(document.getElementById("modal-edit-info"));
+function refreshInfoBesok() {
+  const keySebelumnya = infoBesok.key;
+  infoBesok = getInfoBesok();
+  updateInfoHeading();
+  if (infoBesok.key !== keySebelumnya) {
+    renderJadwalOtomatis();
+    subscribeInfoOverrides();
+  }
 }
 
 function renderInfoOverrides() {
@@ -570,15 +606,21 @@ function renderInfoOverrides() {
       ? infoOverrideData.mapelOverride
       : infoBesok.mapel.join(", ") || "-";
 
+  document.getElementById("info-seragam").textContent =
+    infoOverrideData.seragamOverride && infoOverrideData.seragamOverride.trim()
+      ? infoOverrideData.seragamOverride
+      : infoBesok.seragam;
+
   document.getElementById("info-pr").textContent =
     infoOverrideData.pr && infoOverrideData.pr.trim() ? infoOverrideData.pr : "Belum ada info PR";
 
-  if (infoOverrideData.eskulLibur) {
-    document.getElementById("info-eskul").textContent = "Diliburkan besok";
-  } else if (infoOverrideData.eskulOverride && infoOverrideData.eskulOverride.trim()) {
-    document.getElementById("info-eskul").textContent = infoOverrideData.eskulOverride;
+  const eskulLiburList = infoOverrideData.eskulLiburList || [];
+  if (infoBesok.eskul.length === 0) {
+    document.getElementById("info-eskul").textContent = "Gak ada eskul";
   } else {
-    document.getElementById("info-eskul").textContent = infoBesok.eskul.join(", ") || "Gak ada eskul";
+    document.getElementById("info-eskul").textContent = infoBesok.eskul
+      .map((entry) => (eskulLiburList.includes(entry.split(" (")[0]) ? `${entry} — Diliburkan` : entry))
+      .join(", ");
   }
 
   const catatanCard = document.getElementById("info-catatan-card");
@@ -597,28 +639,71 @@ function updateInfoEditButtonVisibility() {
 }
 
 function openEditInfoModal() {
-  document.getElementById("edit-mapel").value = infoOverrideData.mapelOverride || "";
-  document.getElementById("edit-eskul").value = infoOverrideData.eskulOverride || "";
-  document.getElementById("edit-pr").value = infoOverrideData.pr || "";
-  document.getElementById("edit-eskul-libur").checked = !!infoOverrideData.eskulLibur;
-  document.getElementById("edit-catatan").value = infoOverrideData.catatan || "";
+  document.getElementById("edit-info-tanggal").value = infoBesok.key;
+  document.getElementById("edit-info-tanggal").min = dateKey(new Date());
+  isiFormEditInfo(infoBesok, infoOverrideData);
   document.getElementById("edit-info-error").hidden = true;
   openModal(document.getElementById("modal-edit-info"));
+}
+
+function isiFormEditInfo(jadwalTarget, override) {
+  document.getElementById("edit-mapel").value = override.mapelOverride || "";
+  document.getElementById("edit-seragam").value = override.seragamOverride || "";
+  document.getElementById("edit-pr").value = override.pr || "";
+  document.getElementById("edit-catatan").value = override.catatan || "";
+
+  const liburSaatIni = override.eskulLiburList || [];
+  const liburList = document.getElementById("edit-eskul-libur-list");
+  liburList.innerHTML =
+    jadwalTarget.eskul
+      .map((entry) => {
+        const nama = entry.split(" (")[0];
+        return `
+          <label class="eskul-choice-row">
+            <input type="checkbox" name="eskul-libur" value="${nama}" ${liburSaatIni.includes(nama) ? "checked" : ""}>
+            ${entry}
+          </label>
+        `;
+      })
+      .join("") || `<p class="form-hint">Gak ada eskul di hari ini.</p>`;
+}
+
+async function handleEditInfoTanggalChange(e) {
+  const tanggalDipilih = new Date(`${e.target.value}T00:00:00`);
+  const hari = tanggalDipilih.getDay();
+  const errorEl = document.getElementById("edit-info-error");
+
+  if (hari === 0 || hari === 6) {
+    errorEl.textContent = "Sabtu/Minggu libur, pilih hari sekolah (Senin-Jumat).";
+    errorEl.hidden = false;
+    e.target.value = infoBesok.key;
+    return;
+  }
+  errorEl.hidden = true;
+
+  const jadwalTarget = getJadwalUntukTanggal(tanggalDipilih);
+  try {
+    const doc = await db.collection("infoOverrides").doc(jadwalTarget.key).get();
+    isiFormEditInfo(jadwalTarget, doc.exists ? doc.data() : {});
+  } catch (err) {
+    isiFormEditInfo(jadwalTarget, {});
+  }
 }
 
 async function handleEditInfoSubmit(e) {
   e.preventDefault();
   if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
   const errorEl = document.getElementById("edit-info-error");
+  const targetKey = document.getElementById("edit-info-tanggal").value || infoBesok.key;
   const payload = {
     mapelOverride: document.getElementById("edit-mapel").value.trim(),
-    eskulOverride: document.getElementById("edit-eskul").value.trim(),
+    seragamOverride: document.getElementById("edit-seragam").value.trim(),
     pr: document.getElementById("edit-pr").value.trim(),
-    eskulLibur: document.getElementById("edit-eskul-libur").checked,
+    eskulLiburList: Array.from(document.querySelectorAll('input[name="eskul-libur"]:checked')).map((el) => el.value),
     catatan: document.getElementById("edit-catatan").value.trim(),
   };
   try {
-    await db.collection("infoOverrides").doc(infoBesok.key).set(payload, { merge: true });
+    await db.collection("infoOverrides").doc(targetKey).set(payload, { merge: true });
     closeModal(document.getElementById("modal-edit-info"));
     SoundFX.resultReveal();
   } catch (err) {
@@ -697,6 +782,14 @@ function setupAccountUI() {
 
   document.getElementById("profil-bio").addEventListener("input", (e) => {
     document.getElementById("profil-bio-count").textContent = `${e.target.value.length}/150`;
+  });
+
+  document.getElementById("profil-notif").addEventListener("change", (e) => {
+    if (e.target.checked && typeof Notification !== "undefined") {
+      Notification.requestPermission().then((perm) => {
+        if (perm !== "granted") e.target.checked = false;
+      });
+    }
   });
 }
 
@@ -782,8 +875,48 @@ function openEditProfilModal(absen) {
   document.getElementById("profil-lagu").value = merged.laguFavorit;
   document.getElementById("profil-bio").value = merged.bio;
   document.getElementById("profil-bio-count").textContent = `${merged.bio.length}/150`;
+  document.getElementById("profil-notif").checked = !!merged.notifEskul;
+  renderEskulPilihanForm(merged);
   document.getElementById("profil-error").hidden = true;
   openModal(document.getElementById("modal-edit-profil"));
+}
+
+function renderEskulPilihanForm(merged) {
+  const wajibList = document.getElementById("profil-eskul-wajib-list");
+  const pilihanList = document.getElementById("profil-eskul-pilihan-list");
+  const daftarPilihan = getDaftarEskulPilihan();
+
+  wajibList.innerHTML = ESKUL_WAJIB.map(
+    (nama) => `
+      <label class="eskul-choice-row">
+        <input type="radio" name="eskul-wajib" value="${nama}" ${merged.eskulWajib === nama ? "checked" : ""}>
+        ${nama}
+      </label>
+    `
+  ).join("");
+
+  pilihanList.innerHTML = daftarPilihan
+    .map(
+      ({ nama, hari }) => `
+      <label class="eskul-choice-row" data-hari="${hari}">
+        <input type="checkbox" name="eskul-pilihan" value="${nama}" data-hari="${hari}" ${
+        (merged.eskulPilihan || []).includes(nama) ? "checked" : ""
+      }>
+        ${nama} (${hari})
+      </label>
+    `
+    )
+    .join("");
+
+  // Satu hari cuma boleh 1 eskul pilihan -- otomatis uncheck yang lain di hari sama
+  pilihanList.querySelectorAll('input[name="eskul-pilihan"]').forEach((chk) => {
+    chk.addEventListener("change", () => {
+      if (!chk.checked) return;
+      pilihanList.querySelectorAll('input[name="eskul-pilihan"]').forEach((other) => {
+        if (other !== chk && other.dataset.hari === chk.dataset.hari) other.checked = false;
+      });
+    });
+  });
 }
 
 async function handleEditProfilSubmit(e) {
@@ -798,11 +931,28 @@ async function handleEditProfilSubmit(e) {
     return;
   }
 
+  const eskulWajib = document.querySelector('input[name="eskul-wajib"]:checked')?.value || "";
+  const eskulPilihan = Array.from(document.querySelectorAll('input[name="eskul-pilihan"]:checked')).map((el) => el.value);
+
+  if (!eskulWajib) {
+    errorEl.textContent = "Pilih 1 Eskul Wajib dulu (Pramuka/PMR/Paskibra).";
+    errorEl.hidden = false;
+    return;
+  }
+  if (eskulPilihan.length < 1) {
+    errorEl.textContent = "Pilih minimal 1 Eskul Pilihan.";
+    errorEl.hidden = false;
+    return;
+  }
+
   const payload = {
     namaPanggilan,
     citaCita: document.getElementById("profil-cita").value.trim() || "tidak diketahui",
     laguFavorit: document.getElementById("profil-lagu").value.trim() || "tidak diketahui",
     bio: document.getElementById("profil-bio").value.trim(),
+    eskulWajib,
+    eskulPilihan,
+    notifEskul: document.getElementById("profil-notif").checked,
   };
 
   try {
@@ -977,12 +1127,13 @@ function setupPollingTab() {
       (snap) => {
         const daftar = [];
         snap.forEach((doc) => daftar.push({ id: doc.id, ...doc.data() }));
+        pollingCache = daftar;
         renderPollingList(daftar);
       },
       (err) => console.error("Gagal ambil polling:", err)
     );
 
-  document.getElementById("btn-buat-polling").addEventListener("click", openBuatPollingModal);
+  document.getElementById("btn-buat-polling").addEventListener("click", () => openBuatPollingModal(null));
   document.getElementById("btn-tambah-opsi").addEventListener("click", () => {
     const list = document.getElementById("polling-opsi-list");
     const input = document.createElement("input");
@@ -1002,6 +1153,10 @@ function updatePollingCreateVisibility() {
   btn.hidden = !(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
 }
 
+function getMaxPilihan(poll) {
+  return poll.maxPilihan === "semua" ? poll.opsi.length : Number(poll.maxPilihan) || 1;
+}
+
 function renderPollingList(daftar) {
   const container = document.getElementById("daftar-polling");
   const isAdminOrOwner = currentUser && (currentUser.role === "admin" || currentUser.role === "owner");
@@ -1015,16 +1170,18 @@ function renderPollingList(daftar) {
     .map((poll) => {
       const votes = poll.votes || {};
       const totalVotes = Object.keys(votes).length;
-      const myVote = currentUser ? votes[String(currentUser.absen)] : undefined;
+      const myVotes = currentUser ? votes[String(currentUser.absen)] || [] : [];
+      const maxPilihan = getMaxPilihan(poll);
+      const isCreator = currentUser && currentUser.absen === poll.dibuatOlehAbsen;
 
       const opsiHtml = poll.opsi
         .map((opsi, i) => {
           const pemilih = Object.entries(votes)
-            .filter(([, v]) => v === i)
+            .filter(([, v]) => Array.isArray(v) && v.includes(i))
             .map(([absen]) => getMergedAccount(Number(absen))?.namaPanggilan || "?");
           const jumlah = pemilih.length;
           const persen = totalVotes > 0 ? Math.round((jumlah / totalVotes) * 100) : 0;
-          const votedMine = myVote === i;
+          const votedMine = myVotes.includes(i);
 
           return `
             <div class="polling-opsi-row ${votedMine ? "voted-mine" : ""}" data-poll-id="${poll.id}" data-opsi-index="${i}">
@@ -1042,10 +1199,14 @@ function renderPollingList(daftar) {
       return `
         <div class="polling-card">
           <h4 class="polling-pertanyaan">${poll.pertanyaan}</h4>
+          <p class="form-hint">${maxPilihan >= poll.opsi.length ? "Boleh milih semuanya" : `Maksimal pilih ${maxPilihan}`}</p>
           ${opsiHtml}
           <div class="polling-meta">
             <span>${totalVotes} orang udah vote</span>
-            ${isAdminOrOwner ? `<button class="btn-hapus-polling" data-hapus-poll-id="${poll.id}">Hapus Polling</button>` : ""}
+            <span>
+              ${isCreator ? `<button class="btn-hapus-polling" data-setting-poll-id="${poll.id}">Setting</button>` : ""}
+              ${isAdminOrOwner ? `<button class="btn-hapus-polling" data-hapus-poll-id="${poll.id}">Hapus Polling</button>` : ""}
+            </span>
           </div>
         </div>
       `;
@@ -1063,6 +1224,13 @@ function renderPollingList(daftar) {
   container.querySelectorAll("[data-hapus-poll-id]").forEach((btn) => {
     btn.addEventListener("click", () => handleHapusPolling(btn.dataset.hapusPollId));
   });
+
+  container.querySelectorAll("[data-setting-poll-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const poll = pollingCache.find((p) => p.id === btn.dataset.settingPollId);
+      if (poll) openBuatPollingModal(poll);
+    });
+  });
 }
 
 async function handleVotePolling(pollId, opsiIndex) {
@@ -1070,11 +1238,30 @@ async function handleVotePolling(pollId, opsiIndex) {
     document.getElementById("btn-account").click();
     return;
   }
+  const poll = pollingCache.find((p) => p.id === pollId);
+  if (!poll) return;
+
+  const votes = poll.votes || {};
+  const currentVotes = votes[String(currentUser.absen)] || [];
+  const maxPilihan = getMaxPilihan(poll);
+
+  let newVotes;
+  if (currentVotes.includes(opsiIndex)) {
+    newVotes = currentVotes.filter((v) => v !== opsiIndex);
+  } else if (maxPilihan === 1) {
+    newVotes = [opsiIndex];
+  } else if (currentVotes.length < maxPilihan) {
+    newVotes = [...currentVotes, opsiIndex];
+  } else {
+    SoundFX.errorSound();
+    return;
+  }
+
   try {
     await db
       .collection("polling")
       .doc(pollId)
-      .set({ votes: { [String(currentUser.absen)]: opsiIndex } }, { merge: true });
+      .set({ votes: { [String(currentUser.absen)]: newVotes } }, { merge: true });
     SoundFX.buttonClick();
   } catch (err) {
     SoundFX.errorSound();
@@ -1091,12 +1278,21 @@ async function handleHapusPolling(pollId) {
   }
 }
 
-function openBuatPollingModal() {
-  document.getElementById("polling-pertanyaan").value = "";
-  document.getElementById("polling-opsi-list").innerHTML = `
-    <input type="text" class="polling-opsi-input" placeholder="Pilihan 1" required>
-    <input type="text" class="polling-opsi-input" placeholder="Pilihan 2" required>
-  `;
+let editingPollId = null;
+
+function openBuatPollingModal(pollToEdit) {
+  editingPollId = pollToEdit ? pollToEdit.id : null;
+  document.getElementById("polling-title").textContent = pollToEdit ? "Setting Polling" : "Buat Polling Baru";
+  document.getElementById("btn-submit-polling").textContent = pollToEdit ? "Simpan Perubahan" : "Buat Polling";
+
+  document.getElementById("polling-pertanyaan").value = pollToEdit ? pollToEdit.pertanyaan : "";
+  document.getElementById("polling-max").value = pollToEdit ? String(pollToEdit.maxPilihan || 1) : "1";
+
+  const opsiAwal = pollToEdit ? pollToEdit.opsi : ["", ""];
+  document.getElementById("polling-opsi-list").innerHTML = opsiAwal
+    .map((val, i) => `<input type="text" class="polling-opsi-input" placeholder="Pilihan ${i + 1}" value="${val}" required>`)
+    .join("");
+
   document.getElementById("polling-error").hidden = true;
   openModal(document.getElementById("modal-buat-polling"));
 }
@@ -1110,6 +1306,8 @@ async function handleBuatPollingSubmit(e) {
   const opsi = Array.from(document.querySelectorAll(".polling-opsi-input"))
     .map((el) => el.value.trim())
     .filter(Boolean);
+  const maxPilihanRaw = document.getElementById("polling-max").value;
+  const maxPilihan = maxPilihanRaw === "semua" ? "semua" : Math.min(Number(maxPilihanRaw), opsi.length);
 
   if (!pertanyaan || opsi.length < 2) {
     errorEl.textContent = "Isi pertanyaan & minimal 2 pilihan.";
@@ -1118,18 +1316,71 @@ async function handleBuatPollingSubmit(e) {
   }
 
   try {
-    await db.collection("polling").add({
-      pertanyaan,
-      opsi,
-      votes: {},
-      dibuatOleh: currentUser.namaPanggilan,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+    if (editingPollId) {
+      const poll = pollingCache.find((p) => p.id === editingPollId);
+      if (!poll || poll.dibuatOlehAbsen !== currentUser.absen) {
+        errorEl.textContent = "Cuma pembuat polling ini yang bisa ubah settingnya.";
+        errorEl.hidden = false;
+        return;
+      }
+      await db.collection("polling").doc(editingPollId).set({ pertanyaan, opsi, maxPilihan }, { merge: true });
+    } else {
+      await db.collection("polling").add({
+        pertanyaan,
+        opsi,
+        maxPilihan,
+        votes: {},
+        dibuatOleh: currentUser.namaPanggilan,
+        dibuatOlehAbsen: currentUser.absen,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
     closeModal(document.getElementById("modal-buat-polling"));
     SoundFX.teamsReady();
   } catch (err) {
-    errorEl.textContent = "Gagal bikin polling, cek koneksi internet.";
+    errorEl.textContent = "Gagal simpan polling, cek koneksi internet.";
     errorEl.hidden = false;
     SoundFX.errorSound();
   }
+}
+
+/* ===================================================
+   12. NOTIFIKASI ESKUL (5 menit sebelum, 1x per akun per eskul)
+   Catatan: cuma jalan kalau web ini lagi kebuka di browser.
+=================================================== */
+function setupNotifikasiEskul() {
+  setInterval(cekNotifikasiEskul, 30 * 1000);
+}
+
+function cekNotifikasiEskul() {
+  if (!currentUser || !currentUser.notifEskul) return;
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+  const now = new Date();
+  const namaHariIni = HARI[now.getDay()];
+  const daftarEskulHariIni = jadwalEskul[namaHariIni] || [];
+  const eskulSaya = [currentUser.eskulWajib, ...(currentUser.eskulPilihan || [])].filter(Boolean);
+
+  daftarEskulHariIni.forEach((entry) => {
+    const nama = entry.split(" (")[0];
+    if (!eskulSaya.includes(nama)) return;
+
+    const jamMatch = /(\d{1,2})\.(\d{2})-/.exec(entry);
+    if (!jamMatch) return;
+
+    const mulai = new Date(now);
+    mulai.setHours(Number(jamMatch[1]), Number(jamMatch[2]), 0, 0);
+    const target = new Date(mulai.getTime() - 5 * 60 * 1000);
+    const bedaMenit = (now - target) / 60000;
+
+    if (bedaMenit < 0 || bedaMenit > 1) return; // cuma nembak di jendela 1 menit biar gak dobel
+
+    const kunciNotif = `kelas73-notif-${dateKey(now)}-${nama}`;
+    if (localStorage.getItem(kunciNotif)) return;
+
+    new Notification("Eskul 5 menit lagi!", {
+      body: `${nama} mulai jam ${jamMatch[1]}.${jamMatch[2]}, siap-siap yuk!`,
+    });
+    localStorage.setItem(kunciNotif, "1");
+  });
 }

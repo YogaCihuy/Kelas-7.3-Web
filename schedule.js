@@ -59,17 +59,50 @@ function dateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function getInfoBesok() {
-  const tgl = getHariBesokSekolah();
-  const namaHari = HARI[tgl.getDay()];
+function getJadwalUntukTanggal(date) {
+  const namaHari = HARI[date.getDay()];
   return {
-    tanggal: tgl,
+    tanggal: date,
     namaHari,
-    tanggalFormatted: formatTanggalID(tgl),
-    key: dateKey(tgl),
+    tanggalFormatted: formatTanggalID(date),
+    key: dateKey(date),
     mapel: jadwalMapel[namaHari] || [],
     seragam: jadwalSeragam[namaHari] || "-",
     piket: jadwalPiket[namaHari] || [],
     eskul: jadwalEskul[namaHari] || [],
   };
+}
+
+function getInfoBesok() {
+  // Ganti "hari yang ditampilin" jam 12 siang, bukan jam 00:00 —
+  // biar orang yang nyiapin buku pagi-pagi masih liat info hari itu juga,
+  // bukan langsung loncat ke besoknya lagi.
+  const sekarang = new Date();
+  const acuan = new Date(sekarang);
+  if (sekarang.getHours() < 12) {
+    acuan.setDate(acuan.getDate() - 1);
+  }
+
+  const tgl = getHariBesokSekolah(acuan);
+  return getJadwalUntukTanggal(tgl);
+}
+
+// Reverse-map: nama eskul -> hari (dipake buat validasi pilihan eskul siswa)
+function getEskulHariMap() {
+  const map = {};
+  Object.entries(jadwalEskul).forEach(([hari, daftar]) => {
+    daftar.forEach((entry) => {
+      const nama = entry.split(" (")[0];
+      map[nama] = hari;
+    });
+  });
+  return map;
+}
+
+const ESKUL_WAJIB = ["Pramuka", "PMR", "Paskibra"];
+function getDaftarEskulPilihan() {
+  const map = getEskulHariMap();
+  return Object.keys(map)
+    .filter((nama) => !ESKUL_WAJIB.includes(nama))
+    .map((nama) => ({ nama, hari: map[nama] }));
 }
