@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="Images/7.3Icon.png"
 </head>
 <body>
 
@@ -30,6 +31,11 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" fill="currentColor"/><path d="M4 20c1.2-4 4.4-6 8-6s6.8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span id="account-label">Akun</span>
     </button>
+
+   <!-- Icon -->
+    <div class="icon">
+      <img src="Images/7.3Icon.png" class="icon"> 
+    </div>
 
     <!-- Panel saat BELUM login -->
     <div id="panel-guest" class="account-panel" hidden>
@@ -191,6 +197,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
+    <p>Version 1.1</p>
+    <p>Last Update (25/09/25)</p>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -271,7 +279,8 @@
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
       <h3 id="login-title">Login Siswa 7.3</h3>
-      <p class="form-hint">Default: username = nama panggilan, password = 73 + nomor absen kamu.</p>
+      <p class="form-hint">Masukan Username dan Password Anda.</p>
+      <p class="form-hint">Lupa Password? Chat Yoga.</p>
       <form id="form-login" class="account-form">
         <label for="login-username">Username</label>
         <input id="login-username" type="text" autocomplete="username" required>

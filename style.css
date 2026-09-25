@@ -61,6 +61,21 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
+.icon {
+  position: fixed;
+  top: 75px;
+  right: 1rem;
+  z-index: 200;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
 .sound-toggle svg { width: 20px; height: 20px; }
 
 .sound-toggle:hover { transform: scale(1.08); background: var(--white); }
