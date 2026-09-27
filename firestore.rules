@@ -1,21 +1,63 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Data akun siswa: nama panggilan, bio, username/password login custom, role, dll.
     match /accounts/{absen} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidAccount(request.resource.data);
+      allow delete: if false; // akun nggak pernah dihapus dari app, jadi diblok total
     }
+
+    // Override jadwal/info harian (mapel, seragam, PR, dll) oleh admin
     match /infoOverrides/{tanggal} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidInfoOverride(request.resource.data);
+      allow delete: if false;
     }
+
+    // Pengaturan umum (link medsos, dll)
     match /settings/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidSettings(request.resource.data);
+      allow delete: if false;
     }
+
+    // Polling kelas
     match /polling/{pollId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidPolling(request.resource.data);
+      allow delete: if true; // dipakai admin untuk hapus polling
+    }
+
+    function isValidAccount(d) {
+      let allowedKeys = ['absen','namaLengkap','namaPanggilan','citaCita','laguFavorit',
+                          'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul'];
+      return d.keys().hasOnly(allowedKeys)
+        && (!('role' in d) || d.role in ['member','admin','owner'])
+        && (!('eskulPilihan' in d) || d.eskulPilihan is list)
+        && (!('notifEskul' in d) || d.notifEskul is bool)
+        && (!('username' in d) || d.username is string)
+        && (!('password' in d) || d.password is string);
+    }
+
+    function isValidInfoOverride(d) {
+      let allowedKeys = ['mapelOverride','seragamOverride','pr','eskulLiburList','catatan'];
+      return d.keys().hasOnly(allowedKeys)
+        && (!('eskulLiburList' in d) || d.eskulLiburList is list);
+    }
+
+    function isValidSettings(d) {
+      let allowedKeys = ['tiktok','ig'];
+      return d.keys().hasOnly(allowedKeys);
+    }
+
+    function isValidPolling(d) {
+      let allowedKeys = ['pertanyaan','opsi','maxPilihan','votes','dibuatOleh','dibuatOlehAbsen','createdAt'];
+      return d.keys().hasOnly(allowedKeys)
+        && (!('opsi' in d) || d.opsi is list)
+        && (!('votes' in d) || d.votes is map)
+        && (!('dibuatOlehAbsen' in d) || d.dibuatOlehAbsen is number);
     }
   }
 }
