@@ -1,5 +1,10 @@
 // script.js
 
+// Nomor WA Yoga buat tombol "Lupa Password". Format internasional tanpa + dan tanpa 0 di depan.
+// Contoh: nomor 0812-3456-7890 -> "6281234567890"
+const NOMOR_WA_YOGA = "62XXXXXXXXXXX";
+const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
+
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
 let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
@@ -688,9 +693,8 @@ function renderInfoOverrides() {
       ? ` · ${ts.toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
       : "";
     editedEl.textContent = `Terakhir diedit oleh ${infoOverrideData.editedBy}${waktu}`;
-    editedEl.hidden = false;
   } else {
-    editedEl.hidden = true;
+    editedEl.textContent = "Terakhir diedit oleh: belum ada yang edit";
   }
 }
 
@@ -951,6 +955,21 @@ function setupAccountUI() {
 
   document.getElementById("profil-bio").addEventListener("input", (e) => {
     document.getElementById("profil-bio-count").textContent = `${e.target.value.length} karakter`;
+  });
+
+  document.getElementById("btn-tes-notif").addEventListener("click", tesNotifikasiEskul);
+
+  const linkLupa = document.getElementById("btn-lupa-password");
+  linkLupa.href = `https://wa.me/${NOMOR_WA_YOGA}?text=${encodeURIComponent(PESAN_LUPA_PASSWORD)}`;
+  linkLupa.target = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() ? "_self" : "_blank";
+  linkLupa.rel = "noopener";
+  linkLupa.addEventListener("click", (e) => {
+    if (NOMOR_WA_YOGA.includes("X")) {
+      e.preventDefault();
+      const err = document.getElementById("login-error");
+      err.textContent = "Nomor WA belum diisi di script.js (NOMOR_WA_YOGA).";
+      err.hidden = false;
+    }
   });
 
   document.getElementById("profil-notif").addEventListener("change", (e) => {
@@ -1556,4 +1575,51 @@ function cekNotifikasiEskul() {
     });
     localStorage.setItem(kunciNotif, "1");
   });
+}
+
+
+/* ===================================================
+   13. TES NOTIFIKASI ESKUL (10 detik setelah tombol diklik, eskul wajib)
+=================================================== */
+async function tesNotifikasiEskul() {
+  const status = document.getElementById("tes-notif-status");
+  const tampil = (teks) => { status.textContent = teks; status.hidden = false; };
+
+  const wajib =
+    document.querySelector('input[name="eskul-wajib"]:checked')?.value ||
+    (currentUser && currentUser.eskulWajib) ||
+    "";
+  if (!wajib) { tampil("Pilih Eskul Wajib dulu ya."); return; }
+
+  const entry = Object.values(jadwalEskul).flat().find((e) => e.split(" (")[0] === wajib);
+  const jam = entry ? /(\d{1,2})\.(\d{2})-/.exec(entry) : null;
+  const judul = "Tes Notifikasi Eskul";
+  const isi = jam ? `${wajib} mulai jam ${jam[1]}.${jam[2]}, siap-siap yuk!` : `${wajib}, siap-siap yuk!`;
+
+  // Versi APK: notif lokal Android (tetap bunyi walau app ditutup)
+  if (window.nativeTesNotif) {
+    const ok = await window.nativeTesNotif(judul, isi, 10);
+    tampil(ok
+      ? `Oke! Notif ${wajib} muncul 10 detik lagi. Boleh langsung tutup app buat ngetes.`
+      : "Izin notifikasi belum diberikan. Aktifin dulu di Pengaturan HP.");
+    return;
+  }
+
+  // Versi web
+  if (typeof Notification === "undefined") {
+    tampil("Browser ini gak support notifikasi. Coba pakai APK-nya.");
+    return;
+  }
+  let izin = Notification.permission;
+  if (izin !== "granted") izin = await Notification.requestPermission();
+  if (izin !== "granted") { tampil("Izin notifikasi ditolak. Aktifin dulu di pengaturan browser."); return; }
+
+  tampil(`Oke! Notif ${wajib} muncul 10 detik lagi. Jangan tutup halaman ini ya.`);
+  setTimeout(() => {
+    try {
+      new Notification(judul, { body: isi });
+    } catch (err) {
+      tampil("Browser ini gak bisa nampilin notifikasi dari web. Coba pakai APK-nya.");
+    }
+  }, 10000);
 }

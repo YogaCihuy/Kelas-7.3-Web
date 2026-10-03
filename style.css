@@ -906,7 +906,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 .modal-box { max-height: 90vh; overflow-y: auto; }
 
 /* ===== Info: terakhir diedit ===== */
-.info-edited-by { color: var(--muted); font-size: 0.85rem; margin: 0.9rem 0; }
+.info-edited-by { color: var(--muted); font-size: 0.85rem; margin: 0.2rem 0 0.9rem; }
 #btn-salin-info { margin-top: 0.6rem; }
 
 /* ===== Tema Ulang Tahun ===== */
@@ -963,3 +963,6 @@ body.birthday-theme .hero {
 @media (prefers-reduced-motion: reduce) {
   .birthday-banner, .cake-deco { animation: none; }
 }
+
+a.btn-secondary { display: block; text-align: center; text-decoration: none; margin-top: 0.6rem; }
+#btn-tes-notif { margin-top: 0.6rem; }

@@ -13,6 +13,8 @@
   const LN = cap.Plugins && cap.Plugins.LocalNotifications;
   if (!LN) return;
 
+  const ID_TES = 2147000000; // id khusus notif tes, jangan ikut dibatalin pas jadwal ulang
+
   let sigTerakhir = "";
   let sedangJalan = false;
   let antriUlang = false;
@@ -36,7 +38,8 @@
   async function batalkanSemua() {
     const p = await LN.getPending();
     if (p.notifications && p.notifications.length) {
-      await LN.cancel({ notifications: p.notifications.map((n) => ({ id: n.id })) });
+      const target = p.notifications.filter((n) => n.id !== ID_TES);
+      if (target.length) await LN.cancel({ notifications: target.map((n) => ({ id: n.id })) });
     }
   }
 
@@ -109,6 +112,24 @@
       if (antriUlang) { antriUlang = false; jadwalkan(); }
     }
   }
+
+  // Dipanggil dari tombol "Tes Notifikasi Eskul" di Edit Profil
+  window.nativeTesNotif = async function (judul, isi, detik) {
+    let izin = await LN.checkPermissions();
+    if (izin.display !== "granted") izin = await LN.requestPermissions();
+    if (izin.display !== "granted") return false;
+    await LN.createChannel({ id: "eskul", name: "Pengingat Eskul", importance: 4, vibration: true });
+    await LN.schedule({
+      notifications: [{
+        id: ID_TES,
+        title: judul,
+        body: isi,
+        channelId: "eskul",
+        schedule: { at: new Date(Date.now() + detik * 1000), allowWhileIdle: true },
+      }],
+    });
+    return true;
+  };
 
   // Cek perubahan akun/eskul/jadwal (murah, cuma bandingin string)
   setInterval(() => { if (hitungSignature() !== sigTerakhir) jadwalkan(); }, 3000);

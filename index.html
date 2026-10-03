@@ -116,6 +116,8 @@
           <p class="section-sub" id="info-hari-label">-</p>
         </div>
 
+        <p id="info-edited-by" class="info-edited-by">Terakhir diedit oleh: -</p>
+
         <button id="btn-edit-info" class="btn-secondary btn-edit-info" hidden>Edit Info Besok</button>
 
         <div class="info-grid">
@@ -156,7 +158,6 @@
           </div>
         </div>
 
-        <p id="info-edited-by" class="info-edited-by" hidden></p>
         <button id="btn-salin-info" class="btn-secondary btn-block" type="button">Salin Info untuk WA</button>
       </section>
     </div>
@@ -294,7 +295,6 @@
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
       <h3 id="login-title">Login Siswa 7.3</h3>
       <p class="form-hint">Masukan Username dan Password Anda.</p>
-      <p class="form-hint">Lupa Password? Chat Yoga.</p>
       <form id="form-login" class="account-form">
         <label for="login-username">Username</label>
         <input id="login-username" type="text" autocomplete="username" required>
@@ -302,6 +302,7 @@
         <input id="login-password" type="password" autocomplete="current-password" required>
         <p id="login-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Login</button>
+        <a id="btn-lupa-password" class="btn-secondary btn-block" href="#">Lupa Password? Chat Yoga</a>
       </form>
     </div>
   </div>
@@ -333,6 +334,9 @@
           <input id="profil-notif" type="checkbox">
           Aktifin notifikasi 5 menit sebelum eskul (di APK tetap bunyi walau app ditutup, di web cuma pas lagi kebuka)
         </label>
+
+        <button type="button" id="btn-tes-notif" class="btn-secondary btn-block">Tes Notifikasi Eskul</button>
+        <p id="tes-notif-status" class="form-hint" hidden></p>
 
         <p id="profil-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Simpan Perubahan</button>
