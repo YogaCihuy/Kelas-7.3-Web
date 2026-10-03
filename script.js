@@ -6,7 +6,7 @@ const NOMOR_WA_YOGA = "62XXXXXXXXXXX";
 const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
 
 // ID file APK di Google Drive (bagian di antara /d/ dan /view pada link Drive)
-const DRIVE_APK_ID = "14QePWjubwMlH2nYxYv4VFgioeh3ccSKF";
+const DRIVE_APK_ID = "18BMAsdg_G59A8Vn9e1NC3eBUKX6VXMHf";
 
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
