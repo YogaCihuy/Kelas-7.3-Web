@@ -14,8 +14,8 @@ const jadwalMapel = {
 
 const jadwalSeragam = {
   Senin: "Putih - Putih",
-  Selasa: "Putih - Biru (bawa baju ganti olahraga)",
-  Rabu: "Pramuka",
+  Selasa: "Olahraga (bawa baju ganti Putih - Biru) ",
+  Rabu: "Olahraga (Baju ganti Pramuka)",
   Kamis: "Putih - Biru - Rompi",
   Jumat: "Batik Biru",
 };
@@ -33,8 +33,8 @@ const jadwalPiket = {
 const jadwalEskul = {
   Senin: ["Club IT (14.00-16.00)", "FKP Musik (14.00-16.00)"],
   Selasa: ["Basket (14.00-16.00)", "FKP Tari (14.00-16.00)"],
-  Rabu: ["Pramuka (14.00-16.00)"],
-  Kamis: ["Paskibra (14.00-16.00)", "PMR (14.15-16.15)"],
+  Rabu: ["Pramuka (14.00-16.00)", "PMR (14.15-16.15)"],
+  Kamis: ["Paskibra (14.00-16.00)"],
   Jumat: ["Futsal (13.00-15.00)", "English Club (13.00-14.30)"],
 };
 

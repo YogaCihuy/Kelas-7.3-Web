@@ -1,0 +1,9 @@
+{
+  "appId": "id.kelas73.app",
+  "appName": "Kelas 7.3",
+  "webDir": "www",
+  "server": {
+    "url": "https://yogacihuy.github.io/Kelas-7.3-Web/",
+    "cleartext": false
+  }
+}

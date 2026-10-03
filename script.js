@@ -1525,6 +1525,7 @@ function setupNotifikasiEskul() {
 }
 
 function cekNotifikasiEskul() {
+  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return; // di APK pakai native-notif.js
   if (!currentUser || !currentUser.notifEskul) return;
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
