@@ -61,7 +61,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.icon {
+.apk-download {
   position: fixed;
   top: 75px;
   right: 1rem;
@@ -69,12 +69,18 @@ button { font-family: inherit; cursor: pointer; }
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow);
+  transition: transform 0.15s ease, background 0.15s ease;
 }
+.apk-download img { width: 28px; height: 28px; object-fit: contain; }
+.apk-download:hover { transform: scale(1.08); background: var(--white); }
+.apk-download.apk-download-statis { pointer-events: none; }
+.apk-download.apk-download-statis:hover { transform: none; background: rgba(255, 255, 255, 0.9); }
 
 .sound-toggle svg { width: 20px; height: 20px; }
 

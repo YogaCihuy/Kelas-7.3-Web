@@ -959,8 +959,17 @@ function setupAccountUI() {
 
   const btnTes = document.getElementById("btn-tes-notif");
   btnTes.addEventListener("click", tesNotifikasiEskul);
-  // Tombol tes notif cuma muncul di APK
-  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) btnTes.hidden = false;
+  // Tombol tes notif cuma muncul di APK, tombol download APK cuma aktif di web
+  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+    btnTes.hidden = false;
+    // Di APK logo tetap tampil tapi cuma gambar biasa (gak bisa diklik / download)
+    const logo = document.getElementById("btn-download-apk");
+    logo.removeAttribute("href");
+    logo.removeAttribute("target");
+    logo.removeAttribute("title");
+    logo.setAttribute("aria-hidden", "true");
+    logo.classList.add("apk-download-statis");
+  }
 
   const linkLupa = document.getElementById("btn-lupa-password");
   linkLupa.href = `https://wa.me/${NOMOR_WA_YOGA}?text=${encodeURIComponent(PESAN_LUPA_PASSWORD)}`;
