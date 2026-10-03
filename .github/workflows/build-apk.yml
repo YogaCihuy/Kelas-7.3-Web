@@ -21,8 +21,51 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Siapkan gambar ikon
+        run: |
+          pip install pillow
+          python3 - <<'EOF'
+          from PIL import Image
+          import os
+          os.makedirs("assets", exist_ok=True)
+          src = Image.open("Images/7.3Icon.png").convert("RGBA")
+          def kanvas(skala):
+              c = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+              s = int(1024 * skala)
+              im = src.resize((s, s), Image.LANCZOS)
+              c.paste(im, ((1024 - s) // 2, (1024 - s) // 2), im)
+              return c
+          bg = Image.new("RGBA", (1024, 1024), (255, 255, 255, 255))
+          full = bg.copy()
+          full.alpha_composite(kanvas(1.0))
+          full.save("assets/icon-only.png")
+          bg.save("assets/icon-background.png")
+          kanvas(0.7).save("assets/icon-foreground.png")
+          EOF
+
       - name: Tambah project Android
         run: npx cap add android
+
+      - name: Pasang ikon ke Android
+        run: npx --yes @capacitor/assets generate --android
+
+      - name: Matiin cache WebView (biar update web langsung kebaca)
+        run: |
+          cat > android/app/src/main/java/id/kelas73/app/MainActivity.java <<'EOF'
+          package id.kelas73.app;
+
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              getBridge().getWebView().getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+            }
+          }
+          EOF
 
       - name: Tambah permission notifikasi & alarm
         run: |
