@@ -41,6 +41,10 @@ jobs:
           full.save("assets/icon-only.png")
           bg.save("assets/icon-background.png")
           kanvas(0.7).save("assets/icon-foreground.png")
+          splash = Image.new("RGBA", (2732, 2732), (255, 255, 255, 255))
+          splash.alpha_composite(src.resize((900, 900), Image.LANCZOS), ((2732 - 900) // 2, (2732 - 900) // 2))
+          splash.save("assets/splash.png")
+          splash.save("assets/splash-dark.png")
           EOF
 
       - name: Tambah project Android
