@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png"
 </head>
 <body>
@@ -53,6 +53,8 @@
       <button id="btn-logout" class="account-menu-item account-menu-danger">Logout</button>
     </div>
   </div>
+
+  <div id="birthday-banner" class="birthday-banner" hidden></div>
 
   <!-- HERO -->
   <header class="hero">
@@ -142,12 +144,20 @@
             <h4>PR</h4>
             <p id="info-pr">Belum ada info PR</p>
           </div>
+          <div class="info-card">
+            <span class="info-icon">&#127881;</span>
+            <h4>Kegiatan</h4>
+            <p id="info-kegiatan">Belum ada kegiatan</p>
+          </div>
           <div class="info-card info-card-catatan" id="info-catatan-card" hidden>
             <span class="info-icon">&#128276;</span>
             <h4>Catatan Tambahan</h4>
             <p id="info-catatan">-</p>
           </div>
         </div>
+
+        <p id="info-edited-by" class="info-edited-by" hidden></p>
+        <button id="btn-salin-info" class="btn-secondary btn-block" type="button">Salin Info untuk WA</button>
       </section>
     </div>
 
@@ -197,8 +207,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <p>Version 1.1</p>
-    <p>Last Update (25/09/25)</p>
+    <p>Version 1.2</p>
+    <p>Last Update (03/10/25)</p>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -222,6 +232,10 @@
         <div class="detail-row">
           <dt>Lagu favorit</dt>
           <dd id="detail-lagu"></dd>
+        </div>
+        <div class="detail-row">
+          <dt>Ulang tahun</dt>
+          <dd id="detail-ultah"></dd>
         </div>
         <div class="detail-row">
           <dt>Bio</dt>
@@ -304,8 +318,10 @@
         <input id="profil-cita" type="text" maxlength="60">
         <label for="profil-lagu">Lagu Favorit</label>
         <input id="profil-lagu" type="text" maxlength="80">
-        <label for="profil-bio">Bio <span id="profil-bio-count">0/150</span></label>
-        <textarea id="profil-bio" maxlength="150" rows="3"></textarea>
+        <label for="profil-ultah">Tanggal Ulang Tahun</label>
+        <input id="profil-ultah" type="date">
+        <label for="profil-bio">Bio <span id="profil-bio-count">0 karakter</span></label>
+        <textarea id="profil-bio" rows="4"></textarea>
 
         <label>Eskul Wajib (pilih 1)</label>
         <div id="profil-eskul-wajib-list" class="polling-opsi-list"></div>
@@ -357,9 +373,11 @@
         <input id="edit-seragam" type="text" placeholder="Contoh: Baju Bebas Sopan">
         <label for="edit-pr">PR</label>
         <textarea id="edit-pr" rows="2" placeholder="Contoh: MTK halaman 20 no 1-5"></textarea>
+        <label for="edit-kegiatan">Kegiatan</label>
+        <textarea id="edit-kegiatan" rows="2" placeholder="Contoh: APPEL"></textarea>
         <label>Eskul yang Diliburkan</label>
         <div id="edit-eskul-libur-list" class="polling-opsi-list"></div>
-        <label for="edit-catatan">Catatan Tambahan (opsional)</label>
+        <label for="edit-catatan">Catatan Tambahan (1 baris = 1 poin Note)</label>
         <textarea id="edit-catatan" rows="2" placeholder="Contoh: pakai baju bebas karena ada acara"></textarea>
         <p id="edit-info-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Simpan Info</button>
@@ -425,8 +443,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="firebase-init.js"></script>
-<script src="schedule.js"></script>
+<script src="schedule.js?v=3"></script>
 <script src="data.js"></script>
-<script src="script.js"></script>
+<script src="script.js?v=3"></script>
 </body>
 </html>

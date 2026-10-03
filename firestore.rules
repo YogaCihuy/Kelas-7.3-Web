@@ -32,19 +32,25 @@ service cloud.firestore {
 
     function isValidAccount(d) {
       let allowedKeys = ['absen','namaLengkap','namaPanggilan','citaCita','laguFavorit',
-                          'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul'];
+                          'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul',
+                          'ultah'];
       return d.keys().hasOnly(allowedKeys)
         && (!('role' in d) || d.role in ['member','admin','owner'])
         && (!('eskulPilihan' in d) || d.eskulPilihan is list)
         && (!('notifEskul' in d) || d.notifEskul is bool)
         && (!('username' in d) || d.username is string)
-        && (!('password' in d) || d.password is string);
+        && (!('password' in d) || d.password is string)
+        && (!('ultah' in d) || d.ultah is string);
     }
 
     function isValidInfoOverride(d) {
-      let allowedKeys = ['mapelOverride','seragamOverride','pr','eskulLiburList','catatan'];
+      let allowedKeys = ['mapelOverride','seragamOverride','pr','eskulLiburList','catatan',
+                          'kegiatan','editedBy','editedAt'];
       return d.keys().hasOnly(allowedKeys)
-        && (!('eskulLiburList' in d) || d.eskulLiburList is list);
+        && (!('eskulLiburList' in d) || d.eskulLiburList is list)
+        && (!('kegiatan' in d) || d.kegiatan is string)
+        && (!('editedBy' in d) || d.editedBy is string)
+        && (!('editedAt' in d) || d.editedAt is timestamp);
     }
 
     function isValidSettings(d) {

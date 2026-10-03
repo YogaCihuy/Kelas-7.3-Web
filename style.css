@@ -354,6 +354,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 .sprout .detail-row:nth-of-type(1) { animation-delay: 0.34s; }
 .sprout .detail-row:nth-of-type(2) { animation-delay: 0.4s; }
 .sprout .detail-row:nth-of-type(3) { animation-delay: 0.46s; }
+.sprout .detail-row:nth-of-type(4) { animation-delay: 0.52s; }
 
 @keyframes rise-leaf {
   from { opacity: 0; transform: translateY(10px); }
@@ -898,3 +899,67 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 }
 
 .eskul-choice-row.disabled { opacity: 0.45; }
+
+
+/* ===== Bio tanpa batas ===== */
+.detail-bio { white-space: pre-wrap; overflow-wrap: anywhere; }
+.modal-box { max-height: 90vh; overflow-y: auto; }
+
+/* ===== Info: terakhir diedit ===== */
+.info-edited-by { color: var(--muted); font-size: 0.85rem; margin: 0.9rem 0; }
+#btn-salin-info { margin-top: 0.6rem; }
+
+/* ===== Tema Ulang Tahun ===== */
+body.birthday-theme {
+  --forest: #7A1F5C;
+  --emerald: #E0529C;
+  --mint: #FFE9F4;
+  --paper: #FFF8FC;
+  --ink: #3B1030;
+  --muted: #8A5E7C;
+  --line: #F6CDE4;
+  --shadow: 0 14px 30px -18px rgba(122, 31, 92, 0.4);
+}
+body.birthday-theme .hero {
+  background: linear-gradient(160deg, #7A1F5C 0%, #B83280 55%, #F59E0B 140%);
+}
+
+.birthday-banner {
+  text-align: center;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #EC4899, #F59E0B, #8B5CF6, #EC4899);
+  background-size: 300% 100%;
+  animation: banner-shift 5s linear infinite;
+}
+@keyframes banner-shift { to { background-position: 300% 0; } }
+
+.siswa-card { position: relative; }
+.siswa-card-ultah {
+  background: linear-gradient(160deg, #FFFFFF, #FFE3F1);
+  border: 2px solid #F472B6;
+  box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.18), var(--shadow);
+}
+.siswa-card-ultah .siswa-nama::after { content: " 🎂"; }
+
+.cake-deco {
+  position: absolute;
+  font-size: 1.3rem;
+  pointer-events: none;
+  animation: cake-bob 2s ease-in-out infinite;
+}
+.cake-1 { top: -12px; right: 8px; }
+.cake-2 { bottom: -10px; left: 8px; animation-delay: 0.6s; }
+.cake-3 { bottom: -10px; right: 10px; animation-delay: 1.2s; }
+@keyframes cake-bob {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-5px) rotate(6deg); }
+}
+
+.modal-ultah { border: 2px solid #F472B6; background: linear-gradient(160deg, #FFFFFF, #FFE9F4); }
+.modal-ultah .detail-nama::after { content: " 🎂🧁🍰"; }
+
+@media (prefers-reduced-motion: reduce) {
+  .birthday-banner, .cake-deco { animation: none; }
+}

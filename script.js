@@ -124,6 +124,7 @@ function getDefaultAccount(siswa) {
     eskulWajib: "",
     eskulPilihan: [],
     notifEskul: false,
+    ultah: "",   // format YYYY-MM-DD
   };
 }
 
@@ -201,11 +202,13 @@ function renderGridSiswa() {
 
   dataSiswa.forEach((siswa) => {
     const merged = getMergedAccount(siswa.absen);
+    const ultah = isUltahHariIni(merged.ultah);
     const card = document.createElement("button");
-    card.className = "siswa-card";
+    card.className = "siswa-card" + (ultah ? " siswa-card-ultah" : "");
     card.type = "button";
     card.dataset.absen = siswa.absen;
     card.innerHTML = `
+      ${ultah ? `<span class="cake-deco cake-1">🎂</span><span class="cake-deco cake-2">🧁</span><span class="cake-deco cake-3">🍰</span>` : ""}
       <span class="siswa-absen">${String(siswa.absen).padStart(2, "0")}</span>
       <div class="siswa-nama">${merged.namaPanggilan}</div>
     `;
@@ -213,6 +216,44 @@ function renderGridSiswa() {
   });
 
   grid.appendChild(fragment);
+  applyBirthdayTheme();
+}
+
+function isUltahHariIni(ultah) {
+  if (!ultah) return false;
+  const [, m, d] = ultah.split("-").map(Number);
+  const now = new Date();
+  return m === now.getMonth() + 1 && d === now.getDate();
+}
+
+function formatUltah(ultah) {
+  if (!ultah) return "Belum diatur";
+  const [y, m, d] = ultah.split("-").map(Number);
+  const teks = new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "long" });
+  return isUltahHariIni(ultah) ? `${teks} 🎂 (hari ini!)` : teks;
+}
+
+function applyBirthdayTheme() {
+  const namaList = dataSiswa
+    .map((s) => getMergedAccount(s.absen))
+    .filter((m) => isUltahHariIni(m.ultah))
+    .map((m) => m.namaPanggilan);
+  const on = namaList.length > 0;
+
+  document.body.classList.toggle("birthday-theme", on);
+
+  const banner = document.getElementById("birthday-banner");
+  const title = document.querySelector(".hero-title");
+  if (title && !title.dataset.asli) title.dataset.asli = title.textContent;
+
+  if (on) {
+    banner.textContent = `🎉 Happy Birthday ${namaList.join(" & ")}! 🎂`;
+    banner.hidden = false;
+    if (title) title.textContent = "Happy Birthday!";
+  } else {
+    banner.hidden = true;
+    if (title && title.dataset.asli) title.textContent = title.dataset.asli;
+  }
 }
 
 /* ===================================================
@@ -237,11 +278,14 @@ function setupDetailModal() {
     document.getElementById("detail-panggilan").textContent = merged.namaPanggilan;
     document.getElementById("detail-cita").textContent = merged.citaCita;
     document.getElementById("detail-lagu").textContent = merged.laguFavorit;
+    document.getElementById("detail-ultah").textContent = formatUltah(merged.ultah);
+    modalBox.classList.toggle("modal-ultah", isUltahHariIni(merged.ultah));
 
     const bioEl = document.getElementById("detail-bio");
     const bioToggle = document.getElementById("btn-bio-toggle");
     bioEl.textContent = merged.bio && merged.bio.trim() ? merged.bio : "belom ada Bio";
     bioEl.classList.remove("expanded");
+    bioEl.style.maxHeight = "";
     bioToggle.textContent = "Baca selengkapnya";
     bioToggle.hidden = true;
     requestAnimationFrame(() => {
@@ -260,6 +304,7 @@ function setupDetailModal() {
     const btn = document.getElementById("btn-bio-toggle");
     const expand = !bioEl.classList.contains("expanded");
     bioEl.classList.toggle("expanded", expand);
+    bioEl.style.maxHeight = expand ? `${bioEl.scrollHeight}px` : ""; // animasi buka/tutup sesuai tinggi bio asli
     btn.textContent = expand ? "Sembunyikan" : "Baca selengkapnya";
   });
 
@@ -557,6 +602,7 @@ function setupInfoTab() {
   setInterval(refreshInfoBesok, 5 * 60 * 1000); // jaga-jaga kalau web dibiarin kebuka lewat jam 12 siang / tengah malam
 
   document.getElementById("btn-edit-info").addEventListener("click", openEditInfoModal);
+  document.getElementById("btn-salin-info").addEventListener("click", salinInfo);
   document.getElementById("form-edit-info").addEventListener("submit", handleEditInfoSubmit);
   document.getElementById("edit-info-tanggal").addEventListener("change", handleEditInfoTanggalChange);
   setupModalDismiss(document.getElementById("modal-edit-info"));
@@ -591,6 +637,7 @@ function subscribeInfoOverrides() {
 }
 
 function refreshInfoBesok() {
+  applyBirthdayTheme();
   const keySebelumnya = infoBesok.key;
   infoBesok = getInfoBesok();
   updateInfoHeading();
@@ -630,6 +677,21 @@ function renderInfoOverrides() {
   } else {
     catatanCard.hidden = true;
   }
+
+  document.getElementById("info-kegiatan").textContent =
+    infoOverrideData.kegiatan && infoOverrideData.kegiatan.trim() ? infoOverrideData.kegiatan : "Belum ada kegiatan";
+
+  const editedEl = document.getElementById("info-edited-by");
+  if (infoOverrideData.editedBy) {
+    const ts = infoOverrideData.editedAt && infoOverrideData.editedAt.toDate ? infoOverrideData.editedAt.toDate() : null;
+    const waktu = ts
+      ? ` · ${ts.toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+      : "";
+    editedEl.textContent = `Terakhir diedit oleh ${infoOverrideData.editedBy}${waktu}`;
+    editedEl.hidden = false;
+  } else {
+    editedEl.hidden = true;
+  }
 }
 
 function updateInfoEditButtonVisibility() {
@@ -650,6 +712,7 @@ function isiFormEditInfo(jadwalTarget, override) {
   document.getElementById("edit-mapel").value = override.mapelOverride || "";
   document.getElementById("edit-seragam").value = override.seragamOverride || "";
   document.getElementById("edit-pr").value = override.pr || "";
+  document.getElementById("edit-kegiatan").value = override.kegiatan || "";
   document.getElementById("edit-catatan").value = override.catatan || "";
 
   const liburSaatIni = override.eskulLiburList || [];
@@ -699,8 +762,11 @@ async function handleEditInfoSubmit(e) {
     mapelOverride: document.getElementById("edit-mapel").value.trim(),
     seragamOverride: document.getElementById("edit-seragam").value.trim(),
     pr: document.getElementById("edit-pr").value.trim(),
+    kegiatan: document.getElementById("edit-kegiatan").value.trim(),
     eskulLiburList: Array.from(document.querySelectorAll('input[name="eskul-libur"]:checked')).map((el) => el.value),
     catatan: document.getElementById("edit-catatan").value.trim(),
+    editedBy: currentUser.namaPanggilan,
+    editedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
   try {
     await db.collection("infoOverrides").doc(targetKey).set(payload, { merge: true });
@@ -711,6 +777,109 @@ async function handleEditInfoSubmit(e) {
     errorEl.hidden = false;
     SoundFX.errorSound();
   }
+}
+
+/* ---------- SALIN INFO (template WA) ---------- */
+const BULAN_ID = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI","JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"];
+const NAMA_MAPEL_PANJANG = {
+  "B.SUNDA": "BAHASA SUNDA",
+  "B.INDO": "BAHASA INDONESIA",
+  "B.INGGRIS": "BAHASA INGGRIS",
+  "MTK": "MATEMATIKA",
+  // tambah sendiri kalau mau singkatan lain dipanjangin
+};
+
+// A-Z -> 𝐀-𝐙 (bold serif)
+function gayaBold(teks) {
+  return [...teks.toUpperCase()].map((ch) => {
+    const c = ch.charCodeAt(0);
+    return c >= 65 && c <= 90 ? String.fromCodePoint(0x1d400 + c - 65) : ch;
+  }).join("");
+}
+
+// A-Z -> 🅐-🅩 (negative circled), 0-9 -> ⓿➊➋➌...
+function gayaLingkaran(teks) {
+  return [...teks.toUpperCase()].map((ch) => {
+    const c = ch.charCodeAt(0);
+    if (c >= 65 && c <= 90) return String.fromCodePoint(0x1f150 + c - 65);
+    if (ch >= "1" && ch <= "9") return String.fromCodePoint(0x278a + Number(ch) - 1);
+    if (ch === "0") return "⓿";
+    return ch;
+  }).join("");
+}
+
+// 1 -> 𝟭
+function angkaBold(n) {
+  return String(n).replace(/\d/g, (d) => String.fromCodePoint(0x1d7ec + Number(d)));
+}
+
+function buatTeksSalinInfo() {
+  const o = infoOverrideData || {};
+  const tgl = infoBesok.tanggal;
+  const tanggalStyled = [
+    gayaLingkaran(infoBesok.namaHari),
+    gayaLingkaran(String(tgl.getDate())),
+    gayaLingkaran(BULAN_ID[tgl.getMonth()]),
+    gayaLingkaran(String(tgl.getFullYear())),
+  ].join("⚊");
+
+  const baris = (t) => (t || "").split("\n").map((x) => x.trim()).filter(Boolean);
+
+  const mapelMentah = o.mapelOverride && o.mapelOverride.trim() ? o.mapelOverride.split(",") : infoBesok.mapel;
+  const mapel = mapelMentah.map((m) => m.trim()).filter(Boolean)
+    .map((m) => NAMA_MAPEL_PANJANG[m.toUpperCase()] || m);
+
+  const piket = infoBesok.piket;
+  const pr = baris(o.pr);
+  const kegiatan = baris(o.kegiatan);
+  const catatan = baris(o.catatan);
+
+  const out = [
+    "ᯓ𝗔𝗦𝗦𝗔𝗟𝗔𝗠𝗨𝗔𝗟𝗔𝗜𝗞𝗨𝗠 𝗪𝗥.𝗪𝗕ᯓ",
+    "꒷𝓗aloo 𝓦arga 𝟕.𝟑 𝓘zin 𝓜engigatkan꒷",
+    "◆🗓 𝐓omorrow`s 𝐃ate:",
+    ` ${tanggalStyled}`,
+    "",
+    "✦📚 𝐌𝐴𝑃𝐸𝐿:",
+    ...(mapel.length ? mapel.map((m) => `⚊ ${gayaBold(m)}`) : ["⚊ -"]),
+    "",
+    "★🧹 𝐏𝐼𝐾𝐸𝑇:",
+    ...(piket.length ? piket.map((n) => `⚊ ${n.toUpperCase()}`) : ["⚊ -"]),
+    "",
+    "✿✍️📖𝐏ᥱrkᥱrȷᥲᥲᥒ 𝐑ᥙmᥲһ:",
+    ...(pr.length ? [...pr.map((l) => `╸${l}`), "ᴅsᴛ."] : ["╸Tidak ada PR"]),
+    "",
+    "✤🪻𝐊EGIATAN:",
+    ...(kegiatan.length ? kegiatan : ["-"]),
+  ];
+
+  if (catatan.length) {
+    out.push("📌 𝓝ote :");
+    catatan.forEach((l, i) => out.push(`${angkaBold(i + 1)}. ${l}`));
+  }
+  return out.join("\n");
+}
+
+async function salinInfo() {
+  const btn = document.getElementById("btn-salin-info");
+  const teks = buatTeksSalinInfo();
+  try {
+    await navigator.clipboard.writeText(teks);
+  } catch (err) {
+    // fallback buat browser/jaringan yang blokir clipboard API
+    const ta = document.createElement("textarea");
+    ta.value = teks;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  const asli = btn.textContent;
+  btn.textContent = "Tersalin ✓";
+  SoundFX.resultReveal();
+  setTimeout(() => (btn.textContent = asli), 1800);
 }
 
 /* ===================================================
@@ -781,7 +950,7 @@ function setupAccountUI() {
   document.getElementById("form-edit-credentials").addEventListener("submit", handleEditCredentialsSubmit);
 
   document.getElementById("profil-bio").addEventListener("input", (e) => {
-    document.getElementById("profil-bio-count").textContent = `${e.target.value.length}/150`;
+    document.getElementById("profil-bio-count").textContent = `${e.target.value.length} karakter`;
   });
 
   document.getElementById("profil-notif").addEventListener("change", (e) => {
@@ -874,7 +1043,8 @@ function openEditProfilModal(absen) {
   document.getElementById("profil-cita").value = merged.citaCita;
   document.getElementById("profil-lagu").value = merged.laguFavorit;
   document.getElementById("profil-bio").value = merged.bio;
-  document.getElementById("profil-bio-count").textContent = `${merged.bio.length}/150`;
+  document.getElementById("profil-bio-count").textContent = `${merged.bio.length} karakter`;
+  document.getElementById("profil-ultah").value = merged.ultah || "";
   document.getElementById("profil-notif").checked = !!merged.notifEskul;
   renderEskulPilihanForm(merged);
   document.getElementById("profil-error").hidden = true;
@@ -950,6 +1120,7 @@ async function handleEditProfilSubmit(e) {
     citaCita: document.getElementById("profil-cita").value.trim() || "tidak diketahui",
     laguFavorit: document.getElementById("profil-lagu").value.trim() || "tidak diketahui",
     bio: document.getElementById("profil-bio").value.trim(),
+    ultah: document.getElementById("profil-ultah").value, // "" kalau dikosongin
     eskulWajib,
     eskulPilihan,
     notifEskul: document.getElementById("profil-notif").checked,
@@ -960,7 +1131,8 @@ async function handleEditProfilSubmit(e) {
     closeModal(document.getElementById("modal-edit-profil"));
     SoundFX.resultReveal();
   } catch (err) {
-    errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    console.error("Gagal simpan profil:", err);
+    errorEl.textContent = `Gagal simpan (${err.code || err.message}).`;
     errorEl.hidden = false;
     SoundFX.errorSound();
   }
