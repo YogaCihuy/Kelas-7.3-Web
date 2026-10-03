@@ -973,3 +973,37 @@ body.birthday-theme .hero {
 a.btn-secondary { display: block; text-align: center; text-decoration: none; margin-top: 0.6rem; }
 #btn-tes-notif { margin-top: 0.6rem; }
 #btn-tes-notif[hidden] { display: none; }
+
+/* ===== Loading screen APK ===== */
+#loading-apk { display: none; }
+html.apk-loading { background: #fff; }
+html.apk-loading #loading-apk {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: 2rem;
+  transition: opacity 0.4s ease;
+}
+html.apk-loading #loading-apk.keluar { opacity: 0; pointer-events: none; }
+.loading-apk-logo { width: 150px; height: 150px; object-fit: contain; }
+.loading-apk-track {
+  width: min(260px, 70vw);
+  height: 8px;
+  border-radius: 999px;
+  background: #E5ECE8;
+  overflow: hidden;
+}
+.loading-apk-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest, #14392A), var(--emerald, #2E7D5B));
+  transition: width 0.25s ease;
+}
+.loading-apk-text { font-size: 0.8rem; color: #5B6B63; text-align: center; letter-spacing: 0.02em; }

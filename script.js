@@ -2,8 +2,11 @@
 
 // Nomor WA Yoga buat tombol "Lupa Password". Format internasional tanpa + dan tanpa 0 di depan.
 // Contoh: nomor 0812-3456-7890 -> "6281234567890"
-const NOMOR_WA_YOGA = "6287788191013";
+const NOMOR_WA_YOGA = "62XXXXXXXXXXX";
 const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
+
+// ID file APK di Google Drive (bagian di antara /d/ dan /view pada link Drive)
+const DRIVE_APK_ID = "14QePWjubwMlH2nYxYv4VFgioeh3ccSKF";
 
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
@@ -161,6 +164,7 @@ function setupAccountsListener() {
       });
       accountsData = next;
       renderGridSiswa();
+      if (window.loadingApk) window.loadingApk.dataSiap();
       if (currentUser) {
         const refreshed = getMergedAccount(currentUser.absen);
         if (refreshed) {
@@ -171,6 +175,7 @@ function setupAccountsListener() {
     },
     (err) => {
       console.error("Gagal konek ke Firestore:", err);
+      if (window.loadingApk) window.loadingApk.dataSiap(); // tetap buka app walau data gagal dimuat
     }
   );
 }
@@ -956,6 +961,8 @@ function setupAccountUI() {
   document.getElementById("profil-bio").addEventListener("input", (e) => {
     document.getElementById("profil-bio-count").textContent = `${e.target.value.length} karakter`;
   });
+
+  document.getElementById("btn-download-apk").href = `https://drive.google.com/uc?export=download&id=${DRIVE_APK_ID}`;
 
   const btnTes = document.getElementById("btn-tes-notif");
   btnTes.addEventListener("click", tesNotifikasiEskul);

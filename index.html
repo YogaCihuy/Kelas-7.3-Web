@@ -7,10 +7,65 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
-<link rel="icon" type="image/png" href="Images/7.3Icon.png"
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="icon" type="image/png" href="Images/7.3Icon.png">
+<script>
+/* Loading screen khusus APK. Di browser biasa script ini langsung berhenti. */
+(function () {
+  var cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  document.documentElement.classList.add("apk-loading");
+
+  var BATAS = { dom: 45, load: 75, data: 95 };
+  var batas = 20, nilai = 0, siapLoad = false, siapData = false, beres = false;
+  var mulai = Date.now();
+  var MIN_TAMPIL = 900;      // minimal tampil (ms) biar gak kedip
+  var MAKS_TUNGGU = 12000;   // kalau koneksi parah, tetap buka app setelah segini
+
+  function gambar() {
+    var bar = document.getElementById("loading-apk-bar");
+    if (bar) bar.style.width = nilai + "%";
+  }
+  var timer = setInterval(function () {
+    if (nilai < batas) nilai = Math.min(batas, nilai + Math.max(0.4, (batas - nilai) * 0.06));
+    gambar();
+  }, 60);
+
+  function selesai() {
+    if (beres) return;
+    beres = true;
+    batas = nilai = 100;
+    gambar();
+    setTimeout(function () {
+      var el = document.getElementById("loading-apk");
+      if (el) el.classList.add("keluar");
+      setTimeout(function () {
+        clearInterval(timer);
+        document.documentElement.classList.remove("apk-loading");
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }, 450);
+    }, Math.max(350, MIN_TAMPIL - (Date.now() - mulai)));
+  }
+  function cek() { if (siapLoad && siapData) selesai(); }
+  function naik(nama) { if (BATAS[nama] > batas) batas = BATAS[nama]; }
+
+  document.addEventListener("DOMContentLoaded", function () { naik("dom"); });
+  window.addEventListener("load", function () { naik("load"); siapLoad = true; cek(); });
+  setTimeout(selesai, MAKS_TUNGGU);
+
+  // dipanggil dari script.js pas data kelas pertama kali masuk
+  window.loadingApk = { dataSiap: function () { naik("data"); siapData = true; cek(); } };
+})();
+</script>
 </head>
 <body>
+
+  <!-- LOADING SCREEN (cuma muncul di APK) -->
+  <div id="loading-apk" aria-hidden="true">
+    <img src="Images/7.3Icon.png" alt="" class="loading-apk-logo">
+    <div class="loading-apk-track"><div id="loading-apk-bar" class="loading-apk-bar"></div></div>
+    <p class="loading-apk-text">SSC, Berkarakter, Unggul, Berprestasi, Juara</p>
+  </div>
 
   <button id="btn-sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Matikan suara efek">
     <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
@@ -34,7 +89,6 @@
 
    <!-- Tombol download APK -->
     <a id="btn-download-apk" class="apk-download" target="_blank" rel="noopener"
-       href="https://drive.google.com/uc?export=download&id=14QePWjubwMlH2nYxYv4VFgioeh3ccSKF"
        title="Download APK Kelas 7.3" aria-label="Download APK Kelas 7.3">
       <img src="Images/7.3Icon.png" alt="">
     </a>
@@ -451,7 +505,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js"></script>
-<script src="script.js?v=6"></script>
+<script src="script.js?v=7"></script>
 <script src="native-notif.js?v=4"></script>
 </body>
 </html>
