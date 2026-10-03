@@ -957,7 +957,10 @@ function setupAccountUI() {
     document.getElementById("profil-bio-count").textContent = `${e.target.value.length} karakter`;
   });
 
-  document.getElementById("btn-tes-notif").addEventListener("click", tesNotifikasiEskul);
+  const btnTes = document.getElementById("btn-tes-notif");
+  btnTes.addEventListener("click", tesNotifikasiEskul);
+  // Tombol tes notif cuma muncul di APK
+  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) btnTes.hidden = false;
 
   const linkLupa = document.getElementById("btn-lupa-password");
   linkLupa.href = `https://wa.me/${NOMOR_WA_YOGA}?text=${encodeURIComponent(PESAN_LUPA_PASSWORD)}`;

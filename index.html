@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png"
 </head>
 <body>
@@ -335,7 +335,7 @@
           Aktifin notifikasi 5 menit sebelum eskul (di APK tetap bunyi walau app ditutup, di web cuma pas lagi kebuka)
         </label>
 
-        <button type="button" id="btn-tes-notif" class="btn-secondary btn-block">Tes Notifikasi Eskul</button>
+        <button type="button" id="btn-tes-notif" class="btn-secondary btn-block" hidden>Tes Notifikasi Eskul</button>
         <p id="tes-notif-status" class="form-hint" hidden></p>
 
         <p id="profil-error" class="form-error" hidden></p>
@@ -447,9 +447,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="firebase-init.js"></script>
-<script src="schedule.js?v=3"></script>
+<script src="schedule.js?v=4"></script>
 <script src="data.js"></script>
-<script src="script.js?v=3"></script>
-<script src="native-notif.js?v=3"></script>
+<script src="script.js?v=4"></script>
+<script src="native-notif.js?v=4"></script>
 </body>
 </html>
