@@ -361,6 +361,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 .sprout .detail-row:nth-of-type(2) { animation-delay: 0.4s; }
 .sprout .detail-row:nth-of-type(3) { animation-delay: 0.46s; }
 .sprout .detail-row:nth-of-type(4) { animation-delay: 0.52s; }
+.sprout .detail-row:nth-of-type(5) { animation-delay: 0.58s; }
 
 @keyframes rise-leaf {
   from { opacity: 0; transform: translateY(10px); }
@@ -1007,3 +1008,26 @@ html.apk-loading #loading-apk.keluar { opacity: 0; pointer-events: none; }
   transition: width 0.25s ease;
 }
 .loading-apk-text { font-size: 0.8rem; color: #5B6B63; text-align: center; letter-spacing: 0.02em; }
+
+/* ===== Album foto ===== */
+.detail-row-album { margin: 0.2rem 0; }
+.album-grid { display: grid; gap: 0.8rem; margin-top: 0.8rem; }
+.album-foto { width: 100%; display: block; border-radius: 12px; background: var(--mint); box-shadow: var(--shadow); }
+.album-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0.3rem 0 0.4rem; }
+.album-slot { display: flex; flex-direction: column; gap: 0.35rem; align-items: stretch; }
+.album-thumb {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: var(--mint);
+  border: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  overflow: hidden;
+}
+.album-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.album-btn { padding: 0.4rem 0.2rem; font-size: 0.8rem; }
+.album-hapus { color: #B3261E; }

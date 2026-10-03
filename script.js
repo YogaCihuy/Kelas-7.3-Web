@@ -8,6 +8,7 @@ const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
 // ID file APK di Google Drive (bagian di antara /d/ dan /view pada link Drive)
 const DRIVE_APK_ID = "18BMAsdg_G59A8Vn9e1NC3eBUKX6VXMHf";
 
+let detailAbsenAktif = null; // absen siswa yang lagi dibuka di modal detail
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
 let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
@@ -282,6 +283,7 @@ function setupDetailModal() {
     const siswa = dataSiswa.find((s) => s.absen === absen);
     if (!siswa) return;
     const merged = getMergedAccount(absen);
+    detailAbsenAktif = absen;
 
     document.getElementById("detail-absen").textContent = String(siswa.absen).padStart(2, "0");
     document.getElementById("detail-nama").textContent = siswa.namaLengkap;
@@ -322,6 +324,10 @@ function setupDetailModal() {
     if (!currentUser) return;
     closeModal(modal);
     openEditProfilModal(currentUser.absen);
+  });
+
+  document.getElementById("btn-open-album").addEventListener("click", () => {
+    if (detailAbsenAktif) bukaAlbum(detailAbsenAktif);
   });
 
   setupModalDismiss(modal);
@@ -964,6 +970,8 @@ function setupAccountUI() {
 
   document.getElementById("btn-download-apk").href = `https://drive.google.com/uc?export=download&id=${DRIVE_APK_ID}`;
 
+  setupAlbum();
+
   const btnTes = document.getElementById("btn-tes-notif");
   btnTes.addEventListener("click", tesNotifikasiEskul);
   // Tombol tes notif cuma muncul di APK, tombol download APK cuma aktif di web
@@ -1087,6 +1095,7 @@ function openEditProfilModal(absen) {
   renderEskulPilihanForm(merged);
   document.getElementById("profil-error").hidden = true;
   openModal(document.getElementById("modal-edit-profil"));
+  muatAlbumEdit(absen);
 }
 
 function renderEskulPilihanForm(merged) {
@@ -1641,4 +1650,192 @@ async function tesNotifikasiEskul() {
       tampil("Browser ini gak bisa nampilin notifikasi dari web. Coba pakai APK-nya.");
     }
   }, 10000);
+}
+
+
+/* ===================================================
+   14. ALBUM FOTO (maks 3 foto per siswa)
+   Foto dikecilin di HP dulu (maks 900px, JPEG) lalu disimpan sebagai teks di
+   koleksi Firestore "albums" (1 dokumen per siswa). Dimuat cuma pas Album dibuka,
+   jadi gak bikin halaman utama berat.
+=================================================== */
+const ALBUM_SLOTS = ["f1", "f2", "f3"];
+const ALBUM_MAKS_SISI = 900;
+const ALBUM_MAKS_KARAKTER = 200000;
+let albumEdit = {};          // isi album yang lagi diedit (f1, f2, f3)
+let albumEditAbsen = null;
+let albumSlotAktif = null;
+let albumToken = 0;
+
+async function ambilAlbum(absen) {
+  const doc = await db.collection("albums").doc(String(absen)).get();
+  return doc.exists ? doc.data() : {};
+}
+
+function kompresFoto(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) { reject(new Error("bukan-gambar")); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const skala = Math.min(1, ALBUM_MAKS_SISI / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * skala));
+      canvas.height = Math.max(1, Math.round(img.height * skala));
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let kualitas = 0.8;
+      let hasil = canvas.toDataURL("image/jpeg", kualitas);
+      while (hasil.length > ALBUM_MAKS_KARAKTER && kualitas > 0.35) {
+        kualitas -= 0.1;
+        hasil = canvas.toDataURL("image/jpeg", kualitas);
+      }
+      if (hasil.length > ALBUM_MAKS_KARAKTER) { reject(new Error("terlalu-besar")); return; }
+      resolve(hasil);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("gagal-baca")); };
+    img.src = url;
+  });
+}
+
+/* ---------- Lihat album (dari tombol Album di profil) ---------- */
+async function bukaAlbum(absen) {
+  const modal = document.getElementById("modal-album");
+  const grid = document.getElementById("album-grid");
+  const status = document.getElementById("album-status");
+  const merged = getMergedAccount(absen);
+  const token = ++albumToken;
+
+  document.getElementById("album-title").textContent = `Album ${merged.namaPanggilan}`;
+  grid.innerHTML = "";
+  status.textContent = "Memuat foto...";
+  openModal(modal);
+
+  try {
+    const data = await ambilAlbum(absen);
+    if (token !== albumToken) return; // album lain keburu dibuka
+    const fotos = ALBUM_SLOTS.map((slot) => data[slot]).filter(Boolean);
+    status.textContent = fotos.length ? "" : `${merged.namaPanggilan} belum upload foto.`;
+    fotos.forEach((src, i) => {
+      const img = document.createElement("img");
+      img.className = "album-foto";
+      img.alt = `Foto ${i + 1} milik ${merged.namaPanggilan}`;
+      img.src = src;
+      grid.appendChild(img);
+    });
+  } catch (err) {
+    if (token !== albumToken) return;
+    console.error("Gagal muat album:", err);
+    status.textContent = `Gagal muat album (${err.code || err.message}).`;
+  }
+}
+
+/* ---------- Upload / Ganti / Hapus (di Edit Profil) ---------- */
+function statusAlbumEdit(teks) {
+  const el = document.getElementById("album-edit-status");
+  el.textContent = teks;
+  el.hidden = !teks;
+}
+
+function renderSlotAlbumEdit() {
+  const wrap = document.getElementById("profil-album-slots");
+  wrap.innerHTML = "";
+  ALBUM_SLOTS.forEach((slot, i) => {
+    const ada = !!albumEdit[slot];
+    const el = document.createElement("div");
+    el.className = "album-slot";
+    el.innerHTML = `
+      <div class="album-thumb">${ada ? `<img alt="Foto ${i + 1}">` : `<span>Foto ${i + 1}<br>kosong</span>`}</div>
+      <button type="button" class="btn-secondary album-btn" data-aksi="upload" data-slot="${slot}">${ada ? "Ganti" : "Upload"}</button>
+      ${ada ? `<button type="button" class="btn-text-only album-btn album-hapus" data-aksi="hapus" data-slot="${slot}">Hapus</button>` : ""}
+    `;
+    if (ada) el.querySelector("img").src = albumEdit[slot];
+    wrap.appendChild(el);
+  });
+}
+
+async function muatAlbumEdit(absen) {
+  albumEditAbsen = absen;
+  albumEdit = {};
+  renderSlotAlbumEdit();
+  statusAlbumEdit("Memuat album...");
+  try {
+    const data = await ambilAlbum(absen);
+    if (albumEditAbsen !== absen) return;
+    albumEdit = data;
+    renderSlotAlbumEdit();
+    statusAlbumEdit("");
+  } catch (err) {
+    statusAlbumEdit(`Gagal memuat album (${err.code || err.message}).`);
+  }
+}
+
+async function simpanSlotAlbum(slot, nilai) {
+  await db.collection("albums").doc(String(albumEditAbsen)).set(
+    { [slot]: nilai, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+  albumEdit[slot] = nilai;
+  renderSlotAlbumEdit();
+}
+
+async function uploadFotoAlbum(slot, file) {
+  statusAlbumEdit("Memproses foto...");
+  try {
+    const dataUrl = await kompresFoto(file);
+    statusAlbumEdit("Menyimpan...");
+    await simpanSlotAlbum(slot, dataUrl);
+    statusAlbumEdit("Foto tersimpan ✓");
+    SoundFX.resultReveal();
+  } catch (err) {
+    const pesan = {
+      "bukan-gambar": "Itu bukan file gambar.",
+      "gagal-baca": "Foto gak bisa dibaca. Coba foto lain (JPG atau PNG).",
+      "terlalu-besar": "Foto terlalu besar buat dikecilin. Coba foto lain.",
+    }[err.message] || `Gagal simpan (${err.code || err.message}).`;
+    console.error("Gagal upload foto album:", err);
+    statusAlbumEdit(pesan);
+    SoundFX.errorSound();
+  }
+}
+
+async function hapusFotoAlbum(slot) {
+  if (!confirm("Hapus foto ini dari album?")) return;
+  statusAlbumEdit("Menghapus...");
+  try {
+    await simpanSlotAlbum(slot, "");
+    statusAlbumEdit("Foto dihapus.");
+  } catch (err) {
+    console.error("Gagal hapus foto album:", err);
+    statusAlbumEdit(`Gagal hapus (${err.code || err.message}).`);
+  }
+}
+
+function setupAlbum() {
+  const modal = document.getElementById("modal-album");
+  setupModalDismiss(modal);
+  // album ditutup tapi modal profil masih kebuka di bawahnya -> kunci scroll lagi
+  modal.addEventListener("click", () => setTimeout(() => {
+    if (!document.getElementById("modal-detail").hidden) document.body.style.overflow = "hidden";
+  }, 0));
+
+  const input = document.getElementById("album-file-input");
+  document.getElementById("profil-album-slots").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-aksi]");
+    if (!btn) return;
+    if (btn.dataset.aksi === "upload") {
+      albumSlotAktif = btn.dataset.slot;
+      input.value = "";
+      input.click();
+    } else {
+      hapusFotoAlbum(btn.dataset.slot);
+    }
+  });
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (file && albumSlotAktif) uploadFotoAlbum(albumSlotAktif, file);
+  });
 }

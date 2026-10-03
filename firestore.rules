@@ -16,6 +16,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Album foto siswa (maks 3 foto, disimpan sebagai teks base64 yang udah dikecilin)
+    match /albums/{absen} {
+      allow read: if true;
+      allow create, update: if isValidAlbum(request.resource.data);
+      allow delete: if false; // hapus foto = slot dikosongin, dokumen gak dihapus
+    }
+
     // Pengaturan umum (link medsos, dll)
     match /settings/{docId} {
       allow read: if true;
@@ -51,6 +58,15 @@ service cloud.firestore {
         && (!('kegiatan' in d) || d.kegiatan is string)
         && (!('editedBy' in d) || d.editedBy is string)
         && (!('editedAt' in d) || d.editedAt is timestamp);
+    }
+
+    function isValidAlbum(d) {
+      let allowedKeys = ['f1','f2','f3','updatedAt'];
+      return d.keys().hasOnly(allowedKeys)
+        && (!('f1' in d) || (d.f1 is string && d.f1.size() < 300000))
+        && (!('f2' in d) || (d.f2 is string && d.f2.size() < 300000))
+        && (!('f3' in d) || (d.f3 is string && d.f3.size() < 300000))
+        && (!('updatedAt' in d) || d.updatedAt is timestamp);
     }
 
     function isValidSettings(d) {
