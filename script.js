@@ -2,7 +2,7 @@
 
 // Nomor WA Yoga buat tombol "Lupa Password". Format internasional tanpa + dan tanpa 0 di depan.
 // Contoh: nomor 0812-3456-7890 -> "6281234567890"
-const NOMOR_WA_YOGA = "628788191013";
+const NOMOR_WA_YOGA = "6287788191013";
 const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
 
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
