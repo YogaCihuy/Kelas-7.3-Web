@@ -1,0 +1,61 @@
+name: Build Windows & Mac
+
+on:
+  workflow_dispatch:   # dijalankan manual lewat tab Actions
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            file: Kelas-7.3-Windows.exe
+          - os: macos-latest
+            target: mac
+            file: Kelas-7.3-Mac.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build aplikasi
+        working-directory: desktop
+        run: npx electron-builder --${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: desktop/dist/${{ matrix.file }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency: release-app-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Publish ke GitHub Releases (tag app-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: Aplikasi Kelas 7.3 (terbaru)
+          body: File aplikasi Kelas 7.3. Link download ada di tombol logo di web.
+          files: out/*

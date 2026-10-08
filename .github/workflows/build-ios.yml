@@ -1,0 +1,94 @@
+name: Build iPhone (.ipa)
+
+on:
+  workflow_dispatch:   # dijalankan manual lewat tab Actions
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Siapkan gambar ikon
+        run: |
+          pip3 install pillow --break-system-packages || pip3 install pillow
+          python3 - <<'PY'
+          from PIL import Image
+          import os
+          os.makedirs("assets", exist_ok=True)
+          src = Image.open("Images/7.3Icon.png").convert("RGBA")
+          def kanvas(skala):
+              c = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+              s = int(1024 * skala)
+              im = src.resize((s, s), Image.LANCZOS)
+              c.paste(im, ((1024 - s) // 2, (1024 - s) // 2), im)
+              return c
+          bg = Image.new("RGBA", (1024, 1024), (255, 255, 255, 255))
+          full = bg.copy()
+          full.alpha_composite(kanvas(1.0))
+          full.convert("RGB").save("assets/icon-only.png")
+          splash = Image.new("RGBA", (2732, 2732), (255, 255, 255, 255))
+          splash.alpha_composite(src.resize((900, 900), Image.LANCZOS), ((2732 - 900) // 2, (2732 - 900) // 2))
+          splash.convert("RGB").save("assets/splash.png")
+          splash.convert("RGB").save("assets/splash-dark.png")
+          PY
+
+      - name: Tambah project iOS
+        run: npx cap add ios
+
+      - name: Pasang ikon ke iOS
+        run: npx --yes @capacitor/assets generate --ios
+
+      - name: Sync
+        run: npx cap sync ios
+
+      - name: Build (tanpa tanda tangan)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Bungkus jadi .ipa
+        run: |
+          mkdir -p Payload out
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry out/Kelas-7.3-iPhone.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iphone
+          path: out/Kelas-7.3-iPhone.ipa
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency: release-app-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Publish ke GitHub Releases (tag app-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: Aplikasi Kelas 7.3 (terbaru)
+          body: File aplikasi Kelas 7.3. Link download ada di tombol logo di web.
+          files: out/*
