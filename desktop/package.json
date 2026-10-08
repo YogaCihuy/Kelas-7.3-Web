@@ -1,0 +1,36 @@
+{
+  "name": "kelas73-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplikasi desktop Kelas 7.3 (Windows & Mac)",
+  "author": "Yoga",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "id.kelas73.app",
+    "productName": "Kelas 7.3",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "offline.html", "icon.png"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "Kelas-7.3-Windows.${ext}"
+    },
+    "nsis": { "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "icon": "build/icon.png",
+      "category": "public.app-category.education",
+      "identity": null,
+      "artifactName": "Kelas-7.3-Mac.${ext}"
+    }
+  }
+}

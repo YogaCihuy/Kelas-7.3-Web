@@ -1,0 +1,13 @@
+{
+  "name": "Kelas 7.3",
+  "short_name": "Kelas 7.3",
+  "description": "Web & aplikasi Kelas 7.3",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14392A",
+  "icons": [
+    { "src": "Images/7.3Icon.png", "sizes": "640x640", "type": "image/png", "purpose": "any" }
+  ]
+}

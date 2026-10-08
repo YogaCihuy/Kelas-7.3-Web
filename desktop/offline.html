@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kelas 7.3</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; text-align: center; color: #16241C; }
+    button { margin-top: 1rem; padding: .7rem 1.6rem; border: 0; border-radius: 999px; background: #17392A; color: #fff; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div>
+    <h2>Gak bisa buka Kelas 7.3</h2>
+    <p>Cek koneksi internet kamu. Aplikasi akan coba lagi otomatis.</p>
+    <button id="coba">Coba lagi</button>
+  </div>
+  <script>
+    var u = new URLSearchParams(location.search).get("u") || "https://yogacihuy.github.io/Kelas-7.3-Web/";
+    function coba() { location.href = u; }
+    document.getElementById("coba").addEventListener("click", coba);
+    setInterval(function () {
+      fetch(u, { mode: "no-cors", cache: "no-store" }).then(coba).catch(function () {});
+    }, 8000);
+  </script>
+</body>
+</html>

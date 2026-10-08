@@ -1,5 +1,5 @@
 // native-notif.js
-// Notifikasi eskul buat versi APK (Capacitor). Di browser biasa file ini gak ngapa-ngapain.
+// Notifikasi eskul buat aplikasi HP (Android APK & iPhone, lewat Capacitor). Di browser biasa file ini gak ngapa-ngapain.
 // Cara kerja: jadwal eskul 7 hari ke depan didaftarin sebagai notifikasi LOKAL di HP,
 // jadi tetap bunyi walau app ditutup / HP lagi idle. Dijadwal ulang tiap app dibuka,
 // tiap ganti akun / eskul / jadwal, dan tiap hari berganti.
@@ -12,6 +12,11 @@
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const LN = cap.Plugins && cap.Plugins.LocalNotifications;
   if (!LN) return;
+
+  async function buatChannel() {
+    // Channel notifikasi cuma ada di Android; di iPhone dilewati
+    try { await LN.createChannel({ id: "eskul", name: "Pengingat Eskul", importance: 4, vibration: true }); } catch (e) {}
+  }
 
   const ID_TES = 2147000000; // id khusus notif tes, jangan ikut dibatalin pas jadwal ulang
 
@@ -68,7 +73,7 @@
       if (izin.display !== "granted") izin = await LN.requestPermissions();
       if (izin.display !== "granted") return;
 
-      await LN.createChannel({ id: "eskul", name: "Pengingat Eskul", importance: 4, vibration: true });
+      await buatChannel();
 
       const saya = eskulSaya();
       const sekarang = new Date();
@@ -118,7 +123,7 @@
     let izin = await LN.checkPermissions();
     if (izin.display !== "granted") izin = await LN.requestPermissions();
     if (izin.display !== "granted") return false;
-    await LN.createChannel({ id: "eskul", name: "Pengingat Eskul", importance: 4, vibration: true });
+    await buatChannel();
     await LN.schedule({
       notifications: [{
         id: ID_TES,

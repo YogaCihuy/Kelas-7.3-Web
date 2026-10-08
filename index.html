@@ -7,13 +7,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
+<link rel="apple-touch-icon" href="Images/7.3Icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#14392A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kelas 7.3">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script>
-/* Loading screen khusus APK. Di browser biasa script ini langsung berhenti. */
+/* Deteksi "lagi dibuka dari aplikasi" (Android/iPhone = Capacitor, Windows/Mac = Electron,
+   atau web yang dipasang ke Home Screen). Dipakai buat loading screen, tombol download,
+   dan notifikasi. Di browser biasa isApp = false dan loading screen gak muncul. */
 (function () {
   var cap = window.Capacitor;
-  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  var native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+  var desktop = !!window.kelas73Desktop || /Electron\//.test(navigator.userAgent);
+  var pwa = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  window.kelas73App = { native: native, desktop: desktop, pwa: pwa, isApp: native || desktop || pwa };
+  if (!window.kelas73App.isApp) return;
   document.documentElement.classList.add("apk-loading");
 
   var BATAS = { dom: 45, load: 75, data: 95 };
@@ -87,11 +100,31 @@
       <span id="account-label">Akun</span>
     </button>
 
-   <!-- Tombol download APK -->
-    <a id="btn-download-apk" class="apk-download" target="_blank" rel="noopener"
-       title="Download APK Kelas 7.3" aria-label="Download APK Kelas 7.3">
+   <!-- Tombol download aplikasi (menu pilih perangkat). Di dalam aplikasi cuma jadi logo biasa. -->
+    <button id="btn-download-apk" class="apk-download" type="button"
+       title="Download Aplikasi Kelas 7.3" aria-label="Download Aplikasi Kelas 7.3"
+       aria-haspopup="true" aria-expanded="false">
       <img src="Images/7.3Icon.png" alt="">
-    </a>
+    </button>
+    <div id="download-menu" class="download-menu" hidden>
+      <p class="download-title">Download Aplikasi Kelas 7.3</p>
+      <a id="dl-android" class="download-item" data-platform="android" target="_blank" rel="noopener">
+        <span class="download-ico">&#129302;</span>
+        <span class="download-txt"><strong>Android</strong><small>File APK</small></span>
+      </a>
+      <button id="dl-iphone" class="download-item" data-platform="iphone" type="button">
+        <span class="download-ico">&#128241;</span>
+        <span class="download-txt"><strong>iPhone</strong><small>Cara pasang di iOS</small></span>
+      </button>
+      <a id="dl-windows" class="download-item" data-platform="windows" target="_blank" rel="noopener">
+        <span class="download-ico">&#128421;</span>
+        <span class="download-txt"><strong>Windows</strong><small>Installer .exe</small></span>
+      </a>
+      <a id="dl-mac" class="download-item" data-platform="mac" target="_blank" rel="noopener">
+        <span class="download-ico">&#128187;</span>
+        <span class="download-txt"><strong>MacBook / Mac</strong><small>File .dmg</small></span>
+      </a>
+    </div>
 
     <!-- Panel saat BELUM login -->
     <div id="panel-guest" class="account-panel" hidden>
@@ -264,8 +297,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <p>Version 1.2</p>
-    <p>Last Update (03/10/25)</p>
+    <p>Version 1.1</p>
+    <p>Last Update (25/09/25)</p>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -348,6 +381,31 @@
     </div>
   </div>
 
+  <!-- MODAL DOWNLOAD IPHONE -->
+  <div id="modal-iphone" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="iphone-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="iphone-title">Kelas 7.3 di iPhone</h3>
+      <p class="form-hint">Apple gak ngizinin file aplikasi dibuka langsung kayak APK Android, jadi ada 2 cara:</p>
+
+      <div class="iphone-opsi">
+        <h4>Cara 1: Tambah ke Layar Utama (paling gampang)</h4>
+        <ol>
+          <li>Buka web ini lewat <strong>Safari</strong>.</li>
+          <li>Tekan tombol <strong>Bagikan</strong> (kotak dengan panah ke atas).</li>
+          <li>Pilih <strong>Tambah ke Layar Utama</strong> (Add to Home Screen), lalu <strong>Tambah</strong>.</li>
+        </ol>
+        <p class="form-hint">Jadi ikon app lengkap dengan loading screen. Notifikasi eskul cuma bunyi pas app lagi kebuka.</p>
+      </div>
+
+      <div class="iphone-opsi">
+        <h4>Cara 2: File aplikasi (.ipa)</h4>
+        <p class="form-hint">Notifikasi eskul tetap bunyi walau app ditutup. Pasangnya lewat AltStore atau Sideloadly (butuh komputer + Apple ID, dan harus dipasang ulang tiap 7 hari).</p>
+        <a id="dl-iphone-ipa" class="btn-secondary btn-block" target="_blank" rel="noopener">Download .ipa</a>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL LOGIN -->
   <div id="modal-login" class="modal-overlay" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title">
@@ -406,7 +464,7 @@
 
         <label class="checkbox-label">
           <input id="profil-notif" type="checkbox">
-          Aktifin notifikasi 5 menit sebelum eskul (di APK tetap bunyi walau app ditutup, di web cuma pas lagi kebuka)
+          Aktifin notifikasi 5 menit sebelum eskul (di aplikasi HP tetap bunyi walau app ditutup, di aplikasi Windows/Mac bunyi selama app masih jalan di background, di web cuma pas lagi kebuka)
         </label>
 
         <button type="button" id="btn-tes-notif" class="btn-secondary btn-block" hidden>Tes Notifikasi Eskul</button>
@@ -523,7 +581,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js"></script>
-<script src="script.js?v=8"></script>
-<script src="native-notif.js?v=4"></script>
+<script src="script.js?v=9"></script>
+<script src="native-notif.js?v=5"></script>
 </body>
 </html>

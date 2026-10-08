@@ -8,6 +8,30 @@ const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
 // ID file APK di Google Drive (bagian di antara /d/ dan /view pada link Drive)
 const DRIVE_APK_ID = "18BMAsdg_G59A8Vn9e1NC3eBUKX6VXMHf";
 
+// File aplikasi iPhone / Windows / Mac dipublish otomatis ke GitHub Releases (tag "app-latest")
+// oleh workflow build-ios.yml dan build-desktop.yml. Ganti kalau nama repo-nya beda.
+const GITHUB_REPO = "yogacihuy/Kelas-7.3-Web";
+const RELEASE_BASE = `https://github.com/${GITHUB_REPO}/releases/download/app-latest/`;
+const LINK_DOWNLOAD = {
+  android: `https://drive.google.com/uc?export=download&id=${DRIVE_APK_ID}`,
+  iphone: RELEASE_BASE + "Kelas-7.3-iPhone.ipa",
+  windows: RELEASE_BASE + "Kelas-7.3-Windows.exe",
+  mac: RELEASE_BASE + "Kelas-7.3-Mac.dmg",
+};
+
+// true kalau web ini lagi dibuka DARI aplikasi (Android/iPhone/Windows/Mac/Home Screen)
+function lagiDiAplikasi() {
+  return !!(window.kelas73App && window.kelas73App.isApp);
+}
+
+// ===== Aturan khusus Team Picker (pakai nomor absen) =====
+// Tiap grup di bawah selalu satu tim. Grup yang beda selalu dipisah ke tim berbeda,
+// jadi Amar (1), Natan (15), Kenzie (18) gak akan pernah sekelompok sama Yoga (29).
+const GRUP_SELALU_BERSAMA = [
+  [29, 26, 25, 16], // Yoga + Rafa, Fahri, Bianca
+  [1, 15, 18],      // Amar + Natan, Kenzie
+];
+
 let detailAbsenAktif = null; // absen siswa yang lagi dibuka di modal detail
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
@@ -531,15 +555,69 @@ function setupTeamsPicker() {
 
   function buatTim() {
     const ukuran = Number(sizeSelect.value);
-    const acak = acakArray(getLiveSiswaList());
-    const jumlahTim = Math.ceil(acak.length / ukuran);
+    const semua = getLiveSiswaList();
+    const jumlahTim = Math.ceil(semua.length / ukuran);
     const tim = Array.from({ length: jumlahTim }, () => []);
 
-    acak.forEach((siswa, idx) => {
-      tim[idx % jumlahTim].push(siswa);
+    // Kapasitas tiap tim (dibagi rata, urutannya diacak)
+    const dasar = Math.floor(semua.length / jumlahTim);
+    const lebih = semua.length % jumlahTim;
+    const kapasitas = acakArray(Array.from({ length: jumlahTim }, (_, i) => dasar + (i < lebih ? 1 : 0)));
+
+    // Grup yang harus selalu bareng (cuma anggota yang ada di daftar). Tiap grup
+    // ditaruh di tim BERBEDA, jadi grup Amar/Natan/Kenzie otomatis gak pernah sama Yoga.
+    const grup = GRUP_SELALU_BERSAMA
+      .map((g) => semua.filter((s) => g.includes(s.absen)))
+      .filter((g) => g.length > 0)
+      .sort((a, b) => b.length - a.length);
+    const sudahDiGrup = new Set();
+    grup.forEach((g) => g.forEach((s) => sudahDiGrup.add(s.absen)));
+
+    // Grup terbesar dapat tim yang kapasitasnya paling lega (urutan seri tetap acak)
+    const urutanTim = acakArray([...Array(jumlahTim).keys()]).sort((a, b) => kapasitas[b] - kapasitas[a]);
+    const timGrup = new Set();
+    grup.forEach((g, i) => {
+      const t = urutanTim[i % jumlahTim];
+      g.forEach((s) => tim[t].push(s));
+      timGrup.add(t);
     });
 
-    resultBox.innerHTML = tim
+    // Kalau grup lebih besar dari kapasitas tim, tim itu melar. Tim lain dikurangi
+    // supaya total tetap pas.
+    for (let t = 0; t < jumlahTim; t++) kapasitas[t] = Math.max(kapasitas[t], tim[t].length);
+    let kelebihan = kapasitas.reduce((a, b) => a + b, 0) - semua.length;
+    while (kelebihan > 0) {
+      let terlega = -1;
+      const kandidat = [];
+      for (let t = 0; t < jumlahTim; t++) {
+        if (timGrup.has(t)) continue;
+        const lega = kapasitas[t] - tim[t].length;
+        if (lega > terlega) { terlega = lega; kandidat.length = 0; }
+        if (lega === terlega) kandidat.push(t);
+      }
+      if (terlega <= 0 || kandidat.length === 0) break;
+      kapasitas[kandidat[Math.floor(Math.random() * kandidat.length)]]--;
+      kelebihan--;
+    }
+
+    // Sisanya (yang gak punya aturan) diacak ke slot yang masih kosong
+    const sisa = acakArray(semua.filter((s) => !sudahDiGrup.has(s.absen)));
+    const slot = [];
+    kapasitas.forEach((k, t) => { for (let i = tim[t].length; i < k; i++) slot.push(t); });
+    const slotAcak = acakArray(slot);
+    sisa.forEach((siswa, i) => {
+      if (i < slotAcak.length) {
+        tim[slotAcak[i]].push(siswa);
+      } else {
+        // jaga-jaga: taruh di tim terkecil yang bukan tim grup
+        const pool = tim.map((a, t) => t).filter((t) => !timGrup.has(t));
+        const target = (pool.length ? pool : tim.map((a, t) => t)).sort((a, b) => tim[a].length - tim[b].length)[0];
+        tim[target].push(siswa);
+      }
+    });
+
+    const timTampil = tim.filter((anggota) => anggota.length > 0);
+    resultBox.innerHTML = timTampil
       .map(
         (anggota, i) => `
         <div class="team-block">
@@ -968,23 +1046,15 @@ function setupAccountUI() {
     document.getElementById("profil-bio-count").textContent = `${e.target.value.length} karakter`;
   });
 
-  document.getElementById("btn-download-apk").href = `https://drive.google.com/uc?export=download&id=${DRIVE_APK_ID}`;
-
+  setupDownloadMenu();
   setupAlbum();
 
   const btnTes = document.getElementById("btn-tes-notif");
   btnTes.addEventListener("click", tesNotifikasiEskul);
-  // Tombol tes notif cuma muncul di APK, tombol download APK cuma aktif di web
-  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
-    btnTes.hidden = false;
-    // Di APK logo tetap tampil tapi cuma gambar biasa (gak bisa diklik / download)
-    const logo = document.getElementById("btn-download-apk");
-    logo.removeAttribute("href");
-    logo.removeAttribute("target");
-    logo.removeAttribute("title");
-    logo.setAttribute("aria-hidden", "true");
-    logo.classList.add("apk-download-statis");
-  }
+  // Tombol tes notif muncul di aplikasi HP & desktop. Tombol download cuma aktif di web
+  // (di dalam aplikasi sudah gak perlu download lagi, jadi logonya cuma gambar biasa).
+  const app = window.kelas73App || {};
+  if (app.native || app.desktop) btnTes.hidden = false;
 
   const linkLupa = document.getElementById("btn-lupa-password");
   linkLupa.href = `https://wa.me/${NOMOR_WA_YOGA}?text=${encodeURIComponent(PESAN_LUPA_PASSWORD)}`;
@@ -1005,6 +1075,77 @@ function setupAccountUI() {
         if (perm !== "granted") e.target.checked = false;
       });
     }
+  });
+}
+
+/* ===================================================
+   Menu download aplikasi (Android / iPhone / Windows / Mac)
+=================================================== */
+function deteksiPerangkat() {
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua)) return "android";
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "iphone";
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "mac";
+  return null;
+}
+
+function setupDownloadMenu() {
+  const btn = document.getElementById("btn-download-apk");
+  const menu = document.getElementById("download-menu");
+
+  // Di dalam aplikasi: logo tampil tapi gak bisa diklik / download
+  if (lagiDiAplikasi()) {
+    btn.disabled = true;
+    btn.removeAttribute("title");
+    btn.removeAttribute("aria-haspopup");
+    btn.removeAttribute("aria-expanded");
+    btn.setAttribute("aria-hidden", "true");
+    btn.tabIndex = -1;
+    btn.classList.add("apk-download-statis");
+    menu.remove();
+    return;
+  }
+
+  document.getElementById("dl-android").href = LINK_DOWNLOAD.android;
+  document.getElementById("dl-windows").href = LINK_DOWNLOAD.windows;
+  document.getElementById("dl-mac").href = LINK_DOWNLOAD.mac;
+  document.getElementById("dl-iphone-ipa").href = LINK_DOWNLOAD.iphone;
+
+  const cocok = deteksiPerangkat();
+  if (cocok) {
+    const item = menu.querySelector(`[data-platform="${cocok}"]`);
+    if (item) {
+      item.classList.add("download-cocok");
+      item.querySelector("small").textContent += " · cocok buat kamu";
+      menu.insertBefore(item, menu.querySelector(".download-item")); // taruh paling atas
+    }
+  }
+
+  const modalIphone = document.getElementById("modal-iphone");
+  setupModalDismiss(modalIphone);
+
+  function tutupMenu() {
+    menu.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeAccountPanels();
+    menu.hidden = !menu.hidden;
+    btn.setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", tutupMenu);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") tutupMenu(); });
+
+  document.getElementById("btn-account").addEventListener("click", tutupMenu);
+  menu.querySelectorAll("a.download-item").forEach((a) => a.addEventListener("click", tutupMenu));
+
+  document.getElementById("dl-iphone").addEventListener("click", () => {
+    tutupMenu();
+    openModal(modalIphone);
   });
 }
 
@@ -1635,7 +1776,7 @@ async function tesNotifikasiEskul() {
 
   // Versi web
   if (typeof Notification === "undefined") {
-    tampil("Browser ini gak support notifikasi. Coba pakai APK-nya.");
+    tampil("Browser ini gak support notifikasi. Coba pakai aplikasi Kelas 7.3-nya.");
     return;
   }
   let izin = Notification.permission;
@@ -1647,7 +1788,7 @@ async function tesNotifikasiEskul() {
     try {
       new Notification(judul, { body: isi });
     } catch (err) {
-      tampil("Browser ini gak bisa nampilin notifikasi dari web. Coba pakai APK-nya.");
+      tampil("Browser ini gak bisa nampilin notifikasi dari web. Coba pakai aplikasi Kelas 7.3-nya.");
     }
   }, 10000);
 }
