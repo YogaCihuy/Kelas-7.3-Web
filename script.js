@@ -5,15 +5,12 @@
 const NOMOR_WA_YOGA = "6287788191013";
 const PESAN_LUPA_PASSWORD = "Yog, gw lupa password";
 
-// ID file APK di Google Drive (bagian di antara /d/ dan /view pada link Drive)
-const DRIVE_APK_ID = "18BMAsdg_G59A8Vn9e1NC3eBUKX6VXMHf";
-
-// File aplikasi iPhone / Windows / Mac dipublish otomatis ke GitHub Releases (tag "app-latest")
-// oleh workflow build-ios.yml dan build-desktop.yml. Ganti kalau nama repo-nya beda.
+// File aplikasi Android / iPhone / Windows / Mac dipublish otomatis ke GitHub Releases (tag "app-latest")
+// oleh workflow build-apk.yml, build-ios.yml dan build-desktop.yml. Ganti kalau nama repo-nya beda.
 const GITHUB_REPO = "yogacihuy/Kelas-7.3-Web";
 const RELEASE_BASE = `https://github.com/${GITHUB_REPO}/releases/download/app-latest/`;
 const LINK_DOWNLOAD = {
-  android: `https://drive.google.com/uc?export=download&id=${DRIVE_APK_ID}`,
+  android: RELEASE_BASE + "Kelas-7.3-Android.apk",
   iphone: RELEASE_BASE + "Kelas-7.3-iPhone.ipa",
   windows: RELEASE_BASE + "Kelas-7.3-Windows.exe",
   mac: RELEASE_BASE + "Kelas-7.3-Mac.dmg",
@@ -25,11 +22,13 @@ function lagiDiAplikasi() {
 }
 
 // ===== Aturan khusus Team Picker (pakai nomor absen) =====
-// Tiap grup di bawah selalu satu tim. Grup yang beda selalu dipisah ke tim berbeda,
-// jadi Amar (1), Natan (15), Kenzie (18) gak akan pernah sekelompok sama Yoga (29).
-const GRUP_SELALU_BERSAMA = [
-  [29, 26, 25, 16], // Yoga + Rafa, Fahri, Bianca
-  [1, 15, 18],      // Amar + Natan, Kenzie
+// peluang = kemungkinan grup itu dijadiin satu tim (1 = pasti 100%, 0.75 = 75%).
+// Kalau grup gak kepilih digabung (ada "utama"), cuma si utama yang ditempatin dan anggota
+// lainnya DIPASTIIN gak satu tim sama dia, jadi peluangnya pas 75%.
+// Tiap grup selalu ditaruh di tim berbeda, jadi Amar/Natan/Kenzie gak pernah sama Yoga (100%).
+const GRUP_TIM = [
+  { anggota: [1, 15, 18], peluang: 1, utama: null },        // Amar + Natan, Kenzie (100%)
+  { anggota: [29, 26, 25, 16], peluang: 0.75, utama: 29 },  // Yoga + Rafa, Fahri, Bianca (75%)
 ];
 
 let detailAbsenAktif = null; // absen siswa yang lagi dibuka di modal detail
@@ -564,12 +563,23 @@ function setupTeamsPicker() {
     const lebih = semua.length % jumlahTim;
     const kapasitas = acakArray(Array.from({ length: jumlahTim }, (_, i) => dasar + (i < lebih ? 1 : 0)));
 
-    // Grup yang harus selalu bareng (cuma anggota yang ada di daftar). Tiap grup
-    // ditaruh di tim BERBEDA, jadi grup Amar/Natan/Kenzie otomatis gak pernah sama Yoga.
-    const grup = GRUP_SELALU_BERSAMA
-      .map((g) => semua.filter((s) => g.includes(s.absen)))
-      .filter((g) => g.length > 0)
-      .sort((a, b) => b.length - a.length);
+    // Tentuin grup mana yang beneran digabung kali ini
+    const grup = [];
+    const pantang = []; // { utama, lain }: "lain" gak boleh satu tim sama "utama"
+    GRUP_TIM.forEach((cfg) => {
+      const hadir = semua.filter((s) => cfg.anggota.includes(s.absen));
+      if (hadir.length === 0) return;
+      if (Math.random() < cfg.peluang) {
+        grup.push(hadir);
+      } else {
+        const utama = hadir.filter((s) => s.absen === cfg.utama);
+        if (utama.length) {
+          grup.push(utama);
+          pantang.push({ utama: cfg.utama, lain: hadir.filter((s) => s.absen !== cfg.utama) });
+        }
+      }
+    });
+    grup.sort((a, b) => b.length - a.length);
     const sudahDiGrup = new Set();
     grup.forEach((g) => g.forEach((s) => sudahDiGrup.add(s.absen)));
 
@@ -600,20 +610,39 @@ function setupTeamsPicker() {
       kelebihan--;
     }
 
-    // Sisanya (yang gak punya aturan) diacak ke slot yang masih kosong
+    // Sisanya (yang gak punya aturan bareng) diacak ke slot yang masih kosong
     const sisa = acakArray(semua.filter((s) => !sudahDiGrup.has(s.absen)));
     const slot = [];
     kapasitas.forEach((k, t) => { for (let i = tim[t].length; i < k; i++) slot.push(t); });
     const slotAcak = acakArray(slot);
+
     sisa.forEach((siswa, i) => {
       if (i < slotAcak.length) {
         tim[slotAcak[i]].push(siswa);
       } else {
-        // jaga-jaga: taruh di tim terkecil yang bukan tim grup
-        const pool = tim.map((a, t) => t).filter((t) => !timGrup.has(t));
-        const target = (pool.length ? pool : tim.map((a, t) => t)).sort((a, b) => tim[a].length - tim[b].length)[0];
+        const target = tim.map((a, t) => t).sort((a, b) => tim[a].length - tim[b].length)[0];
         tim[target].push(siswa);
       }
+    });
+
+    // Grup yang gak kepilih digabung: pastiin anggota lainnya gak nyasar satu tim sama "utama"
+    pantang.forEach(({ utama, lain }) => {
+      const larangan = new Set(lain.map((s) => s.absen));
+      lain.forEach((p) => {
+        const timUtama = tim.findIndex((a) => a.some((s) => s.absen === utama));
+        if (timUtama < 0 || !tim[timUtama].some((s) => s.absen === p.absen)) return;
+        const kandidat = [];
+        tim.forEach((anggota, t) => {
+          if (t === timUtama) return;
+          anggota.forEach((s) => {
+            if (!sudahDiGrup.has(s.absen) && !larangan.has(s.absen)) kandidat.push({ t, s });
+          });
+        });
+        if (kandidat.length === 0) return;
+        const pilih = kandidat[Math.floor(Math.random() * kandidat.length)];
+        tim[timUtama] = tim[timUtama].filter((s) => s.absen !== p.absen).concat(pilih.s);
+        tim[pilih.t] = tim[pilih.t].filter((s) => s.absen !== pilih.s.absen).concat(p);
+      });
     });
 
     const timTampil = tim.filter((anggota) => anggota.length > 0);
