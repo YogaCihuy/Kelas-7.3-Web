@@ -52,7 +52,7 @@ function pilihBerbobot(daftar) {
   return daftar[daftar.length - 1];
 }
 
-function susunPola(semua) {
+function susunPola(semua, kapMax = Infinity) {
   const cari = (absen) => semua.find((s) => s.absen === absen);
   const inti = cari(ANCHOR);
   const blok = [];
@@ -60,13 +60,16 @@ function susunPola(semua) {
 
   const a = GRP_A.map(cari).filter(Boolean);
   if (a.length) {
-    if (Math.random() < P_A) blok.push(a);
+    if (a.length <= kapMax && Math.random() < P_A) blok.push(a);
     else if (inti) hindar.push(...a);
   }
   if (!inti) return { blok, hindar };
 
   const b = acakArray(GRP_B.map(cari).filter(Boolean));
-  const jenis = b.length < 3 ? "semua" : pilihBerbobot(POLA_B).jenis;
+  const butuh = { semua: 1 + b.length, "dua-dua": 2, "dua-pisah": 2, tiga: 3, sendiri: 1 };
+  const muat = POLA_B.filter((p) => butuh[p.jenis] <= kapMax);
+  let jenis = b.length < 3 ? "semua" : pilihBerbobot(muat.length ? muat : [{ bobot: 1, jenis: "sendiri" }]).jenis;
+  if (butuh[jenis] > kapMax) jenis = "sendiri";
   if (jenis === "semua") {
     blok.push([inti, ...b]);
   } else if (jenis === "dua-dua") {
@@ -710,7 +713,16 @@ function setupTeamsPicker() {
     const lebih = semua.length % jumlahTim;
     const kapasitas = acakArray(Array.from({ length: jumlahTim }, (_, i) => dasar + (i < lebih ? 1 : 0)));
 
-    const { blok: grup, hindar } = susunPola(semua);
+    // Pola kelompok harus muat di ukuran tim, supaya semua tim tetap sama besar
+    const kapUrut = [...kapasitas].sort((a, b) => b - a);
+    let pola = null;
+    for (let k = 0; k < 50 && !pola; k++) {
+      const p = susunPola(semua, kapUrut[0]);
+      const urut = p.blok.map((g) => g.length).sort((a, b) => b - a);
+      if (urut.every((n, i) => i < kapUrut.length && n <= kapUrut[i])) pola = p;
+    }
+    if (!pola) pola = susunPola(semua, kapUrut[kapUrut.length - 1]);
+    const { blok: grup, hindar } = pola;
     const batas = hindar.length ? [{ inti: ANCHOR, lain: hindar }] : [];
     grup.sort((a, b) => b.length - a.length);
     const sudahDiGrup = new Set();
@@ -826,26 +838,16 @@ function setupTeamsPicker() {
       return;
     }
 
-    // Ukuran tim dijaga rata (selisih maksimal 1 orang). Kalau aturan gender gak mungkin
-    // dipenuhi dengan jumlah tim biasa, coba jumlah tim lain yang ukurannya tetap rata.
+    // Jumlah tim & ukuran tiap tim tetap rata (4/tim ya 4 semua). Aturan gender cuma
+    // dicari yang paling pas lewat tukar-tukar anggota, ukuran tim gak pernah diubah.
+    const jumlahTim = Math.ceil(semua.length / ukuran);
     let terbaik = null;
-    let skorTerbaik = Infinity;
-    const jumlahAwal = Math.ceil(semua.length / ukuran);
-    const pilihanJumlah = pickerSettings.gender ? [jumlahAwal, jumlahAwal + 1, jumlahAwal - 1] : [jumlahAwal];
-    const selisihUkuran = (tim) => {
-      const u = tim.map((a) => a.length).filter((n) => n > 0);
-      return Math.max(...u) - Math.min(...u);
-    };
-    for (const jumlahTim of pilihanJumlah) {
-      if (jumlahTim < 1 || jumlahTim > semua.length || (jumlahTim < 2 && jumlahTim !== jumlahAwal)) continue;
-      for (let k = 0; k < (pickerSettings.gender ? 80 : 40); k++) {
-        const { tim, tetap } = susunSekali(semua, ukuran, jumlahTim);
-        const v = pickerSettings.gender ? rapikanGender(tim, tetap) : 0;
-        const skor = v * 100 + Math.max(0, selisihUkuran(tim) - 1);
-        if (skor < skorTerbaik) { skorTerbaik = skor; terbaik = tim; }
-        if (skor === 0) break;
-      }
-      if (skorTerbaik === 0) break;
+    let vTerbaik = Infinity;
+    for (let k = 0; k < (pickerSettings.gender ? 120 : 1); k++) {
+      const { tim, tetap } = susunSekali(semua, ukuran, jumlahTim);
+      const v = pickerSettings.gender ? rapikanGender(tim, tetap) : 0;
+      if (v < vTerbaik) { vTerbaik = v; terbaik = tim; }
+      if (v === 0) break;
     }
 
     const timTampil = terbaik.filter((anggota) => anggota.length > 0).map((anggota) => acakArray(anggota));
