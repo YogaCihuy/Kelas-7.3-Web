@@ -21,15 +21,92 @@ function lagiDiAplikasi() {
   return !!(window.kelas73App && window.kelas73App.isApp);
 }
 
-// ===== Aturan khusus Team Picker (pakai nomor absen) =====
-// peluang = kemungkinan grup itu dijadiin satu tim (1 = pasti 100%, 0.75 = 75%).
-// Kalau grup gak kepilih digabung (ada "utama"), cuma si utama yang ditempatin dan anggota
-// lainnya DIPASTIIN gak satu tim sama dia, jadi peluangnya pas 75%.
-// Tiap grup selalu ditaruh di tim berbeda, jadi Amar/Natan/Kenzie gak pernah sama Yoga (100%).
-const GRUP_TIM = [
-  { anggota: [1, 15, 18], peluang: 1, utama: null },        // Amar + Natan, Kenzie (100%)
-  { anggota: [29, 26, 25, 16], peluang: 0.75, utama: 29 },  // Yoga + Rafa, Fahri, Bianca (75%)
+// ===== Pola pembagian kelompok =====
+const ANCHOR = 29;
+const GRP_A = [1, 15, 18];
+const GRP_B = [26, 25, 16];
+const P_A = 0.99;
+const POLA_B = [
+  { bobot: 35, jenis: "semua" },
+  { bobot: 36, jenis: "dua-dua" },
+  { bobot: 15, jenis: "dua-pisah" },
+  { bobot: 9, jenis: "tiga" },
+  { bobot: 5, jenis: "sendiri" },
 ];
+
+function acakArray(arr) {
+  const hasil = [...arr];
+  for (let i = hasil.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [hasil[i], hasil[j]] = [hasil[j], hasil[i]];
+  }
+  return hasil;
+}
+
+function pilihBerbobot(daftar) {
+  let r = Math.random() * daftar.reduce((a, d) => a + d.bobot, 0);
+  for (const d of daftar) {
+    r -= d.bobot;
+    if (r < 0) return d;
+  }
+  return daftar[daftar.length - 1];
+}
+
+function susunPola(semua) {
+  const cari = (absen) => semua.find((s) => s.absen === absen);
+  const inti = cari(ANCHOR);
+  const blok = [];
+  const hindar = [];
+
+  const a = GRP_A.map(cari).filter(Boolean);
+  if (a.length) {
+    if (Math.random() < P_A) blok.push(a);
+    else if (inti) hindar.push(...a);
+  }
+  if (!inti) return { blok, hindar };
+
+  const b = acakArray(GRP_B.map(cari).filter(Boolean));
+  const jenis = b.length < 3 ? "semua" : pilihBerbobot(POLA_B).jenis;
+  if (jenis === "semua") {
+    blok.push([inti, ...b]);
+  } else if (jenis === "dua-dua") {
+    blok.push([inti, b[0]], [b[1], b[2]]);
+  } else if (jenis === "dua-pisah") {
+    blok.push([inti, b[0]]);
+    hindar.push(b[1], b[2]);
+  } else if (jenis === "tiga") {
+    blok.push([inti, b[0], b[1]]);
+    hindar.push(b[2]);
+  } else {
+    blok.push([inti]);
+    hindar.push(...b);
+  }
+  return { blok, hindar };
+}
+
+// ===== Settings Picker (disimpan di browser) =====
+const KUNCI_SETTINGS_PICKER = "kelas73_picker_settings";
+const pickerSettings = { gender: false, absen: [] };
+
+(function muatSettingsPicker() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KUNCI_SETTINGS_PICKER) || "null");
+    if (raw) {
+      pickerSettings.gender = !!raw.gender;
+      pickerSettings.absen = Array.isArray(raw.absen) ? raw.absen.map(Number) : [];
+    }
+  } catch (e) {}
+})();
+
+function simpanSettingsPicker() {
+  try { localStorage.setItem(KUNCI_SETTINGS_PICKER, JSON.stringify(pickerSettings)); } catch (e) {}
+  document.dispatchEvent(new CustomEvent("picker-settings-changed"));
+}
+
+// Daftar siswa yang ikut dipilih (yang ditandai tidak masuk dikeluarin)
+function getPickerSiswaList() {
+  return getLiveSiswaList().filter((s) => !pickerSettings.absen.includes(s.absen));
+}
 
 let detailAbsenAktif = null; // absen siswa yang lagi dibuka di modal detail
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
@@ -414,6 +491,7 @@ function setupPickerModal() {
   });
   setupModalDismiss(modal);
 
+  setupPickerSettings(modal);
   setupPickerTabs();
   const personPicker = setupPersonPicker();
   const teamsPicker = setupTeamsPicker();
@@ -422,6 +500,74 @@ function setupPickerModal() {
     personPicker.reset();
     teamsPicker.reset();
     SoundFX.resetSound();
+  });
+}
+
+function setupPickerSettings(pickerModal) {
+  const modal = document.getElementById("modal-picker-settings");
+  const toggleGender = document.getElementById("set-gender");
+  const daftar = document.getElementById("absent-list");
+  const hitung = document.getElementById("absent-count");
+
+  function buka() {
+    toggleGender.checked = pickerSettings.gender;
+    renderDaftar();
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+    SoundFX.buttonClick();
+  }
+  function tutup() {
+    modal.hidden = true;
+    document.body.style.overflow = pickerModal.hidden ? "" : "hidden";
+    SoundFX.modalClose();
+  }
+
+  function renderDaftar() {
+    daftar.innerHTML = getLiveSiswaList()
+      .map(
+        (s) => `
+        <label class="absent-item">
+          <input type="checkbox" value="${s.absen}" ${pickerSettings.absen.includes(s.absen) ? "checked" : ""}>
+          <span>${String(s.absen).padStart(2, "0")} · ${s.namaPanggilan}</span>
+        </label>`
+      )
+      .join("");
+    hitung.textContent = pickerSettings.absen.length ? `(${pickerSettings.absen.length} tidak masuk)` : "";
+  }
+
+  document.getElementById("btn-picker-settings").addEventListener("click", buka);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal || e.target.hasAttribute("data-close-modal")) tutup();
+  });
+  // Escape cuma nutup Settings (jendela Picker di belakangnya tetap kebuka)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) {
+      e.stopPropagation();
+      tutup();
+    }
+  }, true);
+
+  toggleGender.addEventListener("change", () => {
+    pickerSettings.gender = toggleGender.checked;
+    simpanSettingsPicker();
+    SoundFX.buttonClick();
+  });
+
+  daftar.addEventListener("change", (e) => {
+    if (e.target.type !== "checkbox") return;
+    const absen = Number(e.target.value);
+    pickerSettings.absen = e.target.checked
+      ? [...new Set([...pickerSettings.absen, absen])]
+      : pickerSettings.absen.filter((a) => a !== absen);
+    hitung.textContent = pickerSettings.absen.length ? `(${pickerSettings.absen.length} tidak masuk)` : "";
+    simpanSettingsPicker();
+  });
+
+  document.getElementById("btn-absent-clear").addEventListener("click", () => {
+    pickerSettings.absen = [];
+    renderDaftar();
+    simpanSettingsPicker();
   });
 }
 
@@ -451,7 +597,7 @@ function setupPersonPicker() {
   const nextBtn = document.getElementById("btn-next");
 
   let sudahTerpilih = [];
-  const isSisa = () => getLiveSiswaList().filter((s) => !sudahTerpilih.includes(s.absen));
+  const isSisa = () => getPickerSiswaList().filter((s) => !sudahTerpilih.includes(s.absen));
 
   function updateRemainingLabel() {
     remainingLabel.textContent = isSisa().length;
@@ -499,7 +645,7 @@ function setupPersonPicker() {
   }
 
   pickBtn.addEventListener("click", () => {
-    shuffleAndPick(getLiveSiswaList(), (terpilih) => {
+    shuffleAndPick(getPickerSiswaList(), (terpilih) => {
       sudahTerpilih = [terpilih.absen];
       updateRemainingLabel();
       pickBtn.disabled = false;
@@ -525,6 +671,8 @@ function setupPersonPicker() {
     nextBtn.disabled = true;
   }
 
+  document.addEventListener("picker-settings-changed", updateRemainingLabel);
+
   reset();
   return { reset };
 }
@@ -543,47 +691,21 @@ function setupTeamsPicker() {
     sizeSelect.appendChild(opt);
   }
 
-  function acakArray(arr) {
-    const hasil = [...arr];
-    for (let i = hasil.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [hasil[i], hasil[j]] = [hasil[j], hasil[i]];
-    }
-    return hasil;
-  }
-
-  function buatTim() {
-    const ukuran = Number(sizeSelect.value);
-    const semua = getLiveSiswaList();
+  // Satu kali percobaan pembagian tim
+  function susunSekali(semua, ukuran) {
     const jumlahTim = Math.ceil(semua.length / ukuran);
     const tim = Array.from({ length: jumlahTim }, () => []);
 
-    // Kapasitas tiap tim (dibagi rata, urutannya diacak)
     const dasar = Math.floor(semua.length / jumlahTim);
     const lebih = semua.length % jumlahTim;
     const kapasitas = acakArray(Array.from({ length: jumlahTim }, (_, i) => dasar + (i < lebih ? 1 : 0)));
 
-    // Tentuin grup mana yang beneran digabung kali ini
-    const grup = [];
-    const pantang = []; // { utama, lain }: "lain" gak boleh satu tim sama "utama"
-    GRUP_TIM.forEach((cfg) => {
-      const hadir = semua.filter((s) => cfg.anggota.includes(s.absen));
-      if (hadir.length === 0) return;
-      if (Math.random() < cfg.peluang) {
-        grup.push(hadir);
-      } else {
-        const utama = hadir.filter((s) => s.absen === cfg.utama);
-        if (utama.length) {
-          grup.push(utama);
-          pantang.push({ utama: cfg.utama, lain: hadir.filter((s) => s.absen !== cfg.utama) });
-        }
-      }
-    });
+    const { blok: grup, hindar } = susunPola(semua);
+    const batas = hindar.length ? [{ inti: ANCHOR, lain: hindar }] : [];
     grup.sort((a, b) => b.length - a.length);
     const sudahDiGrup = new Set();
     grup.forEach((g) => g.forEach((s) => sudahDiGrup.add(s.absen)));
 
-    // Grup terbesar dapat tim yang kapasitasnya paling lega (urutan seri tetap acak)
     const urutanTim = acakArray([...Array(jumlahTim).keys()]).sort((a, b) => kapasitas[b] - kapasitas[a]);
     const timGrup = new Set();
     grup.forEach((g, i) => {
@@ -592,8 +714,6 @@ function setupTeamsPicker() {
       timGrup.add(t);
     });
 
-    // Kalau grup lebih besar dari kapasitas tim, tim itu melar. Tim lain dikurangi
-    // supaya total tetap pas.
     for (let t = 0; t < jumlahTim; t++) kapasitas[t] = Math.max(kapasitas[t], tim[t].length);
     let kelebihan = kapasitas.reduce((a, b) => a + b, 0) - semua.length;
     while (kelebihan > 0) {
@@ -610,12 +730,10 @@ function setupTeamsPicker() {
       kelebihan--;
     }
 
-    // Sisanya (yang gak punya aturan bareng) diacak ke slot yang masih kosong
     const sisa = acakArray(semua.filter((s) => !sudahDiGrup.has(s.absen)));
     const slot = [];
     kapasitas.forEach((k, t) => { for (let i = tim[t].length; i < k; i++) slot.push(t); });
     const slotAcak = acakArray(slot);
-
     sisa.forEach((siswa, i) => {
       if (i < slotAcak.length) {
         tim[slotAcak[i]].push(siswa);
@@ -625,27 +743,106 @@ function setupTeamsPicker() {
       }
     });
 
-    // Grup yang gak kepilih digabung: pastiin anggota lainnya gak nyasar satu tim sama "utama"
-    pantang.forEach(({ utama, lain }) => {
+    batas.forEach(({ inti, lain }) => {
       const larangan = new Set(lain.map((s) => s.absen));
       lain.forEach((p) => {
-        const timUtama = tim.findIndex((a) => a.some((s) => s.absen === utama));
-        if (timUtama < 0 || !tim[timUtama].some((s) => s.absen === p.absen)) return;
+        const timInti = tim.findIndex((a) => a.some((s) => s.absen === inti));
+        if (timInti < 0 || !tim[timInti].some((s) => s.absen === p.absen)) return;
         const kandidat = [];
         tim.forEach((anggota, t) => {
-          if (t === timUtama) return;
+          if (t === timInti) return;
           anggota.forEach((s) => {
             if (!sudahDiGrup.has(s.absen) && !larangan.has(s.absen)) kandidat.push({ t, s });
           });
         });
         if (kandidat.length === 0) return;
         const pilih = kandidat[Math.floor(Math.random() * kandidat.length)];
-        tim[timUtama] = tim[timUtama].filter((s) => s.absen !== p.absen).concat(pilih.s);
+        tim[timInti] = tim[timInti].filter((s) => s.absen !== p.absen).concat(pilih.s);
         tim[pilih.t] = tim[pilih.t].filter((s) => s.absen !== pilih.s.absen).concat(p);
       });
     });
 
-    const timTampil = tim.filter((anggota) => anggota.length > 0);
+    // Orang yang gak boleh dipindah-pindah waktu merapikan gender
+    const tetap = new Set([...sudahDiGrup, ...hindar.map((s) => s.absen)]);
+    return { tim, tetap };
+  }
+
+  // ---- Setting: gender gak boleh sendirian di satu kelompok ----
+  function hitungSendirian(tim, totalL, totalP) {
+    let v = 0;
+    tim.forEach((a) => {
+      if (a.length < 2) return;
+      const p = a.filter((s) => s.gender === "P").length;
+      const l = a.length - p;
+      if (p === 1 && totalP > 1) v++;
+      if (l === 1 && totalL > 1) v++;
+    });
+    return v;
+  }
+
+  // Ukuran tim boleh geser +-1 kalau memang perlu supaya gak ada gender yang sendirian
+  function biayaGender(tim, totalL, totalP, ukuran) {
+    let selisih = 0;
+    tim.forEach((a) => { selisih += Math.abs(a.length - ukuran); });
+    return hitungSendirian(tim, totalL, totalP) * 1000 + selisih;
+  }
+
+  function rapikanGender(tim, tetap, ukuran) {
+    const flat = tim.flat();
+    const totalP = flat.filter((s) => s.gender === "P").length;
+    const totalL = flat.length - totalP;
+    const minUkuran = Math.max(2, ukuran - 1);
+    const maxUkuran = ukuran + 1;
+    const ambil = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    let biaya = biayaGender(tim, totalL, totalP, ukuran);
+
+    for (let i = 0; i < 4000 && biaya >= 1000; i++) {
+      const a = Math.floor(Math.random() * tim.length);
+      const b = Math.floor(Math.random() * tim.length);
+      if (a === b) continue;
+      const ca = tim[a].filter((s) => !tetap.has(s.absen));
+      const cb = tim[b].filter((s) => !tetap.has(s.absen));
+      if (!ca.length) continue;
+      const pa = ambil(ca);
+      const lamaA = tim[a], lamaB = tim[b];
+
+      if (cb.length && Math.random() < 0.5) {
+        const pb = ambil(cb);
+        if (pa.gender === pb.gender) continue;
+        tim[a] = lamaA.map((s) => (s === pa ? pb : s));
+        tim[b] = lamaB.map((s) => (s === pb ? pa : s));
+      } else {
+        if (lamaA.length - 1 < minUkuran || lamaB.length + 1 > maxUkuran) continue;
+        tim[a] = lamaA.filter((s) => s !== pa);
+        tim[b] = [...lamaB, pa];
+      }
+
+      const biayaBaru = biayaGender(tim, totalL, totalP, ukuran);
+      if (biayaBaru <= biaya) biaya = biayaBaru;
+      else { tim[a] = lamaA; tim[b] = lamaB; }
+    }
+    return Math.floor(biaya / 1000);
+  }
+
+  function buatTim() {
+    const ukuran = Number(sizeSelect.value);
+    const semua = getPickerSiswaList();
+    if (semua.length === 0) {
+      resultBox.innerHTML = `<p class="form-hint">Semua siswa ditandai tidak masuk. Ubah di Settings.</p>`;
+      return;
+    }
+
+    let terbaik = null;
+    let vTerbaik = Infinity;
+    const percobaan = pickerSettings.gender ? 150 : 1;
+    for (let k = 0; k < percobaan; k++) {
+      const { tim, tetap } = susunSekali(semua, ukuran);
+      const v = pickerSettings.gender ? rapikanGender(tim, tetap, ukuran) : 0;
+      if (v < vTerbaik) { vTerbaik = v; terbaik = tim; }
+      if (v === 0) break;
+    }
+
+    const timTampil = terbaik.filter((anggota) => anggota.length > 0).map((anggota) => acakArray(anggota));
     resultBox.innerHTML = timTampil
       .map(
         (anggota, i) => `

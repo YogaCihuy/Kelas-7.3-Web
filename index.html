@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -346,7 +346,10 @@
   <div id="modal-picker" class="modal-overlay" hidden>
     <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="picker-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
-      <h3 id="picker-title">Random Picker</h3>
+      <div class="picker-head">
+        <h3 id="picker-title">Random Picker</h3>
+        <button id="btn-picker-settings" class="btn-settings" type="button">&#9881; Settings</button>
+      </div>
 
       <div class="tabs">
         <button class="tab-btn active" data-tab="person">1 Person</button>
@@ -378,6 +381,32 @@
       </div>
 
       <button id="btn-reset" class="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- MODAL SETTINGS PICKER -->
+  <div id="modal-picker-settings" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="pset-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="pset-title">Settings</h3>
+
+      <div class="pset-row">
+        <div class="pset-text">
+          <strong>Gender tidak boleh sendirian</strong>
+          <small>Cowok atau cewek gak akan sendirian di satu kelompok, kecuali emang gak ada lagi yang tersisa. Berlaku di Teams.</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="set-gender">
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="pset-section">
+        <h4>Siswa yang tidak masuk <span id="absent-count" class="pset-count"></span></h4>
+        <p class="form-hint">Centang yang lagi gak masuk. Namanya gak akan muncul di Person Picker maupun Teams.</p>
+        <div id="absent-list" class="absent-list"></div>
+        <button id="btn-absent-clear" class="btn-secondary" type="button">Hapus semua centang</button>
+      </div>
     </div>
   </div>
 
@@ -580,8 +609,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
-<script src="data.js"></script>
-<script src="script.js?v=10"></script>
+<script src="data.js?v=2"></script>
+<script src="script.js?v=12"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>
