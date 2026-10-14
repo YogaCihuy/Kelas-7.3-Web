@@ -509,7 +509,16 @@ function setupPickerSettings(pickerModal) {
   const daftar = document.getElementById("absent-list");
   const hitung = document.getElementById("absent-count");
 
+  const tombolSettings = document.getElementById("btn-picker-settings");
+  function putarGear() {
+    tombolSettings.classList.remove("spin");
+    void tombolSettings.offsetWidth; // reset biar animasinya bisa diputer ulang
+    tombolSettings.classList.add("spin");
+  }
+  tombolSettings.addEventListener("animationend", () => tombolSettings.classList.remove("spin"));
+
   function buka() {
+    putarGear();
     toggleGender.checked = pickerSettings.gender;
     renderDaftar();
     modal.hidden = false;
@@ -528,11 +537,13 @@ function setupPickerSettings(pickerModal) {
         (s) => `
         <label class="absent-item">
           <input type="checkbox" value="${s.absen}" ${pickerSettings.absen.includes(s.absen) ? "checked" : ""}>
-          <span>${String(s.absen).padStart(2, "0")} · ${s.namaPanggilan}</span>
+          <span class="absent-check"></span>
+          <span class="absent-no">${String(s.absen).padStart(2, "0")}</span>
+          <span class="absent-name">${s.namaPanggilan}</span>
         </label>`
       )
       .join("");
-    hitung.textContent = pickerSettings.absen.length ? `(${pickerSettings.absen.length} tidak masuk)` : "";
+    hitung.textContent = pickerSettings.absen.length ? `${pickerSettings.absen.length} tidak masuk` : "";
   }
 
   document.getElementById("btn-picker-settings").addEventListener("click", buka);
@@ -560,7 +571,7 @@ function setupPickerSettings(pickerModal) {
     pickerSettings.absen = e.target.checked
       ? [...new Set([...pickerSettings.absen, absen])]
       : pickerSettings.absen.filter((a) => a !== absen);
-    hitung.textContent = pickerSettings.absen.length ? `(${pickerSettings.absen.length} tidak masuk)` : "";
+    hitung.textContent = pickerSettings.absen.length ? `${pickerSettings.absen.length} tidak masuk` : "";
     simpanSettingsPicker();
   });
 
@@ -692,8 +703,7 @@ function setupTeamsPicker() {
   }
 
   // Satu kali percobaan pembagian tim
-  function susunSekali(semua, ukuran) {
-    const jumlahTim = Math.ceil(semua.length / ukuran);
+  function susunSekali(semua, ukuran, jumlahTim) {
     const tim = Array.from({ length: jumlahTim }, () => []);
 
     const dasar = Math.floor(semua.length / jumlahTim);
@@ -780,48 +790,32 @@ function setupTeamsPicker() {
     return v;
   }
 
-  // Ukuran tim boleh geser +-1 kalau memang perlu supaya gak ada gender yang sendirian
-  function biayaGender(tim, totalL, totalP, ukuran) {
-    let selisih = 0;
-    tim.forEach((a) => { selisih += Math.abs(a.length - ukuran); });
-    return hitungSendirian(tim, totalL, totalP) * 1000 + selisih;
-  }
-
-  function rapikanGender(tim, tetap, ukuran) {
+  // Rapiin dengan tukar anggota antar tim (ukuran tiap tim gak berubah)
+  function rapikanGender(tim, tetap) {
     const flat = tim.flat();
     const totalP = flat.filter((s) => s.gender === "P").length;
     const totalL = flat.length - totalP;
-    const minUkuran = Math.max(2, ukuran - 1);
-    const maxUkuran = ukuran + 1;
     const ambil = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    let biaya = biayaGender(tim, totalL, totalP, ukuran);
+    let v = hitungSendirian(tim, totalL, totalP);
 
-    for (let i = 0; i < 4000 && biaya >= 1000; i++) {
+    for (let i = 0; i < 3000 && v > 0; i++) {
       const a = Math.floor(Math.random() * tim.length);
       const b = Math.floor(Math.random() * tim.length);
       if (a === b) continue;
       const ca = tim[a].filter((s) => !tetap.has(s.absen));
       const cb = tim[b].filter((s) => !tetap.has(s.absen));
-      if (!ca.length) continue;
+      if (!ca.length || !cb.length) continue;
       const pa = ambil(ca);
+      const pb = ambil(cb);
+      if (pa.gender === pb.gender) continue;
       const lamaA = tim[a], lamaB = tim[b];
-
-      if (cb.length && Math.random() < 0.5) {
-        const pb = ambil(cb);
-        if (pa.gender === pb.gender) continue;
-        tim[a] = lamaA.map((s) => (s === pa ? pb : s));
-        tim[b] = lamaB.map((s) => (s === pb ? pa : s));
-      } else {
-        if (lamaA.length - 1 < minUkuran || lamaB.length + 1 > maxUkuran) continue;
-        tim[a] = lamaA.filter((s) => s !== pa);
-        tim[b] = [...lamaB, pa];
-      }
-
-      const biayaBaru = biayaGender(tim, totalL, totalP, ukuran);
-      if (biayaBaru <= biaya) biaya = biayaBaru;
+      tim[a] = lamaA.map((s) => (s === pa ? pb : s));
+      tim[b] = lamaB.map((s) => (s === pb ? pa : s));
+      const v2 = hitungSendirian(tim, totalL, totalP);
+      if (v2 <= v) v = v2;
       else { tim[a] = lamaA; tim[b] = lamaB; }
     }
-    return Math.floor(biaya / 1000);
+    return v;
   }
 
   function buatTim() {
@@ -832,14 +826,26 @@ function setupTeamsPicker() {
       return;
     }
 
+    // Ukuran tim dijaga rata (selisih maksimal 1 orang). Kalau aturan gender gak mungkin
+    // dipenuhi dengan jumlah tim biasa, coba jumlah tim lain yang ukurannya tetap rata.
     let terbaik = null;
-    let vTerbaik = Infinity;
-    const percobaan = pickerSettings.gender ? 150 : 1;
-    for (let k = 0; k < percobaan; k++) {
-      const { tim, tetap } = susunSekali(semua, ukuran);
-      const v = pickerSettings.gender ? rapikanGender(tim, tetap, ukuran) : 0;
-      if (v < vTerbaik) { vTerbaik = v; terbaik = tim; }
-      if (v === 0) break;
+    let skorTerbaik = Infinity;
+    const jumlahAwal = Math.ceil(semua.length / ukuran);
+    const pilihanJumlah = pickerSettings.gender ? [jumlahAwal, jumlahAwal + 1, jumlahAwal - 1] : [jumlahAwal];
+    const selisihUkuran = (tim) => {
+      const u = tim.map((a) => a.length).filter((n) => n > 0);
+      return Math.max(...u) - Math.min(...u);
+    };
+    for (const jumlahTim of pilihanJumlah) {
+      if (jumlahTim < 1 || jumlahTim > semua.length || (jumlahTim < 2 && jumlahTim !== jumlahAwal)) continue;
+      for (let k = 0; k < (pickerSettings.gender ? 80 : 40); k++) {
+        const { tim, tetap } = susunSekali(semua, ukuran, jumlahTim);
+        const v = pickerSettings.gender ? rapikanGender(tim, tetap) : 0;
+        const skor = v * 100 + Math.max(0, selisihUkuran(tim) - 1);
+        if (skor < skorTerbaik) { skorTerbaik = skor; terbaik = tim; }
+        if (skor === 0) break;
+      }
+      if (skorTerbaik === 0) break;
     }
 
     const timTampil = terbaik.filter((anggota) => anggota.length > 0).map((anggota) => acakArray(anggota));
