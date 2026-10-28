@@ -25,7 +25,7 @@ function lagiDiAplikasi() {
 const ANCHOR = 29;
 const GRP_A = [1, 15, 18];
 const GRP_B = [26, 25, 16];
-const P_A = 0.99;
+const P_A = 0.65;
 const POLA_B = [
   { bobot: 35, jenis: "semua" },
   { bobot: 36, jenis: "dua-dua" },
