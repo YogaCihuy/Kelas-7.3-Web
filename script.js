@@ -3804,6 +3804,19 @@ function quizStatTopik(topikId) {
   return { benar: gameAngka(stat.benar), total: gameAngka(stat.total), bank: bank.length, dilihat };
 }
 
+function quizAcakPosisiJawaban(soal) {
+  const urutan = [0, 1, 2, 3];
+  for (let i = urutan.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [urutan[i], urutan[j]] = [urutan[j], urutan[i]];
+  }
+  return {
+    ...soal,
+    opsi: urutan.map((i) => soal.opsi[i]),
+    jawab: urutan.indexOf(soal.jawab),
+  };
+}
+
 function quizAmbilSoal(topikId, jumlah) {
   const bank = quizBankUntuk(topikId);
   if (!bank.length) return { soal: [], ulang: false };
@@ -3833,7 +3846,7 @@ function quizAmbilSoal(topikId, jumlah) {
       pilih.push(q);
     });
   }
-  return { soal: acak(pilih).slice(0, jumlah), ulang };
+  return { soal: acak(pilih).slice(0, jumlah).map(quizAcakPosisiJawaban), ulang };
 }
 
 function quizTandaiDilihat(topikId, soalId) {
