@@ -37,6 +37,13 @@ service cloud.firestore {
       allow delete: if true; // dipakai admin untuk hapus polling
     }
 
+    // Data game per akun (saat ini: game Streak)
+    match /games/{absen} {
+      allow read: if true;
+      allow create, update: if isValidGame(request.resource.data);
+      allow delete: if false;
+    }
+
     function isValidAccount(d) {
       let allowedKeys = ['absen','namaLengkap','namaPanggilan','citaCita','laguFavorit',
                           'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul',
@@ -80,6 +87,19 @@ service cloud.firestore {
         && (!('opsi' in d) || d.opsi is list)
         && (!('votes' in d) || d.votes is map)
         && (!('dibuatOlehAbsen' in d) || d.dibuatOlehAbsen is number);
+    }
+
+    function isValidGame(d) {
+      let streakKeys = ['koin','pohon','hewan','diperbarui'];
+      return d.keys().hasOnly(['streak'])
+        && (!('streak' in d) || (
+          d.streak is map
+          && d.streak.keys().hasOnly(streakKeys)
+          && (!('koin' in d.streak) || d.streak.koin is number)
+          && (!('diperbarui' in d.streak) || d.streak.diperbarui is number)
+          && (!('pohon' in d.streak) || d.streak.pohon is map)
+          && (!('hewan' in d.streak) || d.streak.hewan is map)
+        ));
     }
   }
 }

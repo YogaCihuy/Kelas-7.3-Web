@@ -41,7 +41,7 @@ const POLA_A = [
 //   { absen: 10, tingkat: "pasti" },
 //   { absen: 12, tingkat: "hampir" },
 const HINDARI_GRP_A = [
-  { absen: 25, tingkat: "pasti" },
+  // tambahin barisnya di sini
 ];
 
 const POLA_B = [
@@ -179,6 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupInfoTab();
   setupMedsosTab();
   setupPollingTab();
+  setupGamesTab();
   setupNotifikasiEskul();
   restoreSession();
 });
@@ -1484,6 +1485,7 @@ function updateAccountUI() {
   updateInfoEditButtonVisibility();
   updateMedsosEditVisibility();
   updatePollingCreateVisibility();
+  updateGamesAccount();
 }
 
 async function handleLoginSubmit(e) {
@@ -2039,7 +2041,1025 @@ async function handleBuatPollingSubmit(e) {
 }
 
 /* ===================================================
-   12. NOTIFIKASI ESKUL (5 menit sebelum, 1x per akun per eskul)
+   12. GAMES: STREAK (data disimpan per akun)
+   - Rawat pohon: siram tiap hari, bersihkan daun buat coin.
+   - Rawat hewan: pilih kucing/anjing/panda, beri makan & minum.
+   - 5 kesempatan bolos per bulan, otomatis reset tanggal 1.
+=================================================== */
+const GAME_MAKS_KESEMPATAN = 5;
+const GAME_CACHE_PREFIX = "kelas73_streak_";
+
+const STREAK_HEWAN = {
+  kucing: { nama: "Kucing", emoji: "🐱" },
+  anjing: { nama: "Anjing", emoji: "🐶" },
+  panda: { nama: "Panda", emoji: "🐼" },
+};
+
+const STREAK_BAJU = [
+  { id: "bandana", nama: "Bandana", emoji: "🎀", harga: 10 },
+  { id: "topi", nama: "Topi", emoji: "🧢", harga: 15 },
+  { id: "kacamata", nama: "Kacamata", emoji: "🕶️", harga: 20 },
+  { id: "jaket", nama: "Jaket", emoji: "🧥", harga: 30 },
+  { id: "mahkota", nama: "Mahkota", emoji: "👑", harga: 50 },
+];
+
+const STREAK_MAINAN = [
+  { id: "bola", nama: "Bola", emoji: "⚽", harga: 8 },
+  { id: "tulang", nama: "Tulang", emoji: "🦴", harga: 12 },
+  { id: "boneka", nama: "Boneka", emoji: "🧸", harga: 18 },
+  { id: "robot", nama: "Robot", emoji: "🤖", harga: 25 },
+];
+
+const GAME_PERINGKAT_JUMLAH = 10;
+
+let gameUserAbsen = null;
+let gameState = null;
+let gameUnsubscribe = null;
+let gameToken = 0;
+let gameCloudWarned = false;
+let gameSaveTimer = null;
+let gameNoticeTimer = null;
+let gamePeringkatUnsub = null;
+let gamePeringkatToken = 0;
+let gamePeringkatCloud = {};
+let gamePeringkatSiap = false;
+let gamePeringkatGagal = false;
+let gamePeringkatWarned = false;
+
+function gameTanggal(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function gameBulan(date = new Date()) {
+  return gameTanggal(date).slice(0, 7);
+}
+
+function gameTanggalValid(t) {
+  return typeof t === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t);
+}
+
+function gameTambahHari(tanggal, jumlah) {
+  const [y, m, d] = tanggal.split("-").map(Number);
+  return gameTanggal(new Date(y, m - 1, d + jumlah));
+}
+
+function gameAngka(nilai, min = 0, max = Number.MAX_SAFE_INTEGER) {
+  const n = Math.floor(Number(nilai));
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+function gameStateAwal() {
+  return {
+    koin: 0,
+    pohon: {
+      streak: 0,
+      kesempatan: GAME_MAKS_KESEMPATAN,
+      bulan: gameBulan(),
+      terakhir: "",
+      dicek: "",
+      siram: "",
+      bersih: "",
+    },
+    hewan: {
+      jenis: "",
+      streak: 0,
+      kesempatan: GAME_MAKS_KESEMPATAN,
+      bulan: gameBulan(),
+      terakhir: "",
+      dicek: "",
+      makan: "",
+      minum: "",
+      baju: [],
+      mainan: [],
+      pakaiBaju: "",
+      pakaiMainan: "",
+    },
+    diperbarui: 0,
+  };
+}
+
+// Hitung hari yang kelewatan sejak terakhir dicek. Tiap hari yang bolos
+// memakai 1 kesempatan; kalau habis, streak kembali ke 0.
+function gameProsesHari(track, hariIni = gameTanggal()) {
+  const bulanIni = hariIni.slice(0, 7);
+  const kemarin = gameTambahHari(hariIni, -1);
+
+  if (!track.dicek) track.dicek = track.terakhir || kemarin;
+  if (track.dicek > kemarin) track.dicek = kemarin;
+
+  let hari = gameTambahHari(track.dicek, 1);
+  let putaran = 0;
+  while (hari <= kemarin && putaran < 400) {
+    const bulanHari = hari.slice(0, 7);
+    if (track.bulan !== bulanHari) {
+      track.bulan = bulanHari;
+      track.kesempatan = GAME_MAKS_KESEMPATAN;
+    }
+    if (track.streak > 0 && track.terakhir && hari > track.terakhir) {
+      if (track.kesempatan > 0) track.kesempatan -= 1;
+      else track.streak = 0;
+    }
+    track.dicek = hari;
+    hari = gameTambahHari(hari, 1);
+    putaran++;
+  }
+
+  if (track.dicek < kemarin) track.dicek = kemarin;
+  if (track.bulan !== bulanIni) {
+    track.bulan = bulanIni;
+    track.kesempatan = GAME_MAKS_KESEMPATAN;
+  }
+  track.kesempatan = gameAngka(track.kesempatan, 0, GAME_MAKS_KESEMPATAN);
+}
+
+function gameNormalisasiTrack(raw, jenis) {
+  const dasar = gameStateAwal()[jenis];
+  const track = { ...dasar, ...(raw && typeof raw === "object" ? raw : {}) };
+  track.streak = gameAngka(track.streak);
+  track.kesempatan = gameAngka(track.kesempatan, 0, GAME_MAKS_KESEMPATAN);
+  track.bulan = typeof track.bulan === "string" && /^\d{4}-\d{2}$/.test(track.bulan) ? track.bulan : gameBulan();
+
+  ["terakhir", "dicek", "siram", "bersih", "makan", "minum"].forEach((kunci) => {
+    track[kunci] = gameTanggalValid(track[kunci]) ? track[kunci] : "";
+  });
+
+  if (jenis === "hewan") {
+    track.jenis = STREAK_HEWAN[track.jenis] ? track.jenis : "";
+    track.baju = Array.isArray(track.baju) ? track.baju.filter((id) => STREAK_BAJU.some((i) => i.id === id)) : [];
+    track.mainan = Array.isArray(track.mainan) ? track.mainan.filter((id) => STREAK_MAINAN.some((i) => i.id === id)) : [];
+    track.pakaiBaju = track.baju.includes(track.pakaiBaju) ? track.pakaiBaju : "";
+    track.pakaiMainan = track.mainan.includes(track.pakaiMainan) ? track.pakaiMainan : "";
+  }
+
+  gameProsesHari(track);
+  return track;
+}
+
+function gameNormalisasi(raw) {
+  if (!raw || typeof raw !== "object") return gameStateAwal();
+  return {
+    koin: gameAngka(raw.koin),
+    pohon: gameNormalisasiTrack(raw.pohon, "pohon"),
+    hewan: gameNormalisasiTrack(raw.hewan, "hewan"),
+    diperbarui: gameAngka(raw.diperbarui),
+  };
+}
+
+function gameCacheKey(absen) {
+  return `${GAME_CACHE_PREFIX}${absen}`;
+}
+
+function gameMuatCache(absen) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(gameCacheKey(absen)) || "null");
+    return raw ? gameNormalisasi(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function gameSimpanCache() {
+  if (!gameUserAbsen || !gameState) return;
+  try {
+    localStorage.setItem(gameCacheKey(gameUserAbsen), JSON.stringify(gameState));
+  } catch (e) {}
+}
+
+function gameSimpanCloud() {
+  if (!gameUserAbsen || !gameState) return;
+  clearTimeout(gameSaveTimer);
+  const absen = gameUserAbsen;
+  const payload = JSON.parse(JSON.stringify(gameState));
+  gameSaveTimer = setTimeout(() => {
+    db.collection("games")
+      .doc(String(absen))
+      .set({ streak: payload }, { merge: true })
+      .catch((err) => {
+        if (!gameCloudWarned) {
+          console.warn("Game Streak disimpan di perangkat dulu (rules Firestore games belum aktif):", err.code || err.message);
+          gameCloudWarned = true;
+        }
+      });
+  }, 160);
+}
+
+function gameLangganan(absen) {
+  if (gameUnsubscribe) {
+    gameUnsubscribe();
+    gameUnsubscribe = null;
+  }
+  const token = ++gameToken;
+  gameUnsubscribe = db.collection("games").doc(String(absen)).onSnapshot(
+    (snap) => {
+      if (token !== gameToken || !currentUser || currentUser.absen !== absen || !gameState) return;
+      if (snap.exists) {
+        const remote = gameNormalisasi(snap.data().streak);
+        if (remote.diperbarui >= gameState.diperbarui) {
+          gameState = remote;
+          gameSimpanCache();
+          renderGames();
+        } else {
+          gameSimpanCloud();
+        }
+      } else if (gameState.diperbarui > 0) {
+        gameSimpanCloud();
+      }
+    },
+    (err) => {
+      if (!gameCloudWarned) {
+        console.warn("Game Streak jalan dari penyimpanan perangkat dulu:", err.code || err.message);
+        gameCloudWarned = true;
+      }
+    }
+  );
+}
+
+function gameLanggananPeringkat() {
+  if (gamePeringkatUnsub) return;
+  gamePeringkatSiap = false;
+  gamePeringkatGagal = false;
+  const token = ++gamePeringkatToken;
+  gamePeringkatUnsub = db.collection("games").onSnapshot(
+    (snap) => {
+      if (token !== gamePeringkatToken) return;
+      const peta = {};
+      snap.forEach((doc) => {
+        const absen = Number(doc.id);
+        if (!Number.isInteger(absen)) return;
+        peta[absen] = gameNormalisasi(doc.data().streak);
+      });
+      gamePeringkatCloud = peta;
+      gamePeringkatSiap = true;
+      gamePeringkatGagal = false;
+      renderStreakPeringkat();
+    },
+    (err) => {
+      if (token !== gamePeringkatToken) return;
+      gamePeringkatSiap = false;
+      gamePeringkatGagal = true;
+      if (!gamePeringkatWarned) {
+        console.warn("Peringkat Streak sementara dari perangkat ini:", err.code || err.message);
+        gamePeringkatWarned = true;
+      }
+      renderStreakPeringkat();
+    }
+  );
+}
+
+function gameHentikanPeringkat() {
+  gamePeringkatToken++;
+  if (gamePeringkatUnsub) {
+    gamePeringkatUnsub();
+    gamePeringkatUnsub = null;
+  }
+  gamePeringkatCloud = {};
+  gamePeringkatSiap = false;
+  gamePeringkatGagal = false;
+}
+
+function gameEntriPeringkat() {
+  const peta = {};
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const kunci = localStorage.key(i);
+      if (!kunci || kunci.indexOf(GAME_CACHE_PREFIX) !== 0) continue;
+      const absen = Number(kunci.slice(GAME_CACHE_PREFIX.length));
+      if (!Number.isInteger(absen) || !dataSiswa.some((s) => s.absen === absen)) continue;
+      const state = gameMuatCache(absen);
+      if (state) peta[absen] = state;
+    }
+  } catch (e) {}
+
+  Object.keys(gamePeringkatCloud).forEach((kunci) => {
+    const absen = Number(kunci);
+    const remote = gamePeringkatCloud[kunci];
+    if (!Number.isInteger(absen) || !remote) return;
+    const lokal = peta[absen];
+    if (!lokal || remote.diperbarui >= lokal.diperbarui) peta[absen] = remote;
+  });
+
+  if (gameUserAbsen && gameState) peta[gameUserAbsen] = gameState;
+
+  const entri = [];
+  Object.keys(peta).forEach((kunci) => {
+    const absen = Number(kunci);
+    const state = peta[kunci];
+    if (!state || !state.pohon || !state.hewan) return;
+    const pohon = gameAngka(state.pohon.streak);
+    const hewan = gameAngka(state.hewan.streak);
+    const total = pohon + hewan;
+    if (total <= 0) return;
+    const akun = getMergedAccount(absen);
+    if (!akun) return;
+    entri.push({
+      absen,
+      nama: akun.namaPanggilan || `Absen ${absen}`,
+      total,
+      pohon,
+      hewan,
+      koin: gameAngka(state.koin),
+      jenis: STREAK_HEWAN[state.hewan.jenis] ? state.hewan.jenis : "",
+    });
+  });
+
+  entri.sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    if (b.pohon !== a.pohon) return b.pohon - a.pohon;
+    if (b.hewan !== a.hewan) return b.hewan - a.hewan;
+    if (b.koin !== a.koin) return b.koin - a.koin;
+    return a.absen - b.absen;
+  });
+  return entri;
+}
+
+function gameAmanTeks(teks) {
+  return String(teks == null ? "" : teks)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function gameAvatarPeringkat(entri) {
+  const hewan = STREAK_HEWAN[entri.jenis];
+  return hewan ? hewan.emoji : "🌳";
+}
+
+function gameBarisPeringkat(entri, posisi) {
+  const kamu = !!gameUserAbsen && entri.absen === gameUserAbsen;
+  return `
+    <li class="peringkat-row${kamu ? " is-kamu" : ""}">
+      <span class="peringkat-rank">${posisi}</span>
+      <span class="peringkat-avatar peringkat-avatar-kecil" aria-hidden="true">${gameAvatarPeringkat(entri)}</span>
+      <span class="peringkat-info">
+        <strong><span class="peringkat-nama-baris">${gameAmanTeks(entri.nama)}</span>${kamu ? `<span class="peringkat-kamu">Kamu</span>` : ""}</strong>
+        <small>🌳 ${entri.pohon} hari · 🐾 ${entri.hewan} hari</small>
+      </span>
+      <span class="peringkat-total">🔥 ${entri.total}</span>
+    </li>`;
+}
+
+function renderStreakPeringkat() {
+  const el = document.getElementById("streak-peringkat");
+  if (!el) return;
+  if (!gameState) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  el.hidden = false;
+
+  const entri = gameEntriPeringkat();
+  const memuat = !gamePeringkatSiap && !gamePeringkatGagal;
+
+  let status = "Peringkat sekelas, otomatis diperbarui.";
+  if (memuat) status = "Memuat peringkat sekelas...";
+  else if (gamePeringkatGagal) status = "Sementara dari perangkat ini.";
+
+  const kepala = `
+    <div class="streak-card-head">
+      <div>
+        <span class="streak-kind">🏆 Peringkat</span>
+        <h3>Paling Rajin</h3>
+      </div>
+      <span class="streak-fire streak-fire-coin">${entri.length ? `🔥 ${entri.length} siswa` : "🌱 Mulai"}</span>
+    </div>
+    <p class="streak-hint">Total hari streak pohon + hewan. Makin rutin rawatnya, makin naik peringkatnya.</p>`;
+
+  if (!entri.length) status = gamePeringkatGagal ? "Belum bisa memuat peringkat sekelas." : status;
+
+  if (!entri.length && memuat) {
+    el.innerHTML = `
+      ${kepala}
+      <div class="peringkat-skeleton" aria-hidden="true">
+        ${Array.from({ length: 3 }, () => `
+          <div class="peringkat-skeleton-row">
+            <span class="skeleton peringkat-skeleton-avatar"></span>
+            <span class="skeleton peringkat-skeleton-nama"></span>
+            <span class="skeleton peringkat-skeleton-angka"></span>
+          </div>`).join("")}
+      </div>
+      <p class="peringkat-status">${status}</p>`;
+    return;
+  }
+
+  if (!entri.length) {
+    el.innerHTML = `
+      ${kepala}
+      <div class="peringkat-kosong">
+        <span class="peringkat-kosong-icon" aria-hidden="true">🌱</span>
+        <strong>Belum ada yang mulai streak</strong>
+        <p>Rawat pohon atau hewanmu hari ini, kamu bakal jadi yang pertama di papan peringkat!</p>
+      </div>
+      <p class="peringkat-status">${status}</p>`;
+    return;
+  }
+
+  const juara = entri.slice(0, 3);
+  const urutanPodium = [juara[1], juara[0], juara[2]].filter(Boolean);
+  const medali = ["🥇", "🥈", "🥉"];
+  const podiumHtml = `
+    <div class="peringkat-podium">
+      ${urutanPodium
+        .map((e) => {
+          const pos = juara.indexOf(e) + 1;
+          const kamu = !!gameUserAbsen && e.absen === gameUserAbsen;
+          return `
+            <div class="peringkat-slot peringkat-slot-${pos}${kamu ? " is-kamu" : ""}">
+              <div class="peringkat-podium-card">
+                ${kamu ? `<span class="peringkat-kamu">Kamu</span>` : ""}
+                <span class="peringkat-medal" aria-hidden="true">${medali[pos - 1]}</span>
+                <span class="peringkat-avatar" aria-hidden="true">${gameAvatarPeringkat(e)}</span>
+                <strong class="peringkat-nama" title="${gameAmanTeks(e.nama)}">${gameAmanTeks(e.nama)}</strong>
+                <span class="peringkat-total">🔥 ${e.total} hari</span>
+              </div>
+              <span class="peringkat-base" aria-hidden="true">${pos}</span>
+            </div>`;
+        })
+        .join("")}
+    </div>`;
+
+  const sisa = entri.slice(3, GAME_PERINGKAT_JUMLAH);
+  const barisHtml = sisa.map((e) => gameBarisPeringkat(e, entri.indexOf(e) + 1)).join("");
+  const posisiKamu = entri.findIndex((e) => e.absen === gameUserAbsen);
+  const ekstraHtml =
+    posisiKamu >= GAME_PERINGKAT_JUMLAH
+      ? `<li class="peringkat-pisah" aria-hidden="true">···</li>${gameBarisPeringkat(entri[posisiKamu], posisiKamu + 1)}`
+      : "";
+  const ajakanHtml =
+    posisiKamu === -1
+      ? `<p class="peringkat-ajakan">Kamu belum masuk peringkat. Rawat pohon atau hewan hari ini buat mulai! 🌱</p>`
+      : "";
+
+  el.innerHTML = `
+    ${kepala}
+    ${podiumHtml}
+    <ol class="peringkat-list">
+      ${barisHtml}
+      ${ekstraHtml}
+    </ol>
+    ${ajakanHtml}
+    <p class="peringkat-status">${status}</p>`;
+}
+
+function updateGamesAccount() {
+  const absen = currentUser ? Number(currentUser.absen) : null;
+  if (absen === gameUserAbsen) {
+    if (gameState) renderGames();
+    return;
+  }
+
+  gameUserAbsen = absen;
+  gameToken++;
+  if (gameUnsubscribe) {
+    gameUnsubscribe();
+    gameUnsubscribe = null;
+  }
+
+  if (!absen) {
+    gameState = null;
+    gameHentikanPeringkat();
+    renderGames();
+    return;
+  }
+
+  gameState = gameMuatCache(absen) || gameNormalisasi(gameStateAwal());
+  renderGames();
+  gameLangganan(absen);
+  gameLanggananPeringkat();
+}
+
+function gameTahapPohon(streak) {
+  if (streak >= 30) return 5;
+  if (streak >= 14) return 4;
+  if (streak >= 7) return 3;
+  if (streak >= 3) return 2;
+  if (streak >= 1) return 1;
+  return 0;
+}
+
+function gameSvgPohon() {
+  return `
+    <svg class="pohon-svg" viewBox="0 0 220 200" role="img" aria-label="Pohon streak kamu">
+      <defs>
+        <linearGradient id="pohonDaun" x1="0" y1="0" x2="0.55" y2="1">
+          <stop offset="0" stop-color="#63cc8e"/>
+          <stop offset="0.55" stop-color="#2f8f5b"/>
+          <stop offset="1" stop-color="#1f6d45"/>
+        </linearGradient>
+        <radialGradient id="pohonDaun2" cx="0.35" cy="0.28" r="0.9">
+          <stop offset="0" stop-color="#74d89e"/>
+          <stop offset="0.6" stop-color="#3aa265"/>
+          <stop offset="1" stop-color="#24784e"/>
+        </radialGradient>
+        <linearGradient id="pohonBatang" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#b07f58"/>
+          <stop offset="0.5" stop-color="#8a5a3b"/>
+          <stop offset="1" stop-color="#6f452b"/>
+        </linearGradient>
+        <radialGradient id="pohonTanah" cx="0.5" cy="0.4" r="0.7">
+          <stop offset="0" stop-color="#bce0ca"/>
+          <stop offset="1" stop-color="#dcefe2"/>
+        </radialGradient>
+      </defs>
+      <ellipse class="pohon-tanah" cx="110" cy="184" rx="60" ry="9"/>
+      <rect class="pohon-batang" x="101" y="96" width="18" height="86" rx="9"/>
+      <ellipse class="pohon-batang-kilau" cx="106" cy="140" rx="3" ry="27"/>
+      <path class="pohon-cabang" d="M110 130 L82 108 M110 120 L138 98"/>
+      <g class="pohon-ayun">
+        <g class="pohon-ranting">
+          <circle cx="110" cy="72" r="42"/>
+          <circle cx="76" cy="100" r="30"/>
+          <circle cx="144" cy="100" r="30"/>
+          <circle cx="92" cy="58" r="22"/>
+          <circle cx="130" cy="58" r="22"/>
+          <ellipse class="pohon-kilau" cx="88" cy="52" rx="17" ry="10" transform="rotate(-16 88 52)"/>
+          <ellipse class="pohon-kilau pohon-kilau-kecil" cx="141" cy="92" rx="9" ry="6" transform="rotate(-20 141 92)"/>
+          <g class="pohon-muka">
+            <ellipse class="pohon-pipi" cx="91" cy="88" rx="7" ry="4.5"/>
+            <ellipse class="pohon-pipi" cx="129" cy="88" rx="7" ry="4.5"/>
+            <circle cx="98" cy="74" r="4"/>
+            <circle cx="122" cy="74" r="4"/>
+            <path d="M102 86 Q110 94 118 86"/>
+          </g>
+        </g>
+        <g class="pohon-bunga">
+          <circle cx="86" cy="63" r="5"/>
+          <circle cx="130" cy="62" r="5"/>
+          <circle cx="110" cy="39" r="5"/>
+          <circle cx="66" cy="98" r="5"/>
+          <circle cx="154" cy="98" r="5"/>
+        </g>
+      </g>
+      <g class="pohon-tunas">
+        <path d="M110 96 C96 90 92 78 94 70 C106 74 112 84 110 96Z"/>
+        <path d="M110 96 C124 90 128 78 126 70 C114 74 108 84 110 96Z"/>
+      </g>
+    </svg>`;
+}
+
+function renderGames() {
+  const list = document.getElementById("games-list");
+  if (!list) return;
+
+  const login = !!(currentUser && gameState);
+  let ringkas = "Login dulu buat simpan progres di akunmu";
+  if (login) {
+    const hewan = gameState.hewan.jenis
+      ? `${STREAK_HEWAN[gameState.hewan.jenis].emoji} ${gameState.hewan.streak} hari`
+      : "belum pilih hewan";
+    ringkas = `🔥 ${gameState.pohon.streak} hari pohon · ${hewan}`;
+  }
+
+  list.innerHTML = `
+    <button class="game-card" type="button" data-open-game="streak">
+      <span class="game-icon" aria-hidden="true">🔥<span class="game-icon-spark">✨</span></span>
+      <span class="game-info">
+        <strong>Streak</strong>
+        <small>Rawat pohon & hewan tiap hari, kumpulkan coin buat hias pet.</small>
+        <span class="game-progress">${ringkas}</span>
+      </span>
+      <span class="game-play">Main <span aria-hidden="true">→</span></span>
+    </button>`;
+
+  const locked = document.getElementById("streak-locked");
+  const content = document.getElementById("streak-content");
+  const koinEl = document.getElementById("streak-koin");
+  if (!locked || !content) return;
+
+  if (!login) {
+    content.hidden = true;
+    locked.hidden = false;
+    locked.innerHTML = `
+      <div class="streak-locked-card">
+        <span class="streak-locked-icon" aria-hidden="true">🔒</span>
+        <h3>Login dulu buat mulai Streak</h3>
+        <p>Progres pohon, hewan, coin, dan hiasan disimpan di akunmu. Jadi kalau ganti perangkat, progresnya tetap ada.</p>
+        <button class="btn-primary" type="button" data-game-login>Login Sekarang</button>
+      </div>`;
+    if (koinEl) koinEl.textContent = "💰 0 coin";
+    return;
+  }
+
+  locked.hidden = true;
+  content.hidden = false;
+  if (koinEl) koinEl.textContent = `💰 ${gameState.koin} coin`;
+  renderStreakPohon();
+  renderStreakHewan();
+  renderStreakPeringkat();
+  renderStreakHias();
+}
+
+function renderStreakPohon() {
+  const el = document.getElementById("streak-pohon");
+  if (!el || !gameState) return;
+  const track = gameState.pohon;
+  const hariIni = gameTanggal();
+  const sudahSiram = track.siram === hariIni;
+  const sudahBersih = track.bersih === hariIni;
+  const tahap = gameTahapPohon(track.streak);
+
+  let petunjuk = "Siram pohon setiap hari biar streak gak putus.";
+  if (sudahSiram && sudahBersih) petunjuk = "Hari ini pohonmu sudah terawat. Balik lagi besok ya!";
+  else if (sudahSiram) petunjuk = "Masih ada daun berguguran. Bersihkan buat +5 coin.";
+  else if (track.streak === 0) petunjuk = "Siram pohon hari ini buat mulai streak pertamamu.";
+
+  el.innerHTML = `
+    <div class="streak-card-head">
+      <div>
+        <span class="streak-kind">🌳 Tipe Streak 1</span>
+        <h3>Rawat Pohon</h3>
+      </div>
+      <span class="streak-fire">🔥 ${track.streak} hari</span>
+    </div>
+    <div class="streak-stats">
+      <span class="streak-chip" title="Tiap sehari yang kelewatan memakai 1 kesempatan.">🛡️ ${track.kesempatan}/${GAME_MAKS_KESEMPATAN} kesempatan</span>
+      <span class="streak-chip">${sudahSiram ? "✅ Sudah disiram" : "💧 Belum disiram"}</span>
+    </div>
+    <div class="pohon-stage" data-stage="${tahap}">
+      <span class="scene" aria-hidden="true">
+        <span class="scene-sun"></span>
+        <span class="scene-cloud scene-cloud-1">☁️</span>
+        <span class="scene-cloud scene-cloud-2">☁️</span>
+        <span class="scene-hill scene-hill-1"></span>
+        <span class="scene-hill scene-hill-2"></span>
+        <span class="scene-grass scene-grass-1">🌿</span>
+        <span class="scene-grass scene-grass-2">🌱</span>
+        <span class="scene-grass scene-grass-3">🌿</span>
+        ${tahap >= 3 ? `<span class="scene-firefly scene-firefly-1">✨</span><span class="scene-firefly scene-firefly-2">✨</span>` : ""}
+      </span>
+      ${gameSvgPohon()}
+      <span class="pohon-kesiram" aria-hidden="true">💧</span>
+      ${sudahBersih ? "" : `<span class="daun-gugur daun-gugur-1" aria-hidden="true">🍂</span><span class="daun-gugur daun-gugur-2" aria-hidden="true">🍃</span><span class="daun-gugur daun-gugur-3" aria-hidden="true">🍂</span>`}
+    </div>
+    <p class="streak-hint">${petunjuk}</p>
+    <div class="streak-actions">
+      <button class="btn-primary" type="button" data-game-action="siram" ${sudahSiram ? "disabled" : ""}>
+        ${sudahSiram ? "✅ Sudah Disiram" : "💧 Siram · +2 coin"}
+      </button>
+      <button class="btn-secondary" type="button" data-game-action="bersih" ${sudahBersih ? "disabled" : ""}>
+        ${sudahBersih ? "✅ Daun Sudah Bersih" : "🍂 Bersihkan Daun · +5 coin"}
+      </button>
+    </div>
+    <p class="streak-hint streak-hint-small">Kesempatan otomatis reset tiap tanggal 1. Pohon makin besar kalau streak makin panjang.</p>`;
+}
+
+function renderStreakHewan() {
+  const el = document.getElementById("streak-hewan");
+  if (!el || !gameState) return;
+  const track = gameState.hewan;
+  const hariIni = gameTanggal();
+  const info = STREAK_HEWAN[track.jenis];
+
+  if (!info) {
+    el.innerHTML = `
+      <div class="streak-card-head">
+        <div>
+          <span class="streak-kind">🐾 Tipe Streak 2</span>
+          <h3>Rawat Hewan</h3>
+        </div>
+      </div>
+      <p class="streak-hint">Pilih satu hewan peliharaan buat dirawat dan dihias. Pilihan ini disimpan di akunmu.</p>
+      <div class="pet-pilih-grid">
+        ${Object.entries(STREAK_HEWAN)
+          .map(
+            ([id, h]) => `
+            <button class="pet-pilih" type="button" data-game-action="pilih-hewan" data-hewan="${id}">
+              <span class="pet-pilih-emoji" aria-hidden="true">${h.emoji}</span>
+              <strong>${h.nama}</strong>
+            </button>`
+          )
+          .join("")}
+      </div>`;
+    return;
+  }
+
+  const sudahMakan = track.makan === hariIni;
+  const sudahMinum = track.minum === hariIni;
+  const lengkap = sudahMakan && sudahMinum;
+  const baju = STREAK_BAJU.find((i) => i.id === track.pakaiBaju);
+  const mainan = STREAK_MAINAN.find((i) => i.id === track.pakaiMainan);
+  const mood = lengkap ? "😊" : "🥺";
+
+  let petunjuk = "Beri makan + minum setiap hari buat jaga streak.";
+  if (lengkap) petunjuk = "Hari ini hewanmu sudah kenyang dan segar. Balik lagi besok ya!";
+  else if (!sudahMakan && gameState.koin < 1) petunjuk = "Coin habis. Siram & bersihkan pohon dulu biar bisa beli makanan.";
+  else if (sudahMakan) petunjuk = "Tinggal kasih minum gratis buat lengkapi rawatan hari ini.";
+
+  const tombolMakan = sudahMakan
+    ? `<button class="btn-secondary" type="button" disabled>✅ Sudah Makan</button>`
+    : `<button class="btn-secondary" type="button" data-game-action="makan" data-harga="1" ${gameState.koin < 1 ? "disabled" : ""}>
+         🍖 Makanan Biasa · 1 coin
+       </button>
+       <button class="btn-secondary" type="button" data-game-action="makan" data-harga="2" ${gameState.koin < 2 ? "disabled" : ""}>
+         🍗 Makanan Spesial · 2 coin
+       </button>`;
+
+  el.innerHTML = `
+    <div class="streak-card-head">
+      <div>
+        <span class="streak-kind">🐾 Tipe Streak 2</span>
+        <h3>Rawat Hewan</h3>
+      </div>
+      <span class="streak-fire">🔥 ${track.streak} hari</span>
+    </div>
+    <div class="streak-stats">
+      <span class="streak-chip" title="Tiap sehari yang kelewatan memakai 1 kesempatan.">🛡️ ${track.kesempatan}/${GAME_MAKS_KESEMPATAN} kesempatan</span>
+      <span class="streak-chip">${lengkap ? "✅ Sudah dirawat" : "⏳ Belum lengkap"}</span>
+    </div>
+    <div class="pet-stage">
+      <span class="scene" aria-hidden="true">
+        <span class="scene-sun"></span>
+        <span class="scene-cloud scene-cloud-1">☁️</span>
+        <span class="scene-cloud scene-cloud-2">☁️</span>
+        <span class="scene-hill scene-hill-1"></span>
+        <span class="scene-hill scene-hill-2"></span>
+        <span class="scene-grass scene-grass-1">🌿</span>
+        <span class="scene-grass scene-grass-2">🌱</span>
+        <span class="scene-grass scene-grass-3">🌿</span>
+      </span>
+      <span class="pet-shadow" aria-hidden="true"></span>
+      ${baju ? `<span class="pet-aksesoris" title="${baju.nama}" aria-hidden="true">${baju.emoji}</span>` : ""}
+      <span class="pet-emoji" aria-hidden="true">${info.emoji}</span>
+      ${mainan ? `<span class="pet-mainan" title="${mainan.nama}" aria-hidden="true">${mainan.emoji}</span>` : ""}
+      <span class="pet-mood ${lengkap ? "happy" : "sad"}">
+        <span class="pet-mood-emoji" aria-hidden="true">${mood}</span>
+        <span class="pet-mood-text">${lengkap ? "Sehat!" : "Lapar..."}</span>
+      </span>
+      ${lengkap ? `<span class="pet-sparkle pet-sparkle-1" aria-hidden="true">✨</span><span class="pet-sparkle pet-sparkle-2" aria-hidden="true">✨</span><span class="pet-sparkle pet-sparkle-3" aria-hidden="true">✨</span>` : ""}
+    </div>
+    <p class="pet-name">${info.emoji} ${info.nama} Kamu</p>
+    <div class="pet-checklist">
+      <span class="pet-task ${sudahMakan ? "done" : ""}">${sudahMakan ? "✅" : "🍖"} Makan</span>
+      <span class="pet-task ${sudahMinum ? "done" : ""}">${sudahMinum ? "✅" : "💧"} Minum</span>
+    </div>
+    <p class="streak-hint">${petunjuk}</p>
+    <div class="pet-actions">
+      ${tombolMakan}
+      <button class="btn-secondary" type="button" data-game-action="minum" ${sudahMinum ? "disabled" : ""}>
+        ${sudahMinum ? "✅ Sudah Minum" : "💧 Air Minum · Gratis"}
+      </button>
+    </div>`;
+}
+
+function gameKartuToko(item, jenis, track) {
+  const daftar = jenis === "baju" ? track.baju : track.mainan;
+  const dipakai = jenis === "baju" ? track.pakaiBaju : track.pakaiMainan;
+  const dimiliki = daftar.includes(item.id);
+  const terpakai = dipakai === item.id;
+
+  if (dimiliki) {
+    return `
+      <button class="shop-item dimiliki ${terpakai ? "terpakai" : ""}" type="button" data-game-action="pakai" data-jenis="${jenis}" data-item="${item.id}">
+        <span class="shop-emoji" aria-hidden="true">${item.emoji}</span>
+        <span class="shop-name">${item.nama}</span>
+        <span class="shop-state">${terpakai ? "✓ Dipakai" : "Pakai"}</span>
+      </button>`;
+  }
+
+  const cukup = gameState.koin >= item.harga;
+  return `
+    <button class="shop-item ${cukup ? "" : "kurang"}" type="button" data-game-action="beli" data-jenis="${jenis}" data-item="${item.id}" ${cukup ? "" : "disabled"}>
+      <span class="shop-emoji" aria-hidden="true">${item.emoji}</span>
+      <span class="shop-name">${item.nama}</span>
+      <span class="shop-price">💰 ${item.harga}</span>
+      <span class="shop-state">${cukup ? "Beli" : "Coin kurang"}</span>
+    </button>`;
+}
+
+function renderStreakHias() {
+  const el = document.getElementById("streak-hias");
+  if (!el || !gameState) return;
+  const track = gameState.hewan;
+  const info = STREAK_HEWAN[track.jenis];
+  if (!info) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="streak-card-head">
+      <div>
+        <span class="streak-kind">✨ Hias Pet</span>
+        <h3>Bikin ${info.nama} Kamu Gaya</h3>
+      </div>
+      <span class="streak-fire streak-fire-coin">💰 ${gameState.koin} coin</span>
+    </div>
+    <p class="streak-hint">Beli baju & mainan pakai coin dari rawat pohon. Barang yang sudah dimiliki bisa dipakai atau dilepas kapan aja.</p>
+    <div class="shop-groups">
+      <div class="shop-group">
+        <h4>👕 Baju</h4>
+        <div class="shop-grid">
+          ${STREAK_BAJU.map((item) => gameKartuToko(item, "baju", track)).join("")}
+        </div>
+      </div>
+      <div class="shop-group">
+        <h4>🧸 Mainan</h4>
+        <div class="shop-grid">
+          ${STREAK_MAINAN.map((item) => gameKartuToko(item, "mainan", track)).join("")}
+        </div>
+      </div>
+    </div>`;
+}
+
+function gameTampilNotice(pesan) {
+  const el = document.getElementById("streak-notice");
+  if (!el) return;
+  el.textContent = pesan;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  clearTimeout(gameNoticeTimer);
+  gameNoticeTimer = setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+function gameSelesaiAksi(pesan, animasi = null) {
+  gameState.diperbarui = Date.now();
+  gameSimpanCache();
+  gameSimpanCloud();
+  renderGames();
+  gameTampilNotice(pesan);
+  SoundFX.resultReveal();
+
+  if (animasi === "siram") {
+    const stage = document.querySelector("#streak-pohon .pohon-stage");
+    if (stage) {
+      stage.classList.add("disiram");
+      setTimeout(() => stage.classList.remove("disiram"), 900);
+    }
+  }
+}
+
+function gameCatatRawat(track, hariIni) {
+  if (track.terakhir === hariIni) return false;
+  track.streak = Math.max(0, track.streak) + 1;
+  track.terakhir = hariIni;
+  track.dicek = hariIni;
+  return true;
+}
+
+function gameCariItem(jenis, id) {
+  return (jenis === "baju" ? STREAK_BAJU : STREAK_MAINAN).find((i) => i.id === id) || null;
+}
+
+function gameTanganiAksi(aksi, btn) {
+  if (!currentUser || !gameState) {
+    document.getElementById("btn-show-login").click();
+    return;
+  }
+
+  const hariIni = gameTanggal();
+  gameProsesHari(gameState.pohon, hariIni);
+  gameProsesHari(gameState.hewan, hariIni);
+  const pohon = gameState.pohon;
+  const hewan = gameState.hewan;
+
+  if (aksi === "siram") {
+    if (pohon.siram === hariIni) return;
+    pohon.siram = hariIni;
+    gameState.koin += 2;
+    const naik = gameCatatRawat(pohon, hariIni);
+    gameSelesaiAksi(
+      naik ? `+2 coin! Pohon disiram, streak jadi ${pohon.streak} hari.` : "+2 coin! Pohon sudah disiram hari ini.",
+      "siram"
+    );
+    return;
+  }
+
+  if (aksi === "bersih") {
+    if (pohon.bersih === hariIni) return;
+    pohon.bersih = hariIni;
+    gameState.koin += 5;
+    gameSelesaiAksi("+5 coin! Daun-daun pohonmu sudah bersih.");
+    return;
+  }
+
+  if (aksi === "pilih-hewan") {
+    const id = btn.dataset.hewan;
+    const info = STREAK_HEWAN[id];
+    if (!info || hewan.jenis) return;
+    hewan.jenis = id;
+    gameState.diperbarui = Date.now();
+    gameSimpanCache();
+    gameSimpanCloud();
+    renderGames();
+    gameTampilNotice(`Kamu memilih ${info.nama}! Rawat dia tiap hari ya.`);
+    SoundFX.teamsReady();
+    return;
+  }
+
+  if (aksi === "makan") {
+    if (!hewan.jenis || hewan.makan === hariIni) return;
+    const harga = gameAngka(btn.dataset.harga, 1, 2) || 1;
+    if (gameState.koin < harga) {
+      gameTampilNotice("Coin belum cukup. Rawat pohon dulu buat nambah coin.");
+      SoundFX.lockedPick();
+      return;
+    }
+    gameState.koin -= harga;
+    hewan.makan = hariIni;
+    const lengkapMakan = hewan.minum === hariIni;
+    const baruRawat = lengkapMakan && gameCatatRawat(hewan, hariIni);
+    let pesanMakan = `Makanan habis, -${harga} coin. Tinggal kasih minum gratis ya.`;
+    if (baruRawat) pesanMakan = `Makanan habis, -${harga} coin. Hari ini hewanmu sudah dirawat, streak jadi ${hewan.streak} hari!`;
+    else if (lengkapMakan) pesanMakan = `Makanan habis, -${harga} coin. Rawatan hari ini sudah lengkap.`;
+    gameSelesaiAksi(pesanMakan);
+    return;
+  }
+
+  if (aksi === "minum") {
+    if (!hewan.jenis || hewan.minum === hariIni) return;
+    hewan.minum = hariIni;
+    const lengkapMinum = hewan.makan === hariIni;
+    const baruRawat = lengkapMinum && gameCatatRawat(hewan, hariIni);
+    let pesanMinum = "Air minum gratis sudah diberikan. Jangan lupa beri makan juga ya.";
+    if (baruRawat) pesanMinum = `Hewanmu segar! Hari ini sudah dirawat, streak jadi ${hewan.streak} hari.`;
+    else if (lengkapMinum) pesanMinum = "Hewanmu segar! Rawatan hari ini sudah lengkap.";
+    gameSelesaiAksi(pesanMinum);
+    return;
+  }
+
+  if (aksi === "beli") {
+    const jenis = btn.dataset.jenis;
+    const item = gameCariItem(jenis, btn.dataset.item);
+    if (!item) return;
+    const daftar = jenis === "baju" ? hewan.baju : hewan.mainan;
+    if (daftar.includes(item.id)) return;
+    if (gameState.koin < item.harga) {
+      gameTampilNotice("Coin belum cukup buat beli ini.");
+      SoundFX.lockedPick();
+      return;
+    }
+
+    gameState.koin -= item.harga;
+    daftar.push(item.id);
+    if (jenis === "baju") hewan.pakaiBaju = item.id;
+    else hewan.pakaiMainan = item.id;
+    gameSelesaiAksi(`${item.nama} dibeli (-${item.harga} coin) dan langsung dipakai!`);
+    return;
+  }
+
+  if (aksi === "pakai") {
+    const jenis = btn.dataset.jenis;
+    const item = gameCariItem(jenis, btn.dataset.item);
+    if (!item) return;
+    const daftar = jenis === "baju" ? hewan.baju : hewan.mainan;
+    if (!daftar.includes(item.id)) return;
+    const kunci = jenis === "baju" ? "pakaiBaju" : "pakaiMainan";
+    const sedangDipakai = hewan[kunci] === item.id;
+    hewan[kunci] = sedangDipakai ? "" : item.id;
+    gameState.diperbarui = Date.now();
+    gameSimpanCache();
+    gameSimpanCloud();
+    renderGames();
+    gameTampilNotice(sedangDipakai ? `${item.nama} dilepas.` : `${item.nama} dipakai!`);
+    SoundFX.buttonClick();
+  }
+}
+
+function setupGamesTab() {
+  const panel = document.querySelector('[data-page-panel="games"]');
+  if (!panel) return;
+
+  renderGames();
+
+  document.getElementById("btn-game-back").addEventListener("click", () => {
+    document.getElementById("game-streak-view").hidden = true;
+    document.getElementById("games-list-view").hidden = false;
+    SoundFX.modalClose();
+  });
+
+  panel.addEventListener("click", (e) => {
+    if (e.target.closest("[data-game-login]")) {
+      document.getElementById("btn-show-login").click();
+      return;
+    }
+
+    const kartu = e.target.closest("[data-open-game]");
+    if (kartu) {
+      document.getElementById("games-list-view").hidden = true;
+      document.getElementById("game-streak-view").hidden = false;
+      renderGames();
+      SoundFX.cardOpen();
+      return;
+    }
+
+    const btn = e.target.closest("[data-game-action]");
+    if (!btn || btn.disabled) return;
+    gameTanganiAksi(btn.dataset.gameAction, btn);
+  });
+}
+
+/* ===================================================
+   13. NOTIFIKASI ESKUL (5 menit sebelum, 1x per akun per eskul)
    Catatan: cuma jalan kalau web ini lagi kebuka di browser.
 =================================================== */
 function setupNotifikasiEskul() {

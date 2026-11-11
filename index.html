@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=12">
-<link rel="stylesheet" href="polish.css?v=1">
+<link rel="stylesheet" href="polish.css?v=5">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -175,6 +175,7 @@
     <button class="page-tab-btn" data-page-tab="info">Info</button>
     <button class="page-tab-btn" data-page-tab="medsos">Sosmed</button>
     <button class="page-tab-btn" data-page-tab="polling">Polling</button>
+    <button class="page-tab-btn" data-page-tab="games">Games</button>
   </nav>
 
   <main>
@@ -294,12 +295,50 @@
         <div id="daftar-polling" class="daftar-polling"></div>
       </section>
     </div>
+
+    <!-- HALAMAN GAMES -->
+    <div class="page-panel" data-page-panel="games" hidden>
+      <section class="games-section">
+        <div id="games-list-view">
+          <div class="section-head">
+            <h2>Games</h2>
+            <p class="section-sub">Pilih game dan kumpulkan progres di akunmu</p>
+          </div>
+          <div id="games-list" class="games-list"></div>
+        </div>
+
+        <div id="game-streak-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-game-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span id="streak-koin" class="game-coin" aria-live="polite">&#128176; 0 coin</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Streak</h2>
+            <p class="section-sub">Rawat pohon dan hewanmu tiap hari. Kelewatan sehari? Masih aman selama kesempatanmu ada.</p>
+          </div>
+
+          <div id="streak-locked" class="streak-locked" hidden></div>
+
+          <div id="streak-content" hidden>
+            <div class="streak-grid">
+              <article id="streak-pohon" class="streak-card"></article>
+              <article id="streak-hewan" class="streak-card"></article>
+            </div>
+            <div id="streak-peringkat" class="streak-card streak-peringkat" hidden></div>
+            <div id="streak-hias" class="streak-card streak-hias" hidden></div>
+          </div>
+
+          <p id="streak-notice" class="streak-notice" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <p>Version 1.5</p>
-    <p>Last Update (14/10/26)</p>
+    <p>Version 1.6</p>
+    <p>Last Update (11/11/26)</p>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -618,7 +657,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=15"></script>
+<script src="script.js?v=20"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>
