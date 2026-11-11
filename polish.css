@@ -1,0 +1,371 @@
+/* ===================================================
+   POLES VISUAL — skeleton, hover kartu, animasi tombol
+   (tema & warna tetap sama)
+=================================================== */
+
+/* ===== Skeleton shimmer ===== */
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--line) 0%, var(--mint) 45%, var(--line) 90%);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 130% 0; }
+  100% { background-position: -90% 0; }
+}
+
+.siswa-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 92px;
+  pointer-events: none;
+}
+
+.skeleton-absen { width: 32px; height: 10px; }
+.skeleton-nama { width: 74%; height: 16px; border-radius: 7px; margin-top: 0.1rem; }
+
+.polling-card-skeleton { display: grid; gap: 0.7rem; }
+.skeleton-line { height: 12px; }
+.skeleton-line-lg { height: 18px; width: 62%; border-radius: 7px; }
+.skeleton-line-sm { height: 10px; width: 34%; }
+.skeleton-bar { height: 10px; border-radius: 999px; }
+.polling-card-skeleton .skeleton-bar:nth-of-type(3) { width: 86%; }
+.polling-card-skeleton .skeleton-bar:nth-of-type(4) { width: 64%; }
+.polling-card-skeleton .skeleton-bar:nth-of-type(5) { width: 74%; }
+
+.album-skeleton { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; }
+.skeleton-inline { display: inline-block; width: 118px; height: 12px; vertical-align: middle; }
+
+/* ===== Masuk halus untuk kartu siswa ===== */
+.grid-siswa .siswa-card {
+  animation: card-in 0.45s cubic-bezier(0.22, 0.8, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 26ms);
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.siswa-card:active { transform: translateY(-1px) scale(0.985); }
+
+/* ===== Hover kartu yang belum punya ===== */
+.info-card,
+.polling-card,
+.team-block,
+.pset-row,
+.iphone-opsi,
+.album-foto,
+.kelola-admin-row {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+}
+
+.info-card:hover,
+.info-card:focus-within {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+  border-color: var(--emerald);
+}
+
+.info-icon { display: inline-block; transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.info-card:hover .info-icon { transform: translateY(-2px) scale(1.16) rotate(-5deg); }
+
+.polling-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--emerald);
+}
+
+.team-block {
+  border: 1px solid var(--line);
+  animation: rise-leaf 0.42s ease backwards;
+  animation-delay: calc(var(--i, 0) * 65ms);
+}
+
+.team-block:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--emerald);
+}
+
+.team-block ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.38rem; }
+.team-block li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.34rem 0.55rem;
+  margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+}
+.team-no {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--emerald);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.42rem;
+  font-variant-numeric: tabular-nums;
+}
+.team-name { font-weight: 600; font-size: 0.92rem; }
+.team-badge {
+  display: inline-block;
+  background: var(--forest);
+  color: var(--white);
+  padding: 0.2rem 0.72rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.team-block h4 { margin-bottom: 0.65rem; }
+
+.picker-card { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+.picker-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+.iphone-opsi:hover { border-color: var(--emerald); background: var(--mint); }
+.pset-row:hover { border-color: var(--emerald); background: var(--mint); }
+
+.kelola-admin-row { border-radius: var(--radius-s); padding-left: 0.55rem; padding-right: 0.55rem; }
+.kelola-admin-row:hover { background: var(--mint); }
+
+.absent-item:hover { background: var(--mint); }
+
+.album-foto { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.album-foto:hover { transform: scale(1.012); box-shadow: var(--shadow); }
+
+.medsos-card:hover .medsos-icon { transform: scale(1.16) rotate(-6deg); }
+.medsos-icon { display: inline-block; transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.medsos-card:hover { border-color: var(--emerald); }
+
+/* ===== Animasi tombol ===== */
+.btn-primary,
+.btn-secondary,
+.page-tab-btn,
+.tab-btn,
+.account-menu-item,
+.download-item,
+.bio-toggle,
+.btn-text-only,
+.btn-reset,
+.btn-hapus-polling,
+.modal-close,
+.sound-toggle,
+.account-toggle,
+.apk-download {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary,
+.btn-secondary {
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.16s ease, box-shadow 0.22s ease, border-color 0.2s ease;
+}
+
+.btn-primary { box-shadow: 0 10px 20px -14px rgba(0, 0, 0, 0.28); }
+.btn-secondary { box-shadow: 0 8px 18px -15px rgba(0, 0, 0, 0.22); }
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%) skewX(-12deg);
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.24) 50%, transparent 68%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+
+.btn-primary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 28px -16px rgba(0, 0, 0, 0.32); }
+.btn-primary:not(:disabled):hover::after { transform: translateX(130%) skewX(-12deg); }
+
+.btn-secondary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 14px 24px -18px rgba(0, 0, 0, 0.24); }
+
+.btn-primary:not(:disabled):active,
+.btn-secondary:not(:disabled):active,
+.page-tab-btn:active,
+.tab-btn:active,
+.account-menu-item:active,
+.download-item:active,
+.sound-toggle:active,
+.account-toggle:active,
+.apk-download:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.page-tab-btn:focus-visible,
+.tab-btn:focus-visible,
+.account-menu-item:focus-visible,
+.download-item:focus-visible,
+.modal-close:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 3px;
+}
+
+.page-tab-btn,
+.tab-btn {
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.16s ease;
+}
+
+.page-tab-btn:not(.active):hover,
+.tab-btn:not(.active):hover {
+  color: var(--forest);
+  background: rgba(232, 245, 236, 0.75);
+}
+
+.account-menu-item {
+  border-radius: 8px;
+  transition: color 0.18s ease, background-color 0.18s ease, padding-left 0.18s ease;
+}
+.account-menu-item:hover { background: var(--mint); padding-left: 0.65rem; }
+
+.download-item { transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }
+.download-item:hover { transform: translateX(3px); }
+
+.sound-toggle,
+.account-toggle,
+.apk-download { transition: transform 0.16s ease, background 0.18s ease, box-shadow 0.2s ease; }
+
+.modal-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  top: 0.8rem;
+  right: 0.8rem;
+  border-radius: 50%;
+  transition: color 0.18s ease, background-color 0.18s ease, transform 0.28s ease;
+}
+.modal-close:hover { color: var(--forest); background: var(--mint); transform: rotate(90deg); }
+
+.bio-toggle,
+.btn-text-only,
+.btn-reset,
+.btn-hapus-polling { transition: color 0.18s ease, transform 0.16s ease; }
+.bio-toggle:hover,
+.btn-text-only:hover,
+.btn-reset:hover { color: var(--forest); }
+.btn-hapus-polling:hover { color: #8f2f28; }
+.bio-toggle:active,
+.btn-text-only:active,
+.btn-reset:active,
+.btn-hapus-polling:active { transform: scale(0.97); }
+
+.polling-opsi-row {
+  border-radius: 12px;
+  margin: 0 -0.4rem 0.55rem;
+  padding: 0.5rem 0.55rem;
+  transition: background-color 0.18s ease, transform 0.16s ease;
+}
+.polling-opsi-row:hover { background: var(--mint); }
+.polling-opsi-row:active { transform: scale(0.992); }
+
+/* ===== Hero & judul section ===== */
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero::before {
+  width: 340px;
+  height: 340px;
+  left: -150px;
+  bottom: -190px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 68%);
+}
+.hero::after {
+  width: 520px;
+  height: 520px;
+  right: -210px;
+  top: -240px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 66%);
+}
+.hero-title { letter-spacing: -0.02em; text-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
+
+.section-head h2 { display: inline-block; position: relative; padding-bottom: 0.55rem; }
+.section-head h2::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 54px;
+  height: 3px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--emerald), transparent);
+}
+
+/* ===== Masuk halus untuk modal, panel, dropdown ===== */
+.modal-overlay { animation: overlay-in 0.2s ease both; }
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-overlay:not([hidden]) .modal-box:not(.sprout) {
+  animation: modal-pop 0.32s cubic-bezier(0.34, 1.35, 0.64, 1) both;
+}
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.panel-enter { animation: panel-in 0.36s cubic-bezier(0.22, 0.8, 0.36, 1) both; }
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.account-panel:not([hidden]),
+.download-menu:not([hidden]) { animation: menu-pop 0.2s ease both; }
+@keyframes menu-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== Scrollbar & seleksi (tetap senada tema) ===== */
+::selection { background: var(--mint); color: var(--forest); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+  border: 2px solid var(--paper);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--emerald); }
+
+/* ===== Kurangi gerakan kalau user minta ===== */
+@media (prefers-reduced-motion: reduce) {
+  .grid-siswa .siswa-card,
+  .team-block,
+  .modal-overlay,
+  .modal-overlay:not([hidden]) .modal-box:not(.sprout),
+  .panel-enter,
+  .account-panel:not([hidden]),
+  .download-menu:not([hidden]),
+  .skeleton {
+    animation: none !important;
+  }
+  .skeleton { background: var(--line); }
+  .btn-primary::after { display: none; }
+  .info-card:hover,
+  .polling-card:hover,
+  .team-block:hover,
+  .picker-card:hover,
+  .btn-primary:not(:disabled):hover,
+  .btn-secondary:not(:disabled):hover,
+  .siswa-card:hover {
+    transform: none;
+  }
+}

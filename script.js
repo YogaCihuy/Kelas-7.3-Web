@@ -25,7 +25,25 @@ function lagiDiAplikasi() {
 const ANCHOR = 29;
 const GRP_A = [1, 15, 18];
 const GRP_B = [26, 25, 16];
-const P_A = 0.65;
+
+// Pola grup asli 01, 15, 18 — dibikin mirip pola 29/26/25/16 biar terasa natural.
+// "semua" = bertiga satu tim, "dua" = berdua + satu pisah, "pisah" = semua terpisah.
+const POLA_A = [
+  { bobot: 52, jenis: "semua" },
+  { bobot: 33, jenis: "dua" },
+  { bobot: 15, jenis: "pisah" },
+];
+
+// 29 (ANCHOR) otomatis gak boleh setim sama 01, 15, 18 — aturan ini dikunci.
+// Daftar di bawah buat nambah orang lain yang juga gak boleh setim sama 01, 15, 18.
+// Tingkat: "pasti" = 100% gak boleh setim, "hampir" = 95% gak setim.
+// Contoh cara nambah:
+//   { absen: 10, tingkat: "pasti" },
+//   { absen: 12, tingkat: "hampir" },
+const HINDARI_GRP_A = [
+  { absen: 25, tingkat: "pasti" },
+];
+
 const POLA_B = [
   { bobot: 35, jenis: "semua" },
   { bobot: 36, jenis: "dua-dua" },
@@ -59,9 +77,14 @@ function susunPola(semua, kapMax = Infinity) {
   const hindar = [];
 
   const a = GRP_A.map(cari).filter(Boolean);
-  if (a.length) {
-    if (a.length <= kapMax && Math.random() < P_A) blok.push(a);
-    else if (inti) hindar.push(...a);
+  if (a.length >= 2) {
+    const pilihanA = POLA_A.map((p) => ({
+      ...p,
+      butuh: p.jenis === "semua" ? a.length : p.jenis === "dua" ? 2 : 1,
+    })).filter((p) => p.butuh <= kapMax && (p.jenis !== "dua" || a.length > 2));
+    const jenisA = pilihBerbobot(pilihanA.length ? pilihanA : [{ bobot: 1, jenis: "pisah" }]).jenis;
+    if (jenisA === "semua") blok.push(a);
+    else if (jenisA === "dua") blok.push(acakArray(a).slice(0, 2));
   }
   if (!inti) return { blok, hindar };
 
@@ -85,6 +108,29 @@ function susunPola(semua, kapMax = Infinity) {
     hindar.push(...b);
   }
   return { blok, hindar };
+}
+
+// Cek apakah siswa ini bakal nabrak aturan "jangan setim" kalau masuk tim tertentu
+function akanKonflik(absen, anggota, aturan) {
+  for (const r of aturan) {
+    const diaOrang = r.orang === absen;
+    const diaGrup = r.dari.includes(absen);
+    if (!diaOrang && !diaGrup) continue;
+    const adaOrang = diaOrang || anggota.some((s) => s.absen === r.orang);
+    const adaGrup = diaGrup || anggota.some((s) => r.dari.includes(s.absen));
+    if (adaOrang && adaGrup) return true;
+  }
+  return false;
+}
+
+function hitungKonflik(tim, aturan) {
+  let total = 0;
+  tim.forEach((anggota) => {
+    aturan.forEach((r) => {
+      if (anggota.some((s) => s.absen === r.orang) && anggota.some((s) => r.dari.includes(s.absen))) total++;
+    });
+  });
+  return total;
 }
 
 // ===== Settings Picker (disimpan di browser) =====
@@ -120,9 +166,13 @@ let pollingCache = [];       // cache data polling terbaru buat referensi klik v
 
 document.addEventListener("DOMContentLoaded", () => {
   setupSoundToggle();
+  renderSkeletonSiswa();
   setupAccountsListener();
   setupPageTabs();
-  renderGridSiswa();
+  setTimeout(() => {
+    // Kalau Firestore kelamaan gak jawab, tetap tampilkan data lokal.
+    if (document.querySelector("#grid-siswa .siswa-card-skeleton")) renderGridSiswa();
+  }, 1500);
   setupDetailModal();
   setupPickerModal();
   setupAccountUI();
@@ -279,6 +329,7 @@ function setupAccountsListener() {
     },
     (err) => {
       console.error("Gagal konek ke Firestore:", err);
+      renderGridSiswa();
       if (window.loadingApk) window.loadingApk.dataSiap(); // tetap buka app walau data gagal dimuat
     }
   );
@@ -314,13 +365,14 @@ function renderGridSiswa() {
   grid.innerHTML = "";
   const fragment = document.createDocumentFragment();
 
-  dataSiswa.forEach((siswa) => {
+  dataSiswa.forEach((siswa, i) => {
     const merged = getMergedAccount(siswa.absen);
     const ultah = isUltahHariIni(merged.ultah);
     const card = document.createElement("button");
     card.className = "siswa-card" + (ultah ? " siswa-card-ultah" : "");
     card.type = "button";
     card.dataset.absen = siswa.absen;
+    card.style.setProperty("--i", i);
     card.innerHTML = `
       ${ultah ? `<span class="cake-deco cake-1">🎂</span><span class="cake-deco cake-2">🧁</span><span class="cake-deco cake-3">🍰</span>` : ""}
       <span class="siswa-absen">${String(siswa.absen).padStart(2, "0")}</span>
@@ -331,6 +383,16 @@ function renderGridSiswa() {
 
   grid.appendChild(fragment);
   applyBirthdayTheme();
+}
+
+function renderSkeletonSiswa() {
+  const grid = document.getElementById("grid-siswa");
+  if (!grid) return;
+  grid.innerHTML = Array.from({ length: 8 }, () => `
+    <div class="siswa-card siswa-card-skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-absen"></span>
+      <span class="skeleton skeleton-nama"></span>
+    </div>`).join("");
 }
 
 function isUltahHariIni(ultah) {
@@ -723,7 +785,17 @@ function setupTeamsPicker() {
     }
     if (!pola) pola = susunPola(semua, kapUrut[kapUrut.length - 1]);
     const { blok: grup, hindar } = pola;
-    const batas = hindar.length ? [{ inti: ANCHOR, lain: hindar }] : [];
+    const aturan = [
+      // 29 selalu dijauhkan dari 01, 15, 18.
+      { orang: ANCHOR, dari: [...GRP_A], keras: true },
+      ...hindar.map((s) => ({ orang: s.absen, dari: [ANCHOR], keras: true })),
+      ...HINDARI_GRP_A.map((h) => ({
+        orang: Number(h.absen),
+        dari: [...GRP_A],
+        keras: h.tingkat !== "hampir",
+        aktif: h.tingkat === "hampir" ? Math.random() < 0.95 : true,
+      })).filter((r) => r.aktif && !GRP_A.includes(r.orang) && r.orang !== ANCHOR),
+    ];
     grup.sort((a, b) => b.length - a.length);
     const sudahDiGrup = new Set();
     grup.forEach((g) => g.forEach((s) => sudahDiGrup.add(s.absen)));
@@ -753,40 +825,34 @@ function setupTeamsPicker() {
     }
 
     const sisa = acakArray(semua.filter((s) => !sudahDiGrup.has(s.absen)));
-    const slot = [];
-    kapasitas.forEach((k, t) => { for (let i = tim[t].length; i < k; i++) slot.push(t); });
-    const slotAcak = acakArray(slot);
-    sisa.forEach((siswa, i) => {
-      if (i < slotAcak.length) {
-        tim[slotAcak[i]].push(siswa);
-      } else {
+    // Yang punya aturan "jangan setim" ditaruh duluan biar gampang cari tim yang aman.
+    const prioritas = new Set([...aturan.map((r) => r.orang), ...GRP_A]);
+    sisa.sort((a, b) => (prioritas.has(b.absen) ? 1 : 0) - (prioritas.has(a.absen) ? 1 : 0));
+
+    const slotTersedia = [];
+    kapasitas.forEach((k, t) => { for (let i = tim[t].length; i < k; i++) slotTersedia.push(t); });
+
+    sisa.forEach((siswa) => {
+      if (!slotTersedia.length) {
         const target = tim.map((a, t) => t).sort((a, b) => tim[a].length - tim[b].length)[0];
         tim[target].push(siswa);
+        return;
       }
-    });
-
-    batas.forEach(({ inti, lain }) => {
-      const larangan = new Set(lain.map((s) => s.absen));
-      lain.forEach((p) => {
-        const timInti = tim.findIndex((a) => a.some((s) => s.absen === inti));
-        if (timInti < 0 || !tim[timInti].some((s) => s.absen === p.absen)) return;
-        const kandidat = [];
-        tim.forEach((anggota, t) => {
-          if (t === timInti) return;
-          anggota.forEach((s) => {
-            if (!sudahDiGrup.has(s.absen) && !larangan.has(s.absen)) kandidat.push({ t, s });
-          });
-        });
-        if (kandidat.length === 0) return;
-        const pilih = kandidat[Math.floor(Math.random() * kandidat.length)];
-        tim[timInti] = tim[timInti].filter((s) => s.absen !== p.absen).concat(pilih.s);
-        tim[pilih.t] = tim[pilih.t].filter((s) => s.absen !== pilih.s.absen).concat(p);
-      });
+      const aman = slotTersedia.filter((t) => !akanKonflik(siswa.absen, tim[t], aturan));
+      const pool = aman.length ? aman : slotTersedia;
+      const pilih = pool[Math.floor(Math.random() * pool.length)];
+      tim[pilih].push(siswa);
+      slotTersedia.splice(slotTersedia.indexOf(pilih), 1);
     });
 
     // Orang yang gak boleh dipindah-pindah waktu merapikan gender
-    const tetap = new Set([...sudahDiGrup, ...hindar.map((s) => s.absen)]);
-    return { tim, tetap };
+    const tetap = new Set([
+      ...sudahDiGrup,
+      ...hindar.map((s) => s.absen),
+      ...GRP_A,
+      ...aturan.map((r) => r.orang),
+    ]);
+    return { tim, tetap, aturan };
   }
 
   // ---- Setting: gender gak boleh sendirian di satu kelompok ----
@@ -842,22 +908,30 @@ function setupTeamsPicker() {
     // dicari yang paling pas lewat tukar-tukar anggota, ukuran tim gak pernah diubah.
     const jumlahTim = Math.ceil(semua.length / ukuran);
     let terbaik = null;
-    let vTerbaik = Infinity;
-    for (let k = 0; k < (pickerSettings.gender ? 120 : 1); k++) {
-      const { tim, tetap } = susunSekali(semua, ukuran, jumlahTim);
-      const v = pickerSettings.gender ? rapikanGender(tim, tetap) : 0;
-      if (v < vTerbaik) { vTerbaik = v; terbaik = tim; }
-      if (v === 0) break;
+    let skorTerbaik = Infinity;
+    // Dicoba beberapa kali, lalu diambil susunan dengan pelanggaran paling sedikit.
+    const percobaan = pickerSettings.gender ? 120 : 60;
+    for (let k = 0; k < percobaan; k++) {
+      const { tim, tetap, aturan } = susunSekali(semua, ukuran, jumlahTim);
+      const genderSalah = pickerSettings.gender ? rapikanGender(tim, tetap) : 0;
+      const konflik = hitungKonflik(tim, aturan);
+      const skor = konflik * 1000 + genderSalah;
+      if (skor < skorTerbaik) { skorTerbaik = skor; terbaik = tim; }
+      if (skor === 0) break;
     }
 
     const timTampil = terbaik.filter((anggota) => anggota.length > 0).map((anggota) => acakArray(anggota));
     resultBox.innerHTML = timTampil
       .map(
         (anggota, i) => `
-        <div class="team-block">
-          <h4>Tim ${i + 1}</h4>
+        <div class="team-block" style="--i:${i}">
+          <h4><span class="team-badge">Tim ${i + 1}</span></h4>
           <ul>
-            ${anggota.map((s) => `<li>${s.namaPanggilan} (absen ${String(s.absen).padStart(2, "0")})</li>`).join("")}
+            ${anggota
+              .map(
+                (s) => `<li><span class="team-no">${String(s.absen).padStart(2, "0")}</span><span class="team-name">${s.namaPanggilan}</span></li>`
+              )
+              .join("")}
           </ul>
         </div>
       `
@@ -1651,6 +1725,11 @@ function renderKelolaAdmin() {
    10. TAB MEDIA SOSIAL (Admin & Owner bisa edit)
 =================================================== */
 function setupMedsosTab() {
+  const tiktokHandle = document.getElementById("medsos-tiktok-handle");
+  const igHandle = document.getElementById("medsos-ig-handle");
+  tiktokHandle.innerHTML = `<span class="skeleton skeleton-inline"></span>`;
+  igHandle.innerHTML = `<span class="skeleton skeleton-inline"></span>`;
+
   db.collection("settings")
     .doc("medsos")
     .onSnapshot(
@@ -1670,7 +1749,11 @@ function setupMedsosTab() {
 
         window._medsosData = { tiktok, ig };
       },
-      (err) => console.error("Gagal ambil data medsos:", err)
+      (err) => {
+        console.error("Gagal ambil data medsos:", err);
+        tiktokHandle.textContent = "Belum diatur";
+        igHandle.textContent = "Belum diatur";
+      }
     );
 
   document.getElementById("btn-edit-medsos").addEventListener("click", openEditMedsosModal);
@@ -1715,6 +1798,7 @@ async function handleEditMedsosSubmit(e) {
    11. TAB POLLING (Admin & Owner bikin, semua vote)
 =================================================== */
 function setupPollingTab() {
+  renderSkeletonPolling();
   db.collection("polling")
     .orderBy("createdAt", "desc")
     .onSnapshot(
@@ -1724,7 +1808,10 @@ function setupPollingTab() {
         pollingCache = daftar;
         renderPollingList(daftar);
       },
-      (err) => console.error("Gagal ambil polling:", err)
+      (err) => {
+        console.error("Gagal ambil polling:", err);
+        renderPollingList([]);
+      }
     );
 
   document.getElementById("btn-buat-polling").addEventListener("click", () => openBuatPollingModal(null));
@@ -1749,6 +1836,19 @@ function updatePollingCreateVisibility() {
 
 function getMaxPilihan(poll) {
   return poll.maxPilihan === "semua" ? poll.opsi.length : Number(poll.maxPilihan) || 1;
+}
+
+function renderSkeletonPolling() {
+  const container = document.getElementById("daftar-polling");
+  if (!container) return;
+  container.innerHTML = Array.from({ length: 2 }, () => `
+    <div class="polling-card polling-card-skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-line skeleton-line-lg"></span>
+      <span class="skeleton skeleton-line skeleton-line-sm"></span>
+      <span class="skeleton skeleton-bar"></span>
+      <span class="skeleton skeleton-bar"></span>
+      <span class="skeleton skeleton-bar"></span>
+    </div>`).join("");
 }
 
 function renderPollingList(daftar) {
@@ -2085,7 +2185,7 @@ async function bukaAlbum(absen) {
   const token = ++albumToken;
 
   document.getElementById("album-title").textContent = `Album ${merged.namaPanggilan}`;
-  grid.innerHTML = "";
+  grid.innerHTML = ALBUM_SLOTS.map(() => `<span class="album-skeleton skeleton" aria-hidden="true"></span>`).join("");
   status.textContent = "Memuat foto...";
   openModal(modal);
 
@@ -2094,6 +2194,7 @@ async function bukaAlbum(absen) {
     if (token !== albumToken) return; // album lain keburu dibuka
     const fotos = ALBUM_SLOTS.map((slot) => data[slot]).filter(Boolean);
     status.textContent = fotos.length ? "" : `${merged.namaPanggilan} belum upload foto.`;
+    grid.innerHTML = "";
     fotos.forEach((src, i) => {
       const img = document.createElement("img");
       img.className = "album-foto";
@@ -2104,6 +2205,7 @@ async function bukaAlbum(absen) {
   } catch (err) {
     if (token !== albumToken) return;
     console.error("Gagal muat album:", err);
+    grid.innerHTML = "";
     status.textContent = `Gagal muat album (${err.code || err.message}).`;
   }
 }

@@ -261,7 +261,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
   align-items: center;
   justify-content: center;
   padding: 1.25rem;
-  z-index: 100;
+  z-index: 300;
 }
 
 .modal-overlay[hidden] { display: none; }
