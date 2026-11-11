@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=12">
-<link rel="stylesheet" href="polish.css?v=5">
+<link rel="stylesheet" href="polish.css?v=7">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -331,13 +331,30 @@
 
           <p id="streak-notice" class="streak-notice" aria-live="polite"></p>
         </div>
+
+        <div id="game-quiz-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-quiz-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span id="quiz-badge" class="game-coin" aria-live="polite">&#127941; 0/0</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Quiz</h2>
+            <p class="section-sub">Pilih mata pelajaran dan tema. Soal tidak diulang sampai semua sudah kamu coba. Kumpulkan poin untuk naik peringkat.</p>
+          </div>
+
+          <div id="quiz-locked" class="streak-locked" hidden></div>
+          <div id="quiz-content" hidden></div>
+
+          <p id="quiz-notice" class="streak-notice" aria-live="polite"></p>
+        </div>
       </section>
     </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <p>Version 1.6</p>
+    <p>Version 1.8</p>
     <p>Last Update (11/11/26)</p>
   </footer>
 
@@ -657,7 +674,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=20"></script>
+<script src="script.js?v=22"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>

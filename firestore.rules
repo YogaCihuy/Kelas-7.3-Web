@@ -37,10 +37,17 @@ service cloud.firestore {
       allow delete: if true; // dipakai admin untuk hapus polling
     }
 
-    // Data game per akun (saat ini: game Streak)
+    // Data game per akun (Streak + Quiz)
     match /games/{absen} {
       allow read: if true;
       allow create, update: if isValidGame(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Tema & soal Quiz yang diatur Admin/Owner (dipakai semua akun)
+    match /quizConfig/{docId} {
+      allow read: if true;
+      allow create, update: if isValidQuizConfig(request.resource.data);
       allow delete: if false;
     }
 
@@ -91,7 +98,8 @@ service cloud.firestore {
 
     function isValidGame(d) {
       let streakKeys = ['koin','pohon','hewan','diperbarui'];
-      return d.keys().hasOnly(['streak'])
+      let quizKeys = ['benar','total','sesi','poin','poinMapel','seen','stat','statMapel','diperbarui'];
+      return d.keys().hasOnly(['streak','quiz'])
         && (!('streak' in d) || (
           d.streak is map
           && d.streak.keys().hasOnly(streakKeys)
@@ -99,7 +107,27 @@ service cloud.firestore {
           && (!('diperbarui' in d.streak) || d.streak.diperbarui is number)
           && (!('pohon' in d.streak) || d.streak.pohon is map)
           && (!('hewan' in d.streak) || d.streak.hewan is map)
+        ))
+        && (!('quiz' in d) || (
+          d.quiz is map
+          && d.quiz.keys().hasOnly(quizKeys)
+          && (!('benar' in d.quiz) || d.quiz.benar is number)
+          && (!('total' in d.quiz) || d.quiz.total is number)
+          && (!('sesi' in d.quiz) || d.quiz.sesi is number)
+          && (!('poin' in d.quiz) || (d.quiz.poin is number && d.quiz.poin >= 0))
+          && (!('poinMapel' in d.quiz) || d.quiz.poinMapel is map)
+          && (!('statMapel' in d.quiz) || d.quiz.statMapel is map)
+          && (!('diperbarui' in d.quiz) || d.quiz.diperbarui is number)
+          && (!('seen' in d.quiz) || d.quiz.seen is map)
+          && (!('stat' in d.quiz) || d.quiz.stat is map)
         ));
+    }
+
+    function isValidQuizConfig(d) {
+      return d.keys().hasOnly(['subjects','diperbarui','editedBy'])
+        && (!('subjects' in d) || d.subjects is list)
+        && (!('diperbarui' in d) || d.diperbarui is number)
+        && (!('editedBy' in d) || d.editedBy is string);
     }
   }
 }
