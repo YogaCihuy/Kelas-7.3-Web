@@ -2538,6 +2538,7 @@ function updateGamesAccount() {
     gameUnsubscribe();
     gameUnsubscribe = null;
   }
+  if (typeof window.fishingAkunBerubah === "function") window.fishingAkunBerubah();
 
   if (!absen) {
     gameState = null;
@@ -2648,6 +2649,10 @@ function renderGames() {
       : "Belum pernah main. Coba tema pertamamu!";
   }
 
+  const ringkasFishing = typeof window.fishingRingkas === "function"
+    ? window.fishingRingkas(login)
+    : "Login dulu buat mulai memancing";
+
   list.innerHTML = `
     <button class="game-card" type="button" data-open-game="streak">
       <span class="game-icon" aria-hidden="true">🔥<span class="game-icon-spark">✨</span></span>
@@ -2664,6 +2669,15 @@ function renderGames() {
         <strong>Quiz</strong>
         <small>Latihan pilihan ganda A–D dari banyak mapel. Kumpulkan poin, naik peringkat!</small>
         <span class="game-progress">${ringkasQuiz}</span>
+      </span>
+      <span class="game-play">Main <span aria-hidden="true">→</span></span>
+    </button>
+    <button class="game-card game-card-fishing" type="button" data-open-game="fishing">
+      <span class="game-icon" aria-hidden="true">🎣<span class="game-icon-spark">🐠</span></span>
+      <span class="game-info">
+        <strong>Fishing</strong>
+        <small>Lempar pancing, timing gigitan, kumpulkan 102 spesies ikan langka.</small>
+        <span class="game-progress">${ringkasFishing}</span>
       </span>
       <span class="game-play">Main <span aria-hidden="true">→</span></span>
     </button>`;
@@ -4879,6 +4893,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnFishingBack = document.getElementById("btn-fishing-back");
+  if (btnFishingBack) {
+    btnFishingBack.addEventListener("click", () => {
+      if (typeof window.fishingTutup === "function" && window.fishingTutup() === false) return;
+      document.getElementById("game-fishing-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -4888,15 +4913,19 @@ function setupGamesTab() {
     const kartu = e.target.closest("[data-open-game]");
     if (kartu) {
       const game = kartu.dataset.openGame;
+      if (game !== "fishing" && typeof window.fishingTutup === "function" && window.fishingTutup() === false) return;
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-streak-view").hidden = game !== "streak";
       document.getElementById("game-quiz-view").hidden = game !== "quiz";
+      document.getElementById("game-fishing-view").hidden = game !== "fishing";
       if (game === "quiz") {
         gameQuizLayar = "home";
         gameQuizSesi = null;
         gameQuizSubjekId = "";
         gameQuizTopikId = "";
         renderQuiz();
+      } else if (game === "fishing") {
+        if (typeof window.fishingBuka === "function") window.fishingBuka();
       } else {
         renderGames();
       }

@@ -51,6 +51,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── FISHING GAME ──────────────────────────────────────────
+    // Semua tulisan ke data mancing HANYA boleh lewat Cloud Functions (admin SDK).
+    // Client cuma boleh membaca untuk leaderboard/collection realtime.
+    match /fishing/{absen} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /fishingCasts/{castId} {
+      allow read, write: if false; // isi cast & hasil RNG rahasia
+    }
+    match /fishingSecrets/{absen} {
+      allow read, write: if false; // token sesi, jangan pernah dibaca client
+    }
+    match /fishingMeta/{docId} {
+      allow read: if true; // First Legend/Secret
+      allow write: if false;
+    }
+    match /fishingAnnouncements/{docId} {
+      allow read: if true; // pengumuman global
+      allow write: if false;
+    }
+
     function isValidAccount(d) {
       let allowedKeys = ['absen','namaLengkap','namaPanggilan','citaCita','laguFavorit',
                           'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul',

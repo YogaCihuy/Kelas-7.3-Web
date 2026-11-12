@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="polish.css?v=7">
+<link rel="stylesheet" href="fishing.css?v=2">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -348,14 +349,26 @@
 
           <p id="quiz-notice" class="streak-notice" aria-live="polite"></p>
         </div>
+
+        <div id="game-fishing-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-fishing-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span id="fishing-coin-badge" class="game-coin" aria-live="polite">&#128176; 0</span>
+          </div>
+
+          <div id="fishing-locked" class="streak-locked" hidden></div>
+          <div id="fishing-app" class="fishing-app" hidden></div>
+          <div id="fishing-modal-root"></div>
+          <div id="fishing-toast-root" class="fishing-toast-root" aria-live="polite"></div>
+        </div>
       </section>
     </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <p>Version 1.8.1</p>
-    <p>Last Update (11/11/26)</p>
+    <p>Version 1.9.0</p>
+    <p>Last Update (12/11/26)</p>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -671,10 +684,12 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-functions-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=23"></script>
+<script src="script.js?v=26"></script>
+<script src="fishing.js?v=2"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>
