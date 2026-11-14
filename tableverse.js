@@ -79,6 +79,7 @@
   }
 
   function apiBase() {
+    if (window.TableVerseLocal && firestore()) return "firestore";
     let url = String(window.TABLEVERSE_API || "").trim().replace(/\/+$/, "");
     if (!url) return "";
     if (!/\/api\/tableverse$/i.test(url)) url += "/api/tableverse";
@@ -139,6 +140,22 @@
   }
 
   async function api(action, payload, opsi) {
+    if (window.TableVerseLocal && firestore()) {
+      try {
+        const data = await window.TableVerseLocal.call(action, payload || {});
+        if (data && data.serverNow) sinkronJam(data.serverNow);
+        if (!data || data.ok === false) {
+          const info = (data && data.error) || {};
+          throw new TvError(info.message || "Permintaan TableVerse ditolak.", 400, info.code);
+        }
+        return data;
+      } catch (err) {
+        const e = err instanceof TvError
+          ? err
+          : new TvError(err.message || "TableVerse bermasalah. Coba lagi.", err.status || 0, err.code || "");
+        throw e;
+      }
+    }
     const url = apiBase();
     if (!url) throw new TvError("TableVerse belum tersambung ke backend.", 0, "no-api");
     const headers = { "Content-Type": "application/json" };
@@ -500,7 +517,7 @@
         <div class="tv-hero-copy">
           <span class="tv-kicker">Table Game Hub</span>
           <h1>Main meja bareng kelas</h1>
-          <p>Catur, kartu, ular tangga, sampai Ludo. Buat room, tantang teman, dan main realtime — semua gerakan divalidasi server.</p>
+          <p>Tic Tac Toe, Checkers, catur, Ludo, sampai ular tangga. Buat room, tantang teman, dan main realtime bareng kelas.</p>
         </div>
         <div class="tv-stat-row">
           <div class="tv-stat"><strong>${stats.matches}</strong><span>Main</span></div>
@@ -816,7 +833,6 @@
       chess: ["Putih jalan duluan, lalu bergantian.", "Skakmat menang; remis kalau tidak ada langkah legal.", "Promosi otomatis menjadi Ratu."],
       ludo: ["Butuh angka 6 untuk keluar dari base.", "Bidak yang bertemu lawan di kotak biasa akan ditangkap.", "Dapat 6 atau menangkap bidak = lempar lagi.", "Semua 4 bidak harus masuk rumah untuk menang."],
       snakes: ["Lempar dadu dan jalan otomatis.", "Naik tangga kalau berhenti di kaki tangga.", "Kena ular kalau berhenti di kepala ular.", "Dapat 6 = lempar lagi. Kotak 100 menang."],
-      uno: ["Cocokkan warna atau angka dengan kartu di atas.", "Skip melewati pemain, Reverse membalik arah.", "+2 dan Wild +4 membuat lawan mengambil kartu.", "Kartu Wild butuh pilihan warna.", "Habiskan kartu duluan untuk menang."],
     }[gameId] || ["Main sportif, ya!"];
     return aturan.map((t) => `<li>${esc(t)}</li>`).join("");
   }
@@ -2196,6 +2212,7 @@
     } catch (err) {
       st.token = "";
     }
+    if (window.TableVerseLocal && firestore()) st.token = "local";
     st.profile = bacaCacheProfil(absen);
     st.booted = false;
     langgananInvites();
@@ -2335,9 +2352,9 @@
     const profil = st.profile || (st.absen ? bacaCacheProfil(st.absen) : null);
     if (profil && profil.stats) {
       const s = statsOf(profil);
-      return `${s.matches} main · ${s.wins} menang · 6 game meja`;
+      return `${s.matches} main · ${s.wins} menang · 5 game meja`;
     }
-    return "6 game meja: catur, kartu, ular tangga, Ludo, UNO";
+    return "5 game meja: Tic Tac Toe, Checkers, catur, Ludo, ular tangga";
   };
 
   init();

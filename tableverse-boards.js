@@ -44,17 +44,9 @@
       tag: "Party",
       accent: "teal",
     },
-    uno: {
-      id: "uno",
-      judul: "UNO",
-      mode: "party",
-      desc: "Kartu warna, skip, reverse, +2, wild +4. Habiskan kartu duluan.",
-      tag: "Kartu",
-      accent: "coral",
-    },
   };
 
-  const GAME_ORDER = ["ttt", "checkers", "chess", "ludo", "snakes", "uno"];
+  const GAME_ORDER = ["ttt", "checkers", "chess", "ludo", "snakes"];
 
   const LUDO_PATH = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],

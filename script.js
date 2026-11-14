@@ -2977,6 +2977,7 @@ const UPDATE_LOG = [
   {
     tanggal: "14/11/26",
     items: [
+      "Version 2.4.0 TableVerse Tanpa Server: 5 Board Game Realtime",
       "Version 2.3.0 Game Guess the Color: Duel 1 vs 1 Tebak Urutan Warna",
       "Version 2.2.0 Game Timer: Stopwatch & Rundown",
       "Version 2.1.0 Pencarian Game, Pengaturan Urutan, dan Update List",
@@ -3018,11 +3019,12 @@ function setupUpdatesModal() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-// Fishing & TableVerse sengaja tidak ikut diatur.
-const GAME_IDS_ATUR = ["timer", "guesscolor", "streak", "quiz"];
+// Fishing sengaja tidak ikut diatur.
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "streak", "quiz"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
+  tableverse: { judul: "TableVerse", icon: "🎲" },
   streak: { judul: "Streak", icon: "🔥" },
   quiz: { judul: "Quiz", icon: "🧠" },
 };
@@ -3140,7 +3142,7 @@ function renderGamesSettings() {
   }).join("");
 
   const petunjuk = {
-    default: "Urutan bawaan: Timer, Guess the Color, Streak, lalu Quiz.",
+    default: "Urutan bawaan: Timer, Guess the Color, TableVerse, Streak, lalu Quiz.",
     recent: "Game yang terakhir kamu buka tampil paling atas.",
     most: "Game yang paling sering kamu mainkan tampil paling atas.",
     manual: "Pakai tombol panah buat mengatur urutan game.",
@@ -3250,7 +3252,7 @@ function renderGames() {
       : "Belum pernah main. Coba tema pertamamu!";
   }
 
-  // TableVerse disembunyikan sementara (script-nya juga dinonaktifkan di index.html).
+  // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
       id: "timer",
@@ -3271,6 +3273,16 @@ function renderGames() {
       spark: "🌈",
       kelas: "game-card-guesscolor",
       cari: "guess the color warna tebak duel 1v1 lawan teman undangan room kode rahasia",
+    },
+    {
+      id: "tableverse",
+      judul: "TableVerse",
+      deskripsi: "5 board game sekelas: Tic Tac Toe, Checkers, catur, Ludo, dan Ular Tangga. Buat room, tantang teman, main realtime.",
+      progress: login ? "Siap main · 5 game meja" : "Login dulu buat main bareng teman",
+      icon: "🎲",
+      spark: "♟️",
+      kelas: "game-card-tableverse",
+      cari: "tableverse meja board game tic tac toe checkers catur chess ludo ular tangga multiplayer room duel party undangan",
     },
     {
       id: "streak",
