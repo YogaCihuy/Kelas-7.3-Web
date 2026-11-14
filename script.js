@@ -181,6 +181,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupMedsosTab();
   setupPollingTab();
   setupGamesTab();
+  setupTimer();
+  setupUpdatesModal();
   setupNotifikasiEskul();
   restoreSession();
 });
@@ -246,6 +248,17 @@ const SoundFX = (() => {
     resetSound: () => tone({ freq: 300, glideTo: 180, duration: 0.16, type: "sine", gain: 0.1 }),
     lockedPick: () => tone({ freq: 220, duration: 0.14, type: "sine", gain: 0.1 }),
     errorSound: () => tone({ freq: 200, duration: 0.14, type: "sawtooth", gain: 0.08 }),
+    timerStart: () => {
+      tone({ freq: 660, duration: 0.09, type: "sine", gain: 0.13 });
+      tone({ freq: 990, duration: 0.12, type: "sine", gain: 0.13, delay: 0.1 });
+    },
+    timerPause: () => tone({ freq: 460, glideTo: 320, duration: 0.12, type: "triangle", gain: 0.1 }),
+    timerTick: () => tone({ freq: 880, duration: 0.05, type: "square", gain: 0.055 }),
+    timerFinish: () => {
+      [880, 1046, 1318, 1046, 1318].forEach((f, i) => {
+        tone({ freq: f, duration: 0.18, type: "square", gain: 0.12, delay: i * 0.2 });
+      });
+    },
   };
 })();
 
@@ -269,6 +282,312 @@ function setupSoundToggle() {
   });
 
   syncIcon();
+}
+
+/* ===================================================
+   0b. GAME TIMER (tanpa login, tanpa data)
+=================================================== */
+const timerState = {
+  mode: "stopwatch",
+  stopwatch: { running: false, elapsed: 0, startedAt: 0 },
+  rundown: { running: false, duration: 300000, remaining: 300000, endAt: 0, finished: false },
+  raf: 0,
+  lastTick: -1,
+};
+
+function timerNow() {
+  return window.performance && typeof performance.now === "function" ? performance.now() : Date.now();
+}
+
+function timerFormat(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const jam = Math.floor(total / 3600);
+  const menit = Math.floor((total % 3600) / 60);
+  const detik = total % 60;
+  const mm = String(menit).padStart(2, "0");
+  const ss = String(detik).padStart(2, "0");
+  return jam > 0 ? `${jam}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function timerCentis(ms) {
+  return String(Math.floor((Math.max(0, ms) % 1000) / 10)).padStart(2, "0");
+}
+
+function timerLabel(ms) {
+  const total = Math.round(ms / 1000);
+  if (total >= 3600 && total % 3600 === 0) return `${total / 3600} jam`;
+  if (total >= 60 && total % 60 === 0) return `${total / 60} menit`;
+  if (total < 60) return `${total} detik`;
+  return `${Math.floor(total / 60)} menit ${total % 60} detik`;
+}
+
+function timerCurrentMs() {
+  const now = timerNow();
+  if (timerState.mode === "stopwatch") {
+    const sw = timerState.stopwatch;
+    return sw.elapsed + (sw.running ? now - sw.startedAt : 0);
+  }
+  const rd = timerState.rundown;
+  return rd.running ? Math.max(0, rd.endAt - now) : rd.remaining;
+}
+
+function timerRender() {
+  const display = document.getElementById("timer-display");
+  const status = document.getElementById("timer-status");
+  const ring = document.getElementById("timer-ring");
+  const startLabel = document.getElementById("timer-start-label");
+  const startBtn = document.getElementById("btn-timer-start");
+  const badge = document.getElementById("timer-badge");
+  const durPanel = document.getElementById("timer-duration");
+  if (!display || !status || !ring || !startLabel || !startBtn || !badge || !durPanel) return;
+
+  const mode = timerState.mode;
+  const sw = timerState.stopwatch;
+  const rd = timerState.rundown;
+  const ms = timerCurrentMs();
+  const running = mode === "stopwatch" ? sw.running : rd.running;
+
+  if (mode === "stopwatch") {
+    display.innerHTML = `${timerFormat(ms)}<span class="timer-cs">.${timerCentis(ms)}</span>`;
+    status.textContent = sw.running
+      ? "Stopwatch berjalan…"
+      : sw.elapsed > 0
+        ? "Stopwatch dijeda. Tekan Lanjut."
+        : "Tekan Mulai buat jalanin stopwatch.";
+  } else {
+    display.textContent = timerFormat(ms);
+    if (rd.finished) status.textContent = "Waktu habis!";
+    else if (rd.running) status.textContent = `Rundown ${timerLabel(rd.duration)} · sisa waktu`;
+    else if (rd.remaining < rd.duration) status.textContent = "Rundown dijeda. Tekan Lanjut atau Reset.";
+    else status.textContent = `Rundown ${timerLabel(rd.duration)} siap. Tekan Mulai.`;
+  }
+
+  const progres = mode === "rundown"
+    ? rd.duration > 0 ? Math.max(0, Math.min(100, (ms / rd.duration) * 100)) : 0
+    : 100;
+  ring.style.setProperty("--p", progres.toFixed(2));
+
+  display.classList.toggle("is-running", running);
+  ring.classList.toggle("is-running", running);
+  ring.classList.toggle("is-finished", mode === "rundown" && rd.finished);
+  ring.classList.toggle("is-hurry", mode === "rundown" && running && ms <= 5000);
+
+  durPanel.hidden = mode !== "rundown";
+  document.querySelectorAll("[data-timer-mode]").forEach((btn) => {
+    const aktif = btn.dataset.timerMode === mode;
+    btn.classList.toggle("is-active", aktif);
+    btn.setAttribute("aria-selected", String(aktif));
+  });
+  badge.textContent = mode === "stopwatch" ? "⏱️ Stopwatch" : "⏳ Rundown";
+
+  let label = "Mulai";
+  if (running) label = "Jeda";
+  else if (mode === "stopwatch" ? sw.elapsed > 0 : (rd.remaining < rd.duration && rd.remaining > 0)) label = "Lanjut";
+  startLabel.textContent = label;
+  startBtn.querySelector(".timer-btn-icon").textContent = running ? "❚❚" : "▶";
+  startBtn.classList.toggle("is-running", running);
+}
+
+function timerAnimasiMulai() {
+  const ring = document.getElementById("timer-ring");
+  if (!ring) return;
+  ring.classList.remove("is-start");
+  void ring.offsetWidth;
+  ring.classList.add("is-start");
+}
+
+function timerSyncPreset() {
+  document.querySelectorAll("[data-timer-preset]").forEach((btn) => {
+    btn.classList.toggle("is-active", Number(btn.dataset.timerPreset) === timerState.rundown.duration);
+  });
+}
+
+function timerSetDuration(ms, diam) {
+  const nilai = Math.max(1000, Math.min(3 * 3600 * 1000, Math.round(Number(ms) || 1000)));
+  timerHentikanLoop();
+  const rd = timerState.rundown;
+  rd.duration = nilai;
+  rd.remaining = nilai;
+  rd.running = false;
+  rd.finished = false;
+  timerState.lastTick = -1;
+
+  const menit = document.getElementById("timer-menit");
+  const detik = document.getElementById("timer-detik");
+  if (menit) menit.value = Math.floor(nilai / 60000);
+  if (detik) detik.value = Math.floor((nilai % 60000) / 1000);
+  timerSyncPreset();
+  if (!diam) SoundFX.buttonClick();
+  timerRender();
+}
+
+function timerMulai() {
+  const mode = timerState.mode;
+  const now = timerNow();
+  if (mode === "stopwatch") {
+    const sw = timerState.stopwatch;
+    if (sw.running) return;
+    sw.startedAt = now;
+    sw.running = true;
+  } else {
+    const rd = timerState.rundown;
+    if (rd.running) return;
+    if (rd.finished || rd.remaining <= 0) {
+      rd.remaining = rd.duration;
+      rd.finished = false;
+    }
+    rd.endAt = now + rd.remaining;
+    rd.running = true;
+    timerState.lastTick = -1;
+  }
+  SoundFX.timerStart();
+  timerAnimasiMulai();
+  timerRender();
+  timerJalankanLoop();
+}
+
+function timerJeda() {
+  const now = timerNow();
+  if (timerState.mode === "stopwatch") {
+    const sw = timerState.stopwatch;
+    if (!sw.running) return;
+    sw.elapsed += now - sw.startedAt;
+    sw.running = false;
+  } else {
+    const rd = timerState.rundown;
+    if (!rd.running) return;
+    rd.remaining = Math.max(0, rd.endAt - now);
+    rd.running = false;
+    if (rd.remaining <= 0) {
+      timerSelesai();
+      return;
+    }
+  }
+  timerHentikanLoop();
+  SoundFX.timerPause();
+  timerRender();
+}
+
+function timerReset() {
+  timerHentikanLoop();
+  if (timerState.mode === "stopwatch") {
+    timerState.stopwatch.elapsed = 0;
+    timerState.stopwatch.running = false;
+  } else {
+    const rd = timerState.rundown;
+    rd.remaining = rd.duration;
+    rd.running = false;
+    rd.finished = false;
+    timerState.lastTick = -1;
+  }
+  SoundFX.resetSound();
+  timerRender();
+}
+
+function timerSelesai() {
+  const rd = timerState.rundown;
+  rd.running = false;
+  rd.remaining = 0;
+  rd.finished = true;
+  timerHentikanLoop();
+  timerRender();
+  SoundFX.timerFinish();
+  try {
+    if (navigator.vibrate) navigator.vibrate([220, 120, 220, 120, 420]);
+  } catch (e) {}
+}
+
+function timerBunyiDetik(sisa) {
+  const detik = Math.ceil(sisa / 1000);
+  if (detik > 5 || detik < 1 || detik === timerState.lastTick) return;
+  timerState.lastTick = detik;
+  SoundFX.timerTick();
+  const ring = document.getElementById("timer-ring");
+  if (ring) {
+    ring.classList.remove("is-tick");
+    void ring.offsetWidth;
+    ring.classList.add("is-tick");
+  }
+}
+
+function timerGulir() {
+  timerState.raf = 0;
+  const aktif = timerState.mode === "stopwatch"
+    ? timerState.stopwatch.running
+    : timerState.rundown.running;
+  if (!aktif) return;
+  if (timerState.mode === "rundown") {
+    const sisa = timerCurrentMs();
+    if (sisa <= 0) {
+      timerSelesai();
+      return;
+    }
+    timerBunyiDetik(sisa);
+  }
+  timerRender();
+  timerState.raf = requestAnimationFrame(timerGulir);
+}
+
+function timerJalankanLoop() {
+  if (!timerState.raf) timerState.raf = requestAnimationFrame(timerGulir);
+}
+
+function timerHentikanLoop() {
+  if (timerState.raf) cancelAnimationFrame(timerState.raf);
+  timerState.raf = 0;
+}
+
+function timerPilihMode(mode) {
+  if (mode !== "stopwatch" && mode !== "rundown") return;
+  if (timerState.mode === mode) return;
+  if (timerState.mode === "stopwatch" && timerState.stopwatch.running) timerJeda();
+  else if (timerState.mode === "rundown" && timerState.rundown.running) timerJeda();
+  timerState.mode = mode;
+  SoundFX.tabSwitch();
+  timerRender();
+}
+
+function setupTimer() {
+  const shell = document.getElementById("timer-shell");
+  if (!shell) return;
+
+  shell.addEventListener("click", (e) => {
+    const modeBtn = e.target.closest("[data-timer-mode]");
+    if (modeBtn) {
+      timerPilihMode(modeBtn.dataset.timerMode);
+      return;
+    }
+    const preset = e.target.closest("[data-timer-preset]");
+    if (preset) timerSetDuration(Number(preset.dataset.timerPreset));
+  });
+
+  document.getElementById("btn-timer-start").addEventListener("click", () => {
+    const aktif = timerState.mode === "stopwatch"
+      ? timerState.stopwatch.running
+      : timerState.rundown.running;
+    if (aktif) timerJeda();
+    else timerMulai();
+  });
+
+  document.getElementById("btn-timer-reset").addEventListener("click", timerReset);
+
+  document.getElementById("btn-timer-custom").addEventListener("click", () => {
+    const menit = Number(document.getElementById("timer-menit").value) || 0;
+    const detik = Number(document.getElementById("timer-detik").value) || 0;
+    timerSetDuration(menit * 60000 + detik * 1000);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    timerRender();
+    const aktif = timerState.mode === "stopwatch"
+      ? timerState.stopwatch.running
+      : timerState.rundown.running;
+    if (aktif) timerJalankanLoop();
+  });
+
+  timerSetDuration(timerState.rundown.duration, true);
+  timerRender();
 }
 
 /* ===================================================
@@ -972,6 +1291,15 @@ function setupPageTabs() {
       btn.classList.add("active");
       moveIndicator(btn);
       const target = btn.dataset.pageTab;
+      if (target !== "games") {
+        const tvView = document.getElementById("game-tableverse-view");
+        if (tvView && !tvView.hidden) {
+          if (typeof window.tableverseTutup === "function") window.tableverseTutup();
+          tvView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
+      }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
         p.hidden = !tampilkan;
@@ -1526,6 +1854,9 @@ async function handleLoginSubmit(e) {
       await db.collection("accounts").doc(String(matchedAbsen)).set(getDefaultAccount(siswa));
     }
     loginUser(matchedAbsen);
+    if (typeof window.tableverseLoginDenganPassword === "function") {
+      window.tableverseLoginDenganPassword(matchedAbsen, password);
+    }
     closeModal(document.getElementById("modal-login"));
     SoundFX.resultReveal();
   } catch (err) {
@@ -2529,6 +2860,10 @@ function updateGamesAccount() {
     return;
   }
 
+  gamesSearchQuery = "";
+  const cariGame = document.getElementById("games-search");
+  if (cariGame) cariGame.value = "";
+
   gameUserAbsen = absen;
   gameToken++;
   gameQuizSesi = null;
@@ -2539,6 +2874,7 @@ function updateGamesAccount() {
     gameUnsubscribe = null;
   }
   if (typeof window.fishingAkunBerubah === "function") window.fishingAkunBerubah();
+  if (typeof window.tableverseAkunBerubah === "function") window.tableverseAkunBerubah(currentUser || null);
 
   if (!absen) {
     gameState = null;
@@ -2628,9 +2964,264 @@ function gameSvgPohon() {
     </svg>`;
 }
 
+/* ===== Update List (footer) ===== */
+const UPDATE_LOG = [
+  {
+    tanggal: "14/11/26",
+    items: [
+      "Version 2.2.0 Game Timer: Stopwatch & Rundown",
+      "Version 2.1.0 Pencarian Game, Pengaturan Urutan, dan Update List",
+    ],
+  },
+  {
+    tanggal: "11/11/26",
+    items: [
+      "Version 1.8.1 Second Games Quiz, Update",
+      "Version 1.8 First Game Streaks, Update",
+      "Version 1.7 Visual Update",
+    ],
+  },
+];
+
+function renderUpdateList() {
+  const el = document.getElementById("updates-list");
+  if (!el) return;
+  el.innerHTML = UPDATE_LOG.map((grup) => `
+    <section class="update-group">
+      <h4 class="update-date">${grup.tanggal}</h4>
+      <ul class="update-items">
+        ${grup.items.map((teks) => `<li>${teks}</li>`).join("")}
+      </ul>
+    </section>`).join("");
+}
+
+function setupUpdatesModal() {
+  const modal = document.getElementById("modal-updates");
+  if (!modal) return;
+  renderUpdateList();
+  document.querySelectorAll("[data-open-updates]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openModal(modal);
+      SoundFX.buttonClick();
+    });
+  });
+  setupModalDismiss(modal);
+}
+
+/* ===== Pengaturan urutan game ===== */
+// Fishing & TableVerse sengaja tidak ikut diatur.
+const GAME_IDS_ATUR = ["timer", "streak", "quiz"];
+const GAME_INFO_ATUR = {
+  timer: { judul: "Timer", icon: "⏱️" },
+  streak: { judul: "Streak", icon: "🔥" },
+  quiz: { judul: "Quiz", icon: "🧠" },
+};
+const GAME_MODE_INFO = [
+  { id: "default", judul: "Default", sub: "Urutan bawaan web." },
+  { id: "recent", judul: "Recently Played", sub: "Terakhir dibuka di atas." },
+  { id: "most", judul: "Most Played", sub: "Paling sering dimainkan di atas." },
+  { id: "manual", judul: "Up to You", sub: "Atur sendiri pakai tombol panah." },
+];
+
+let gamesSearchQuery = "";
+const gamesPrefs = { mode: "default", order: [...GAME_IDS_ATUR], usage: {} };
+
+function gamesSettingsKey() {
+  const absen = currentUser ? Number(currentUser.absen) : null;
+  return `kelas73-games-prefs-v1-${absen || "guest"}`;
+}
+
+function gamesMuatPrefs() {
+  gamesPrefs.mode = "default";
+  gamesPrefs.order = [...GAME_IDS_ATUR];
+  gamesPrefs.usage = {};
+  try {
+    const raw = JSON.parse(localStorage.getItem(gamesSettingsKey()) || "null");
+    if (!raw) return gamesPrefs;
+    if (GAME_MODE_INFO.some((m) => m.id === raw.mode)) gamesPrefs.mode = raw.mode;
+    const order = Array.isArray(raw.order)
+      ? raw.order.filter((id) => GAME_IDS_ATUR.includes(id))
+      : [];
+    gamesPrefs.order = [...new Set([...order, ...GAME_IDS_ATUR])];
+    if (raw.usage && typeof raw.usage === "object") gamesPrefs.usage = raw.usage;
+  } catch (e) {}
+  return gamesPrefs;
+}
+
+function gamesSimpanPrefs() {
+  try {
+    localStorage.setItem(gamesSettingsKey(), JSON.stringify(gamesPrefs));
+  } catch (e) {}
+}
+
+function gamesUrutanManual() {
+  const urut = gamesPrefs.order.filter((id) => GAME_IDS_ATUR.includes(id));
+  GAME_IDS_ATUR.forEach((id) => {
+    if (!urut.includes(id)) urut.push(id);
+  });
+  return urut;
+}
+
+function gamesUrutkan(items) {
+  const dasar = GAME_IDS_ATUR
+    .map((id) => items.find((k) => k.id === id))
+    .filter(Boolean);
+  const indeks = (k) => dasar.findIndex((x) => x.id === k.id);
+
+  if (gamesPrefs.mode === "recent" || gamesPrefs.mode === "most") {
+    const kunci = gamesPrefs.mode === "recent" ? "last" : "plays";
+    return [...dasar].sort((a, b) => {
+      const ua = Number((gamesPrefs.usage[a.id] || {})[kunci]) || 0;
+      const ub = Number((gamesPrefs.usage[b.id] || {})[kunci]) || 0;
+      return ub - ua || indeks(a) - indeks(b);
+    });
+  }
+
+  if (gamesPrefs.mode === "manual") {
+    return gamesUrutanManual()
+      .map((id) => dasar.find((k) => k.id === id))
+      .filter(Boolean);
+  }
+
+  return dasar;
+}
+
+function catatGameDimainkan(id) {
+  if (!GAME_IDS_ATUR.includes(id)) return;
+  gamesMuatPrefs();
+  const lama = gamesPrefs.usage[id] || {};
+  gamesPrefs.usage[id] = {
+    plays: (Number(lama.plays) || 0) + 1,
+    last: Date.now(),
+  };
+  gamesSimpanPrefs();
+}
+
+function renderGamesSettings() {
+  const modes = document.getElementById("games-settings-modes");
+  const list = document.getElementById("games-settings-list");
+  const hint = document.getElementById("games-settings-hint");
+  if (!modes || !list || !hint) return;
+
+  modes.innerHTML = GAME_MODE_INFO.map((mode) => `
+    <button type="button" class="games-mode ${gamesPrefs.mode === mode.id ? "is-active" : ""}"
+      data-games-mode="${mode.id}" role="radio" aria-checked="${gamesPrefs.mode === mode.id}">
+      <strong>${mode.judul}</strong>
+      <span>${mode.sub}</span>
+    </button>`).join("");
+
+  // Saat mode selain manual, tampilkan urutan efektif yang sedang dipakai.
+  const urut = gamesPrefs.mode === "manual"
+    ? gamesUrutanManual()
+    : gamesUrutkan(GAME_IDS_ATUR.map((id) => ({ id }))).map((k) => k.id);
+  list.innerHTML = urut.map((id, i) => {
+    const info = GAME_INFO_ATUR[id];
+    return `
+      <div class="games-order-item">
+        <span class="games-order-icon" aria-hidden="true">${info.icon}</span>
+        <strong>${info.judul}</strong>
+        <div class="games-order-actions">
+          <button type="button" class="games-order-btn" data-games-move="up" data-game-id="${id}"
+            ${i === 0 ? "disabled" : ""} aria-label="Naikkan ${info.judul}">&#8593;</button>
+          <button type="button" class="games-order-btn" data-games-move="down" data-game-id="${id}"
+            ${i === urut.length - 1 ? "disabled" : ""} aria-label="Turunkan ${info.judul}">&#8595;</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  const petunjuk = {
+    default: "Urutan bawaan: Timer, Streak, lalu Quiz.",
+    recent: "Game yang terakhir kamu buka tampil paling atas.",
+    most: "Game yang paling sering kamu mainkan tampil paling atas.",
+    manual: "Pakai tombol panah buat mengatur urutan game.",
+  };
+  let teks = petunjuk[gamesPrefs.mode] || petunjuk.default;
+  if (gamesPrefs.mode === "recent" || gamesPrefs.mode === "most") {
+    const adaRiwayat = GAME_IDS_ATUR.some((id) => {
+      const u = gamesPrefs.usage[id] || {};
+      return Number(u.plays) || Number(u.last);
+    });
+    if (!adaRiwayat) teks += " Belum ada riwayat, sementara pakai urutan default.";
+  }
+  hint.textContent = teks;
+}
+
+function gamesPilihMode(mode) {
+  if (!GAME_MODE_INFO.some((m) => m.id === mode)) return;
+  gamesPrefs.mode = mode;
+  gamesSimpanPrefs();
+  renderGamesSettings();
+  renderGames();
+  SoundFX.buttonClick();
+}
+
+function gamesPindahGame(id, arah) {
+  const urut = gamesPrefs.mode === "manual"
+    ? gamesUrutanManual()
+    : gamesUrutkan(GAME_IDS_ATUR.map((x) => ({ id: x }))).map((k) => k.id);
+  const i = urut.indexOf(id);
+  const j = arah === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= urut.length) return;
+  [urut[i], urut[j]] = [urut[j], urut[i]];
+  gamesPrefs.order = urut;
+  gamesPrefs.mode = "manual";
+  gamesSimpanPrefs();
+  renderGamesSettings();
+  renderGames();
+  SoundFX.buttonClick();
+}
+
+function setupGamesListExtras() {
+  const search = document.getElementById("games-search");
+  if (search) {
+    search.addEventListener("input", () => {
+      gamesSearchQuery = search.value;
+      renderGames();
+    });
+  }
+
+  const settingsBtn = document.getElementById("btn-games-settings");
+  const modal = document.getElementById("modal-games-settings");
+  if (settingsBtn && modal) {
+    settingsBtn.addEventListener("click", () => {
+      gamesMuatPrefs();
+      renderGamesSettings();
+      openModal(modal);
+      SoundFX.buttonClick();
+    });
+    modal.addEventListener("click", (e) => {
+      const modeBtn = e.target.closest("[data-games-mode]");
+      if (modeBtn) {
+        gamesPilihMode(modeBtn.dataset.gamesMode);
+        return;
+      }
+      const moveBtn = e.target.closest("[data-games-move]");
+      if (moveBtn && !moveBtn.disabled) {
+        gamesPindahGame(moveBtn.dataset.gameId, moveBtn.dataset.gamesMove);
+      }
+    });
+    setupModalDismiss(modal);
+  }
+}
+
+function gameCardHTML(k) {
+  return `
+    <button class="game-card ${k.kelas || ""}" type="button" data-open-game="${k.id}">
+      <span class="game-icon" aria-hidden="true">${k.icon}<span class="game-icon-spark">${k.spark}</span></span>
+      <span class="game-info">
+        <strong>${k.judul}</strong>
+        <small>${k.deskripsi}</small>
+        <span class="game-progress">${k.progress}</span>
+      </span>
+      <span class="game-play">Main <span aria-hidden="true">→</span></span>
+    </button>`;
+}
+
 function renderGames() {
   const list = document.getElementById("games-list");
   if (!list) return;
+
+  gamesMuatPrefs();
 
   const login = !!(currentUser && gameState);
   let ringkas = "Login dulu buat simpan progres di akunmu";
@@ -2649,38 +3240,50 @@ function renderGames() {
       : "Belum pernah main. Coba tema pertamamu!";
   }
 
-  const ringkasFishing = typeof window.fishingRingkas === "function"
-    ? window.fishingRingkas(login)
-    : "Login dulu buat mulai memancing";
+  // TableVerse disembunyikan sementara (script-nya juga dinonaktifkan di index.html).
+  const katalog = [
+    {
+      id: "timer",
+      judul: "Timer",
+      deskripsi: "Stopwatch atau timer rundown. Pilih durasi, langsung jalan tanpa login.",
+      progress: "Tanpa login · Stopwatch & rundown",
+      icon: "⏱️",
+      spark: "⏳",
+      kelas: "game-card-timer",
+      cari: "timer stopwatch rundown hitung waktu jam menit detik alarm",
+    },
+    {
+      id: "streak",
+      judul: "Streak",
+      deskripsi: "Rawat pohon & hewan tiap hari, kumpulkan coin buat hias pet.",
+      progress: ringkas,
+      icon: "🔥",
+      spark: "✨",
+      kelas: "",
+      cari: "streak pohon hewan coin hias pet rawat harian",
+    },
+    {
+      id: "quiz",
+      judul: "Quiz",
+      deskripsi: "Latihan pilihan ganda A–D dari banyak mapel. Kumpulkan poin, naik peringkat!",
+      progress: ringkasQuiz,
+      icon: "🧠",
+      spark: "💡",
+      kelas: "game-card-quiz",
+      cari: "quiz kuis pilihan ganda mapel poin peringkat latihan",
+    },
+  ];
 
-  list.innerHTML = `
-    <button class="game-card" type="button" data-open-game="streak">
-      <span class="game-icon" aria-hidden="true">🔥<span class="game-icon-spark">✨</span></span>
-      <span class="game-info">
-        <strong>Streak</strong>
-        <small>Rawat pohon & hewan tiap hari, kumpulkan coin buat hias pet.</small>
-        <span class="game-progress">${ringkas}</span>
-      </span>
-      <span class="game-play">Main <span aria-hidden="true">→</span></span>
-    </button>
-    <button class="game-card game-card-quiz" type="button" data-open-game="quiz">
-      <span class="game-icon" aria-hidden="true">🧠<span class="game-icon-spark">💡</span></span>
-      <span class="game-info">
-        <strong>Quiz</strong>
-        <small>Latihan pilihan ganda A–D dari banyak mapel. Kumpulkan poin, naik peringkat!</small>
-        <span class="game-progress">${ringkasQuiz}</span>
-      </span>
-      <span class="game-play">Main <span aria-hidden="true">→</span></span>
-    </button>
-    <button class="game-card game-card-fishing" type="button" data-open-game="fishing">
-      <span class="game-icon" aria-hidden="true">🎣<span class="game-icon-spark">🐠</span></span>
-      <span class="game-info">
-        <strong>Fishing</strong>
-        <small>Lempar pancing, timing gigitan, kumpulkan 102 spesies ikan langka.</small>
-        <span class="game-progress">${ringkasFishing}</span>
-      </span>
-      <span class="game-play">Main <span aria-hidden="true">→</span></span>
-    </button>`;
+  const semua = gamesUrutkan(katalog);
+  const q = gamesSearchQuery.trim().toLowerCase();
+  const tampil = q
+    ? semua.filter((k) => `${k.judul} ${k.deskripsi} ${k.cari}`.toLowerCase().includes(q))
+    : semua;
+
+  list.innerHTML = tampil.map(gameCardHTML).join("");
+
+  const kosong = document.getElementById("games-empty");
+  if (kosong) kosong.hidden = tampil.length > 0;
 
   renderQuiz();
 
@@ -4875,12 +5478,23 @@ function setupGamesTab() {
   if (!panel) return;
 
   renderGames();
+  setupGamesListExtras();
 
   document.getElementById("btn-game-back").addEventListener("click", () => {
     document.getElementById("game-streak-view").hidden = true;
     document.getElementById("games-list-view").hidden = false;
     SoundFX.modalClose();
   });
+
+  const btnTimerBack = document.getElementById("btn-timer-back");
+  if (btnTimerBack) {
+    btnTimerBack.addEventListener("click", () => {
+      document.getElementById("game-timer-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
 
   const btnQuizBack = document.getElementById("btn-quiz-back");
   if (btnQuizBack) {
@@ -4904,6 +5518,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnTableverseBack = document.getElementById("btn-tableverse-back");
+  if (btnTableverseBack) {
+    btnTableverseBack.addEventListener("click", () => {
+      if (typeof window.tableverseTutup === "function") window.tableverseTutup();
+      document.getElementById("game-tableverse-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -4913,17 +5538,25 @@ function setupGamesTab() {
     const kartu = e.target.closest("[data-open-game]");
     if (kartu) {
       const game = kartu.dataset.openGame;
+      if (GAME_IDS_ATUR.includes(game)) catatGameDimainkan(game);
       if (game !== "fishing" && typeof window.fishingTutup === "function" && window.fishingTutup() === false) return;
+      if (game !== "tableverse" && typeof window.tableverseTutup === "function") window.tableverseTutup();
       document.getElementById("games-list-view").hidden = true;
+      document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-streak-view").hidden = game !== "streak";
       document.getElementById("game-quiz-view").hidden = game !== "quiz";
       document.getElementById("game-fishing-view").hidden = game !== "fishing";
-      if (game === "quiz") {
+      document.getElementById("game-tableverse-view").hidden = game !== "tableverse";
+      if (game === "timer") {
+        timerRender();
+      } else if (game === "quiz") {
         gameQuizLayar = "home";
         gameQuizSesi = null;
         gameQuizSubjekId = "";
         gameQuizTopikId = "";
         renderQuiz();
+      } else if (game === "tableverse") {
+        if (typeof window.tableverseBuka === "function") window.tableverseBuka();
       } else if (game === "fishing") {
         if (typeof window.fishingBuka === "function") window.fishingBuka();
       } else {
