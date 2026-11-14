@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="polish.css?v=8">
 <link rel="stylesheet" href="timer.css?v=1">
+<link rel="stylesheet" href="guess-color.css?v=1">
 <link rel="stylesheet" href="fishing.css?v=2">
 <!-- TableVerse disembunyikan sementara. Aktifkan lagi dengan membuka komentar link & 3 script di bawah. -->
 <!-- <link rel="stylesheet" href="tableverse.css?v=2"> -->
@@ -388,6 +389,21 @@
           </div>
         </div>
 
+        <div id="game-guesscolor-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-gtc-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span id="gtc-badge" class="game-coin" aria-live="polite">&#127912; Guess the Color</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Guess the Color</h2>
+            <p class="section-sub">Duel 1 lawan 1. Susun 4 warna rahasia, lalu tebak kode lawan dalam 5 menit / 5 percobaan.</p>
+          </div>
+
+          <div id="gtc-locked" class="streak-locked" hidden></div>
+          <div id="gtc-app" class="gtc-app" hidden></div>
+        </div>
+
         <div id="game-streak-view" hidden>
           <div class="game-topbar">
             <button id="btn-game-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
@@ -455,7 +471,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.2.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.3.0</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (14/11/26)</button>
   </footer>
 
@@ -804,13 +820,17 @@
     </div>
   </div>
 
+<div id="gtc-invite-root"></div>
+<div id="gtc-toast-root" class="gtc-toast-root" aria-live="polite"></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-functions-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=32"></script>
+<script src="script.js?v=33"></script>
+<script src="guess-color.js?v=1"></script>
 <script src="fishing.js?v=2"></script>
 <!-- TableVerse nonaktif sementara
 <script src="tableverse-config.js?v=1"></script>

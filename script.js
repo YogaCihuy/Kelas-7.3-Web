@@ -1299,6 +1299,13 @@ function setupPageTabs() {
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
+        const gtcView = document.getElementById("game-guesscolor-view");
+        if (gtcView && !gtcView.hidden) {
+          if (typeof window.gtcTutup === "function") window.gtcTutup();
+          gtcView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
       }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
@@ -2875,6 +2882,7 @@ function updateGamesAccount() {
   }
   if (typeof window.fishingAkunBerubah === "function") window.fishingAkunBerubah();
   if (typeof window.tableverseAkunBerubah === "function") window.tableverseAkunBerubah(currentUser || null);
+  if (typeof window.gtcAkunBerubah === "function") window.gtcAkunBerubah(currentUser || null);
 
   if (!absen) {
     gameState = null;
@@ -2969,6 +2977,7 @@ const UPDATE_LOG = [
   {
     tanggal: "14/11/26",
     items: [
+      "Version 2.3.0 Game Guess the Color: Duel 1 vs 1 Tebak Urutan Warna",
       "Version 2.2.0 Game Timer: Stopwatch & Rundown",
       "Version 2.1.0 Pencarian Game, Pengaturan Urutan, dan Update List",
     ],
@@ -3010,9 +3019,10 @@ function setupUpdatesModal() {
 
 /* ===== Pengaturan urutan game ===== */
 // Fishing & TableVerse sengaja tidak ikut diatur.
-const GAME_IDS_ATUR = ["timer", "streak", "quiz"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "streak", "quiz"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
+  guesscolor: { judul: "Guess the Color", icon: "🎨" },
   streak: { judul: "Streak", icon: "🔥" },
   quiz: { judul: "Quiz", icon: "🧠" },
 };
@@ -3130,7 +3140,7 @@ function renderGamesSettings() {
   }).join("");
 
   const petunjuk = {
-    default: "Urutan bawaan: Timer, Streak, lalu Quiz.",
+    default: "Urutan bawaan: Timer, Guess the Color, Streak, lalu Quiz.",
     recent: "Game yang terakhir kamu buka tampil paling atas.",
     most: "Game yang paling sering kamu mainkan tampil paling atas.",
     manual: "Pakai tombol panah buat mengatur urutan game.",
@@ -3251,6 +3261,16 @@ function renderGames() {
       spark: "⏳",
       kelas: "game-card-timer",
       cari: "timer stopwatch rundown hitung waktu jam menit detik alarm",
+    },
+    {
+      id: "guesscolor",
+      judul: "Guess the Color",
+      deskripsi: "Duel 1 lawan 1. Susun 4 warna rahasia, tebak kode lawan sebelum percobaanmu habis.",
+      progress: login ? "Siap duel · 5 menit & 5 percobaan" : "Login dulu buat duel sama teman",
+      icon: "🎨",
+      spark: "🌈",
+      kelas: "game-card-guesscolor",
+      cari: "guess the color warna tebak duel 1v1 lawan teman undangan room kode rahasia",
     },
     {
       id: "streak",
@@ -5496,6 +5516,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnGtcBack = document.getElementById("btn-gtc-back");
+  if (btnGtcBack) {
+    btnGtcBack.addEventListener("click", () => {
+      if (typeof window.gtcTutup === "function") window.gtcTutup();
+      document.getElementById("game-guesscolor-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   const btnQuizBack = document.getElementById("btn-quiz-back");
   if (btnQuizBack) {
     btnQuizBack.addEventListener("click", () => {
@@ -5541,14 +5572,18 @@ function setupGamesTab() {
       if (GAME_IDS_ATUR.includes(game)) catatGameDimainkan(game);
       if (game !== "fishing" && typeof window.fishingTutup === "function" && window.fishingTutup() === false) return;
       if (game !== "tableverse" && typeof window.tableverseTutup === "function") window.tableverseTutup();
+      if (game !== "guesscolor" && typeof window.gtcTutup === "function") window.gtcTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
+      document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
       document.getElementById("game-streak-view").hidden = game !== "streak";
       document.getElementById("game-quiz-view").hidden = game !== "quiz";
       document.getElementById("game-fishing-view").hidden = game !== "fishing";
       document.getElementById("game-tableverse-view").hidden = game !== "tableverse";
       if (game === "timer") {
         timerRender();
+      } else if (game === "guesscolor") {
+        if (typeof window.gtcBuka === "function") window.gtcBuka();
       } else if (game === "quiz") {
         gameQuizLayar = "home";
         gameQuizSesi = null;
