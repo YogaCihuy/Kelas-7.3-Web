@@ -3,7 +3,7 @@
 
   // Katalog Fishing versi browser (tanpa Blaze). Dipakai fishing-local.js.
 
-  const CATALOG_VERSION = 1;
+  const CATALOG_VERSION = 3;
 
   const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "mythic", "legend", "secret"];
 

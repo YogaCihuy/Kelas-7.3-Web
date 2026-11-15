@@ -17,9 +17,9 @@
   const WORKER = {
     max: 3,
     price: 3000,
-    baseSpeedMs: 60000,
-    minSpeedMs: 30000,
-    stepMs: 5000,
+    baseSpeedMs: 3600000,
+    minSpeedMs: 1800000,
+    stepMs: 300000,
     maxLevel: 6,
     upgradeCosts: [1500, 2200, 3000, 4000, 5200, 7000],
     maxCatchPerTick: 30,
@@ -40,7 +40,7 @@
 
   function kecepatanWorker(level) {
     const lv = Math.max(0, Math.min(WORKER.maxLevel, Math.floor(Number(level) || 0)));
-    return WORKER.baseSpeedMs - lv * WORKER.stepMs;
+    return Math.max(WORKER.minSpeedMs, WORKER.baseSpeedMs - lv * WORKER.stepMs);
   }
 
   function biayaUpgradeWorker(level) {
@@ -488,6 +488,8 @@
       if (!Number.isFinite(w.lastCatchAt) || w.lastCatchAt <= 0) w.lastCatchAt = now - speed;
       let jumlah = 0;
 
+      // Sisa waktu di atas batas per tick sengaja tidak direset supaya
+      // hasil AFK tetap diproses bertahap di tick berikutnya.
       while (now - w.lastCatchAt >= speed && rod.durability > 0 && jumlah < WORKER.maxCatchPerTick) {
         w.lastCatchAt += speed;
         const infoRod = DATA.ROD_BY_ID[rod.id];

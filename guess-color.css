@@ -25,6 +25,7 @@
 
 .gtc-hub {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -300,6 +301,7 @@
 
 .gtc-join-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.8rem;
 }
 
@@ -1355,8 +1357,16 @@
   .gtc-color-name { font-size: 0.65rem; }
   .gtc-avatar-big { width: 52px; height: 52px; border-radius: 17px; font-size: 1.25rem; }
   .gtc-vs-badge { width: 38px; height: 38px; font-size: 0.75rem; }
-  .gtc-play-head { gap: 0.45rem; }
-  .gtc-vs-mini { order: 3; width: 100%; justify-content: flex-end; }
+  .gtc-play-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
+  }
+  .gtc-clock-box { grid-column: 1; min-width: 0; }
+  .gtc-attempt-box { grid-column: 2; }
+  .gtc-vs-mini { display: none; }
   .gtc-guess-row { grid-template-columns: 1.7rem 1fr; }
   .gtc-invite-banner { flex-wrap: wrap; bottom: 12px; }
   .gtc-invite-copy { flex-basis: calc(100% - 60px); }

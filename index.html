@@ -10,13 +10,32 @@
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="timer.css?v=1">
-<link rel="stylesheet" href="guess-color.css?v=1">
+<link rel="stylesheet" href="guess-color.css?v=3">
 <link rel="stylesheet" href="fishing.css?v=2">
 <link rel="stylesheet" href="tableverse.css?v=6">
+<link rel="stylesheet" href="theme.css?v=1">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14392A">
+<script>
+/* Pasang tema tersimpan sebelum halaman digambar, biar gak kedip. */
+(function () {
+  var daftar = {
+    light: "#14392A",
+    sage: "#1F4D37",
+    forest: "#0A2A1B",
+    dark: "#0A2418",
+    "dark-forest": "#050F09"
+  };
+  var tema = "light";
+  try { tema = localStorage.getItem("kelas73-theme") || "light"; } catch (e) {}
+  if (!daftar[tema]) tema = "light";
+  document.documentElement.dataset.theme = tema;
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", daftar[tema]);
+})();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kelas 7.3">
@@ -95,6 +114,13 @@
       <path d="M4 9v6h4l5 5V4L8 9H4Z" fill="currentColor"/>
       <path d="M15.5 9.5 20.5 14.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       <path d="M20.5 9.5 15.5 14.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <button id="btn-theme-settings" class="theme-toggle" type="button" aria-label="Pengaturan tema" aria-haspopup="dialog">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M19.4 13.5c.05-.5.05-1 0-1.5l2-1.5-2-3.4-2.4 1a7.3 7.3 0 0 0-1.3-.75L15.4 4h-4l-.35 2.35c-.45.2-.9.45-1.3.75l-2.4-1-2 3.4 2 1.5c-.05.5-.05 1 0 1.5l-2 1.5 2 3.4 2.4-1c.4.3.85.55 1.3.75L11.4 20h4l.3-2.35c.45-.2.9-.45 1.3-.75l2.4 1 2-3.4-2-1.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
     </svg>
   </button>
 
@@ -470,7 +496,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.5.3</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.5.5</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (15/11/26)</button>
   </footer>
 
@@ -849,6 +875,20 @@
     </div>
   </div>
 
+  <!-- MODAL PENGATURAN TEMA -->
+  <div id="modal-theme" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="theme-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <div class="theme-head">
+        <span class="theme-badge" aria-hidden="true">&#127912;</span>
+        <h3 id="theme-title">Pengaturan Tema</h3>
+        <p>Pilih tampilan Web Kelas. Semua tema tetap bernuansa hijau.</p>
+      </div>
+      <div id="theme-list" class="theme-list" role="radiogroup" aria-label="Pilihan tema"></div>
+      <p class="theme-hint">Tema tersimpan otomatis di perangkat ini.</p>
+    </div>
+  </div>
+
 <div id="gtc-invite-root"></div>
 <div id="gtc-toast-root" class="gtc-toast-root" aria-live="polite"></div>
 
@@ -858,11 +898,11 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=39"></script>
+<script src="script.js?v=41"></script>
 <script src="guess-color.js?v=2"></script>
-<script src="fishing-catalog.js?v=2"></script>
-<script src="fishing-local.js?v=3"></script>
-<script src="fishing.js?v=5"></script>
+<script src="fishing-catalog.js?v=3"></script>
+<script src="fishing-local.js?v=4"></script>
+<script src="fishing.js?v=6"></script>
 <script src="tableverse-config.js?v=2"></script>
 <script src="tableverse-chess.js?v=1"></script>
 <script src="tableverse-boards.js?v=7"></script>

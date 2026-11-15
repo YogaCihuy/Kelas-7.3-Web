@@ -10,7 +10,7 @@
 
   const REGION = "us-central1";
   const FUNCTION_NAME = "fishingApi";
-  const CAT_KEY = "kelas73-fishing-catalog-v2";
+  const CAT_KEY = "kelas73-fishing-catalog-v3";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
 
@@ -358,10 +358,20 @@
   function workerPrice() { return Number(infoWorker().price) || 3000; }
   function workerLevelMaks() { return Number(infoWorker().maxLevel) || 6; }
   function kecepatanWorker(level) {
-    const base = Number(infoWorker().baseSpeedMs) || 60000;
-    const min = Number(infoWorker().minSpeedMs) || 30000;
-    const step = Number(infoWorker().stepMs) || 5000;
+    const base = Number(infoWorker().baseSpeedMs) || 3600000;
+    const min = Number(infoWorker().minSpeedMs) || 1800000;
+    const step = Number(infoWorker().stepMs) || 300000;
     return Math.max(min, base - Math.max(0, Math.min(workerLevelMaks(), Number(level) || 0)) * step);
+  }
+
+  function durasiTeks(ms) {
+    const menit = Math.max(1, Math.round((Number(ms) || 0) / 60000));
+    if (menit >= 60) {
+      const jam = Math.floor(menit / 60);
+      const sisa = menit % 60;
+      return sisa ? `${jam} jam ${sisa} menit` : `${jam} jam`;
+    }
+    return `${menit} menit`;
   }
   function biayaUpgradeWorker(level) {
     const arr = infoWorker().upgradeCosts || [];
@@ -1002,7 +1012,7 @@
             <b data-worker-pct>${st.kode === "kerja" ? `${pct}%` : "—"}</b>
           </div>
           <div class="fishing-worker-bar"><span data-worker-fill style="width:${st.kode === "kerja" ? pct : 0}%"></span></div>
-          <small>${speed / 1000} detik/ikan${maks ? " · kecepatan maksimal" : ""}</small>
+          <small>${durasiTeks(speed)}/ikan${maks ? " · kecepatan maksimal" : ""}</small>
         </div>
         <div class="fishing-worker-stats">
           <span>🐟 ${angka(w.catches)} tangkapan</span>
@@ -1033,12 +1043,12 @@
     return `
       <div class="fishing-workers">
         <div class="fishing-section-head">
-          <div><p class="fishing-kicker">Kru nelayan</p><h3>Worker memancing sendiri</h3><p>Setiap Worker wajib punya joran. Tanpa joran atau saat joran rusak, Worker istirahat. Joran yang dipakai Worker tidak bisa kamu pakai.</p></div>
+          <div><p class="fishing-kicker">Kru nelayan</p><h3>Worker memancing sendiri</h3><p>Setiap Worker wajib punya joran. Tanpa joran atau saat joran rusak, Worker istirahat. Joran yang dipakai Worker tidak bisa kamu pakai. Worker tetap memancing walau kamu AFK; hasilnya dihitung otomatis.</p></div>
           <span class="fishing-coin-pill">💰 <strong>${angka(s.coins)}</strong></span>
         </div>
         <div class="fishing-worker-top">
           <div class="fishing-worker-count"><strong>${s.workers.length}/${max}</strong><span>Worker</span></div>
-          <div class="fishing-worker-hint">Rekrut <b>💰 ${angka(harga)}</b> · awal 60 detik/ikan · upgrade sampai 30 detik/ikan.</div>
+          <div class="fishing-worker-hint">Rekrut <b>💰 ${angka(harga)}</b> · awal 1 jam/ikan · upgrade sampai 30 menit/ikan · tetap jalan saat kamu AFK.</div>
           <button class="btn-primary" type="button" data-fish-act="hire-worker" ${penuh || !cukup ? "disabled" : ""}>${penuh ? "Worker penuh" : cukup ? "＋ Rekrut Worker" : "Koin kurang"}</button>
         </div>
         ${autoSellRingkas()}
@@ -2462,7 +2472,7 @@
     const ok = await konfirmasi({
       icon: "⬆️",
       title: `Upgrade ${w.name}?`,
-      body: `Kecepatan <b>${kecepatanWorker(w.level) / 1000} detik</b> → <b>${kecepatanWorker(w.level + 1) / 1000} detik</b> per ikan.<br>Biaya <b>💰 ${angka(biaya)}</b>.`,
+      body: `Kecepatan <b>${durasiTeks(kecepatanWorker(w.level))}</b> → <b>${durasiTeks(kecepatanWorker(w.level + 1))}</b> per ikan.<br>Biaya <b>💰 ${angka(biaya)}</b>.`,
       okLabel: "Upgrade",
     });
     if (!ok) return;
@@ -2471,7 +2481,7 @@
     }));
     if (res) {
       SFX.coin();
-      toast(`⬆️ <b>${esc(w.name)}</b> naik ke Lv ${angka(res.level)} · ${angka(res.speedMs / 1000)} detik/ikan`, "ok");
+      toast(`⬆️ <b>${esc(w.name)}</b> naik ke Lv ${angka(res.level)} · ${durasiTeks(res.speedMs)}/ikan`, "ok");
     }
   }
 
@@ -2537,7 +2547,7 @@
   }
 
   function tickerWorker() {
-    if (!FC.aktif || !FC.state) return;
+    if (!FC.state || !FC.absen) return;
     const list = FC.state.workers || [];
     if (!list.length) return;
 
@@ -2557,6 +2567,7 @@
     FC.terakhirTickWorker = Date.now();
     api("workerTick", { absen: FC.absen, token: FC.token, requestId: reqId() }).then((res) => {
       if (res && res.state) terapkanState(res.state);
+      if (!FC.aktif) return;
       if (res && res.achievements && res.achievements.length) toastPencapaian(res.achievements);
       beritahuWorker(res && res.catches);
     }).catch(() => { /* coba lagi di tick berikutnya */ });
@@ -2746,7 +2757,6 @@
     FC.tahanRender = false;
     FC.resumeId = null;
     tutupModal();
-    hentikanTicker();
     hentikanLangganan();
     const root = document.getElementById("fishing-toast-root");
     if (root) root.innerHTML = "";
@@ -2760,7 +2770,6 @@
     FC.aktif = false;
     FC.aksi = false;
     FC.resumeId = null;
-    hentikanTicker();
     hentikanLangganan();
     tutupModal();
     const root = document.getElementById("fishing-toast-root");

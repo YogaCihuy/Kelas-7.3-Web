@@ -194,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupGamesTab();
   setupTimer();
   setupUpdatesModal();
+  setupThemeSettings();
   setupNotifikasiEskul();
   restoreSession();
 });
@@ -3435,6 +3436,11 @@ const UPDATE_LOG = [
       "Version 2.5.2 Fishing Tanpa Blaze: Main, Jual Ikan, Upgrade Joran, Peringkat & Legenda",
       "Version 2.5.3 Fishing Auto Sell: Ikan di Bawah Harga Bisa Terjual Otomatis",
       "Version 2.5.3 Fishing Worker: Rekrut hingga 3 Worker, Upgrade Kecepatan, dan Pasang Joran Sendiri",
+      "Version 2.5.4 Fishing Worker Tetap Jalan Saat Player AFK, Hasilnya Dihitung Otomatis",
+      "Version 2.5.4 Kecepatan Worker Baru: Awal 1 Jam per Ikan, Maksimal 30 Menit per Ikan",
+      "Version 2.5.5 Pengaturan Tema: Light, Sage, Forest, Dark, dan Dark Forest",
+      "Version 2.5.5 Semua Tema Tetap Bernuansa Hijau & Tersimpan Otomatis per Perangkat",
+      "Version 2.5.5 Tampilan Guess the Color di HP Dirapikan, Teks Tidak Terpotong Lagi",
     ],
   },
   {
@@ -3477,6 +3483,64 @@ function setupUpdatesModal() {
       openModal(modal);
       SoundFX.buttonClick();
     });
+  });
+  setupModalDismiss(modal);
+}
+
+/* ===== Pengaturan tema ===== */
+const THEME_KEY = "kelas73-theme";
+const DAFTAR_TEMA = [
+  { id: "light", nama: "Light", ket: "Terang & bersih, tampilan bawaan", bar: "#14392A", warna: ["#FBFCFA", "#E8F5EC", "#2F8F5B", "#17392A"] },
+  { id: "sage", nama: "Sage", ket: "Hijau lembut, enak buat siang", bar: "#1F4D37", warna: ["#EAF3EC", "#DDEBE1", "#3C9C68", "#1F4D37"] },
+  { id: "forest", nama: "Forest", ket: "Hijau hutan yang segar", bar: "#0A2A1B", warna: ["#103B27", "#1E5738", "#5BC98E", "#D3EEDD"] },
+  { id: "dark", nama: "Dark", ket: "Gelap kalem, nyaman malam hari", bar: "#0A2418", warna: ["#0E1712", "#1C3125", "#46B27F", "#BFE6CF"] },
+  { id: "dark-forest", nama: "Dark Forest", ket: "Hutan malam, hijau pekat", bar: "#050F09", warna: ["#071009", "#152A1D", "#3FAF77", "#A9D9BE"] },
+];
+
+function setupThemeSettings() {
+  const modal = document.getElementById("modal-theme");
+  const list = document.getElementById("theme-list");
+  const btn = document.getElementById("btn-theme-settings");
+  if (!modal || !list || !btn) return;
+
+  const simpan = (id) => {
+    try { localStorage.setItem(THEME_KEY, id); } catch (e) {}
+  };
+
+  list.innerHTML = DAFTAR_TEMA.map((t) => `
+    <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-id="${t.id}">
+      <span class="theme-swatches" aria-hidden="true">${t.warna.map((w) => `<span style="background:${w}"></span>`).join("")}</span>
+      <span class="theme-copy"><strong>${t.nama}</strong><small>${t.ket}</small></span>
+      <span class="theme-check" aria-hidden="true">&#10003;</span>
+    </button>`).join("");
+
+  function terapkan(id) {
+    const tema = DAFTAR_TEMA.find((t) => t.id === id) || DAFTAR_TEMA[0];
+    document.documentElement.dataset.theme = tema.id;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", tema.bar);
+    simpan(tema.id);
+    list.querySelectorAll(".theme-option").forEach((el) => {
+      const aktif = el.dataset.themeId === tema.id;
+      el.classList.toggle("is-active", aktif);
+      el.setAttribute("aria-checked", aktif ? "true" : "false");
+    });
+  }
+
+  list.addEventListener("click", (e) => {
+    const opsi = e.target.closest(".theme-option");
+    if (!opsi) return;
+    terapkan(opsi.dataset.themeId);
+    SoundFX.buttonClick();
+  });
+
+  let awal = "light";
+  try { awal = localStorage.getItem(THEME_KEY) || document.documentElement.dataset.theme || "light"; } catch (e) {}
+  terapkan(awal);
+
+  btn.addEventListener("click", () => {
+    openModal(modal);
+    SoundFX.buttonClick();
   });
   setupModalDismiss(modal);
 }
