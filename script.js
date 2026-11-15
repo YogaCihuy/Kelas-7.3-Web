@@ -164,6 +164,15 @@ let accountsData = {};       // cache dari koleksi Firestore "accounts", key = a
 let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
 let infoOverrideData = {};   // override PR / eskul libur / catatan dari Firestore utk besok
 let pollingCache = [];       // cache data polling terbaru buat referensi klik vote/setting
+const sosialState = {        // like & komentar biodata siswa
+  likes: {},
+  likesUnsub: null,
+  komentar: [],
+  komentarUnsub: null,
+  target: null,
+  likeBusy: false,
+  komentarKirim: false,
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   setupSoundToggle();
@@ -175,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.querySelector("#grid-siswa .siswa-card-skeleton")) renderGridSiswa();
   }, 1500);
   setupDetailModal();
+  setupSosial();
   setupPickerModal();
   setupAccountUI();
   setupInfoTab();
@@ -258,6 +268,39 @@ const SoundFX = (() => {
       [880, 1046, 1318, 1046, 1318].forEach((f, i) => {
         tone({ freq: f, duration: 0.18, type: "square", gain: 0.12, delay: i * 0.2 });
       });
+    },
+    diceRoll: () => {
+      [0, 0.07, 0.13, 0.19].forEach((d, i) => {
+        tone({ freq: 300 + i * 95, duration: 0.05, type: "square", gain: 0.055, delay: d });
+      });
+    },
+    placePiece: () => tone({ freq: 520, glideTo: 400, duration: 0.09, type: "triangle", gain: 0.11 }),
+    capture: () => {
+      tone({ freq: 400, glideTo: 130, duration: 0.24, type: "sawtooth", gain: 0.09 });
+      tone({ freq: 640, duration: 0.06, type: "square", gain: 0.06, delay: 0.02 });
+    },
+    check: () => {
+      tone({ freq: 740, duration: 0.1, type: "triangle", gain: 0.12 });
+      tone({ freq: 560, duration: 0.14, type: "triangle", gain: 0.1, delay: 0.09 });
+    },
+    ladderUp: () => {
+      [523, 659, 784].forEach((f, i) => tone({ freq: f, duration: 0.1, type: "sine", gain: 0.11, delay: i * 0.07 }));
+    },
+    snakeDown: () => tone({ freq: 720, glideTo: 170, duration: 0.45, type: "sine", gain: 0.11 }),
+    win: () => {
+      [523, 659, 784, 1046].forEach((f, i) => tone({ freq: f, duration: 0.16, type: "triangle", gain: 0.13, delay: i * 0.12 }));
+    },
+    lose: () => {
+      [392, 330, 262].forEach((f, i) => tone({ freq: f, duration: 0.2, type: "sine", gain: 0.11, delay: i * 0.14 }));
+    },
+    notify: () => {
+      tone({ freq: 660, duration: 0.09, type: "sine", gain: 0.12 });
+      tone({ freq: 880, duration: 0.12, type: "sine", gain: 0.1, delay: 0.1 });
+    },
+    likePop: () => tone({ freq: 520, glideTo: 900, duration: 0.1, type: "sine", gain: 0.12 }),
+    commentPop: () => {
+      tone({ freq: 700, duration: 0.06, type: "triangle", gain: 0.09 });
+      tone({ freq: 940, duration: 0.09, type: "triangle", gain: 0.08, delay: 0.06 });
     },
   };
 })();
@@ -669,12 +712,14 @@ function loginUser(absen) {
   currentUser = getMergedAccount(absen);
   localStorage.setItem("kelas73-session", String(absen));
   updateAccountUI();
+  renderSosialKarenaLogin();
 }
 
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem("kelas73-session");
   updateAccountUI();
+  renderSosialKarenaLogin();
 }
 
 /* ===================================================
@@ -697,8 +742,15 @@ function renderGridSiswa() {
     card.innerHTML = `
       ${ultah ? `<span class="cake-deco cake-1">🎂</span><span class="cake-deco cake-2">🧁</span><span class="cake-deco cake-3">🍰</span>` : ""}
       <span class="siswa-absen">${String(siswa.absen).padStart(2, "0")}</span>
+      <span class="siswa-like" data-like-chip="${siswa.absen}" aria-hidden="true">
+        <span class="siswa-like-heart">&#9829;</span>
+        <span class="siswa-like-count" data-like-count="${siswa.absen}">0</span>
+      </span>
       <div class="siswa-nama">${merged.namaPanggilan}</div>
     `;
+    const like = likeRingkas(siswa.absen);
+    card.querySelector(".siswa-like-count").textContent = String(like.count);
+    card.querySelector(".siswa-like").classList.toggle("is-liked", like.aku);
     fragment.appendChild(card);
   });
 
@@ -792,6 +844,7 @@ function setupDetailModal() {
 
     document.getElementById("btn-edit-this-profil").hidden = !(currentUser && currentUser.absen === absen);
 
+    bukaSosialDetail(absen);
     openModal(modal);
     playSproutAnimation(modalBox, card);
     SoundFX.cardOpen();
@@ -817,6 +870,271 @@ function setupDetailModal() {
   });
 
   setupModalDismiss(modal);
+}
+
+/* ===================================================
+   3b. LIKE & KOMENTAR BIODATA SISWA
+=================================================== */
+function likeRingkas(absen) {
+  const data = sosialState.likes[String(absen)] || {};
+  const users = data.users || {};
+  return {
+    count: Number(data.count) || Object.keys(users).length || 0,
+    aku: !!(currentUser && users[String(currentUser.absen)]),
+  };
+}
+
+function terapkanBadgeLike() {
+  document.querySelectorAll("[data-like-count]").forEach((el) => {
+    const info = likeRingkas(el.getAttribute("data-like-count"));
+    el.textContent = String(info.count);
+    const chip = el.closest(".siswa-like");
+    if (chip) chip.classList.toggle("is-liked", info.aku);
+  });
+}
+
+function muatLikeSosial() {
+  if (sosialState.likesUnsub) return;
+  try {
+    sosialState.likesUnsub = db.collection("profilLikes").onSnapshot((snap) => {
+      const next = {};
+      snap.forEach((doc) => {
+        const data = doc.data() || {};
+        next[doc.id] = { count: Number(data.count) || 0, users: data.users || {} };
+      });
+      sosialState.likes = next;
+      terapkanBadgeLike();
+      renderLikeDetail();
+    }, (err) => console.warn("Like biodata:", err));
+  } catch (err) {
+    console.warn("Like biodata:", err);
+  }
+}
+
+function setSosialHint(teks) {
+  const hint = document.getElementById("komentar-hint");
+  if (hint) hint.textContent = teks || "";
+}
+
+function renderLikeDetail() {
+  const absen = detailAbsenAktif;
+  const btn = document.getElementById("btn-like-profil");
+  if (!btn || !absen) return;
+  const info = likeRingkas(absen);
+  const countEl = document.getElementById("like-count");
+  if (countEl) countEl.textContent = String(info.count);
+  btn.classList.toggle("is-liked", info.aku);
+  btn.setAttribute("aria-pressed", String(info.aku));
+  const akuEl = document.getElementById("like-aku");
+  if (akuEl) akuEl.hidden = !info.aku;
+}
+
+function bukaSosialDetail(absen) {
+  sosialState.target = Number(absen);
+  sosialState.komentar = [];
+  setSosialHint("");
+  const input = document.getElementById("komentar-input");
+  if (input) input.value = "";
+  renderLikeDetail();
+  renderKomentar();
+  muatKomentar(absen);
+  if (!currentUser) setSosialHint("Login dulu buat like & komentar.");
+}
+
+async function toggleLikeProfil() {
+  if (!detailAbsenAktif || sosialState.likeBusy) return;
+  if (!currentUser) {
+    setSosialHint("Login dulu buat like biodata.");
+    document.getElementById("btn-show-login").click();
+    return;
+  }
+  sosialState.likeBusy = true;
+  SoundFX.buttonClick();
+  const target = Number(detailAbsenAktif);
+  const ref = db.collection("profilLikes").doc(String(target));
+  const key = String(currentUser.absen);
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const lama = snap.exists ? snap.data() || {} : {};
+      const users = Object.assign({}, lama.users || {});
+      if (users[key]) delete users[key];
+      else users[key] = true;
+      tx.set(ref, { users, count: Object.keys(users).length, updatedAt: Date.now() });
+    });
+    SoundFX.likePop();
+    setSosialHint("");
+  } catch (err) {
+    console.error("Like gagal:", err);
+    setSosialHint("Like gagal disimpan. Coba lagi.");
+  } finally {
+    sosialState.likeBusy = false;
+  }
+}
+
+function muatKomentar(absen) {
+  if (sosialState.komentarUnsub) {
+    try { sosialState.komentarUnsub(); } catch (err) { /* abaikan */ }
+  }
+  sosialState.komentarUnsub = null;
+  try {
+    sosialState.komentarUnsub = db.collection("profilKomentar")
+      .where("absenSiswa", "==", Number(absen))
+      .onSnapshot((snap) => {
+        if (sosialState.target !== Number(absen)) return;
+        const list = [];
+        snap.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
+        list.sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+        sosialState.komentar = list;
+        renderKomentar();
+      }, (err) => {
+        console.warn("Komentar biodata:", err);
+        setSosialHint("Komentar belum bisa dimuat.");
+      });
+  } catch (err) {
+    console.warn("Komentar biodata:", err);
+  }
+}
+
+function waktuRelatif(ts) {
+  const selisih = Date.now() - Number(ts);
+  if (!Number.isFinite(selisih) || selisih < 60000) return "baru saja";
+  const menit = Math.floor(selisih / 60000);
+  if (menit < 60) return `${menit} menit lalu`;
+  const jam = Math.floor(menit / 60);
+  if (jam < 24) return `${jam} jam lalu`;
+  const hari = Math.floor(jam / 24);
+  if (hari < 7) return `${hari} hari lalu`;
+  return new Date(Number(ts)).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function renderKomentar() {
+  const list = document.getElementById("komentar-list");
+  if (!list) return;
+  const countEl = document.getElementById("komentar-count");
+  if (countEl) countEl.textContent = String(sosialState.komentar.length);
+  list.textContent = "";
+
+  if (!sosialState.komentar.length) {
+    const kosong = document.createElement("p");
+    kosong.className = "komentar-kosong";
+    kosong.textContent = "Belum ada komentar. Jadi yang pertama!";
+    list.appendChild(kosong);
+    return;
+  }
+
+  sosialState.komentar.forEach((k) => {
+    const item = document.createElement("div");
+    item.className = "komentar-item";
+
+    const kepala = document.createElement("div");
+    kepala.className = "komentar-kepala";
+
+    const nama = document.createElement("strong");
+    nama.className = "komentar-nama";
+    nama.textContent = k.nama || "Siswa";
+    kepala.appendChild(nama);
+
+    const waktu = document.createElement("span");
+    waktu.className = "komentar-waktu";
+    waktu.textContent = waktuRelatif(k.createdAt);
+    kepala.appendChild(waktu);
+
+    const bolehHapus = currentUser && (
+      Number(k.absen) === Number(currentUser.absen) ||
+      currentUser.role === "admin" ||
+      currentUser.role === "owner"
+    );
+    if (bolehHapus) {
+      const hapus = document.createElement("button");
+      hapus.type = "button";
+      hapus.className = "komentar-hapus";
+      hapus.setAttribute("data-hapus-komentar", k.id);
+      hapus.setAttribute("aria-label", "Hapus komentar");
+      hapus.textContent = "×";
+      kepala.appendChild(hapus);
+    }
+    item.appendChild(kepala);
+
+    const teks = document.createElement("p");
+    teks.className = "komentar-teks";
+    teks.textContent = k.pesan || "";
+    item.appendChild(teks);
+
+    list.appendChild(item);
+  });
+}
+
+async function kirimKomentar(e) {
+  e.preventDefault();
+  if (!detailAbsenAktif) return;
+  if (!currentUser) {
+    setSosialHint("Login dulu buat komentar.");
+    document.getElementById("btn-show-login").click();
+    return;
+  }
+  const input = document.getElementById("komentar-input");
+  const pesan = input ? input.value.trim() : "";
+  if (!pesan || sosialState.komentarKirim) return;
+  sosialState.komentarKirim = true;
+  try {
+    await db.collection("profilKomentar").add({
+      absenSiswa: Number(detailAbsenAktif),
+      absen: Number(currentUser.absen),
+      nama: currentUser.namaPanggilan || currentUser.namaLengkap,
+      pesan: pesan.slice(0, 280),
+      createdAt: Date.now(),
+    });
+    if (input) input.value = "";
+    setSosialHint("");
+    SoundFX.commentPop();
+  } catch (err) {
+    console.error("Komentar gagal:", err);
+    setSosialHint("Komentar gagal dikirim. Coba lagi.");
+  } finally {
+    sosialState.komentarKirim = false;
+  }
+}
+
+async function hapusKomentar(id) {
+  const item = sosialState.komentar.find((k) => k.id === id);
+  if (!item || !currentUser) return;
+  const boleh = Number(item.absen) === Number(currentUser.absen) ||
+    currentUser.role === "admin" || currentUser.role === "owner";
+  if (!boleh) return;
+  try {
+    await db.collection("profilKomentar").doc(id).delete();
+    SoundFX.modalClose();
+  } catch (err) {
+    console.error("Hapus komentar gagal:", err);
+    setSosialHint("Komentar gagal dihapus. Coba lagi.");
+  }
+}
+
+function setupSosial() {
+  const likeBtn = document.getElementById("btn-like-profil");
+  if (likeBtn) likeBtn.addEventListener("click", toggleLikeProfil);
+
+  const form = document.getElementById("form-komentar");
+  if (form) form.addEventListener("submit", kirimKomentar);
+
+  const list = document.getElementById("komentar-list");
+  if (list) {
+    list.addEventListener("click", (e) => {
+      const tombol = e.target.closest("[data-hapus-komentar]");
+      if (tombol) hapusKomentar(tombol.getAttribute("data-hapus-komentar"));
+    });
+  }
+
+  muatLikeSosial();
+}
+
+function renderSosialKarenaLogin() {
+  terapkanBadgeLike();
+  renderLikeDetail();
+  renderKomentar();
+  if (currentUser) setSosialHint("");
+  else if (detailAbsenAktif) setSosialHint("Login dulu buat like & komentar.");
 }
 
 function playSproutAnimation(modalBox, originEl) {

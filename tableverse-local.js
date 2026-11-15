@@ -248,13 +248,16 @@
   /* ---------------- engine: Checkers ---------------- */
 
   const checkers = (function () {
+    // Firestore menolak array di dalam array, jadi papan disimpan sebagai
+    // map baris: { "0": [...8 sel], ..., "7": [...8 sel] }.
     function boardAwal() {
-      const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+      const board = {};
       for (let r = 0; r < 8; r += 1) {
+        board[String(r)] = Array(8).fill(null);
         for (let c = 0; c < 8; c += 1) {
           if ((r + c) % 2 !== 1) continue;
-          if (r < 3) board[r][c] = "b";
-          else if (r > 4) board[r][c] = "r";
+          if (r < 3) board[String(r)][c] = "b";
+          else if (r > 4) board[String(r)][c] = "r";
         }
       }
       return board;
@@ -380,7 +383,9 @@
 
       next.pending = null;
       const lawan = slot === 0 ? 1 : 0;
-      const sisaLawan = next.board.some((row) => row.some((cell) => milik(cell) === (lawan === 0 ? "r" : "b")));
+      const sisaLawan = Object.keys(next.board).some((baris) =>
+        next.board[baris].some((cell) => milik(cell) === (lawan === 0 ? "r" : "b"))
+      );
       const gerakLawan = sisaLawan ? legalMoves(next.board, lawan, null) : [];
 
       if (!sisaLawan || gerakLawan.length === 0) {
@@ -520,13 +525,17 @@
     }
 
     function create(players) {
+      // Map per slot: Firestore tidak menerima array berisi array.
+      const tokens = {};
+      players.forEach((_, i) => { tokens[String(i)] = [-1, -1, -1, -1]; });
       return {
         state: {
-          tokens: players.map(() => [-1, -1, -1, -1]),
+          tokens,
           turn: 0,
           dice: null,
           rolled: false,
           lastRoll: null,
+          lastMove: null,
           lastEvent: "Pertandingan dimulai. Lempar dadu, dapat 6 untuk keluar dari base.",
         },
       };
@@ -535,7 +544,7 @@
     function move(state, slot, payload, ctx) {
       const next = clone(state);
       if (next.turn !== slot) throw err(400, "Bukan giliranmu.", "not-your-turn");
-      const jumlah = next.tokens.length;
+      const jumlah = Object.keys(next.tokens).length;
       const tipe = payload && payload.type === "move" ? "move" : "roll";
 
       if (tipe === "roll") {
@@ -571,6 +580,7 @@
 
       const tokens = next.tokens[slot];
       let pos = tokens[token];
+      const posisiLama = pos;
       let keluar = false;
       if (pos === -1) {
         pos = 0;
@@ -581,15 +591,18 @@
       tokens[token] = pos;
 
       let tertangkap = 0;
+      const ditangkap = [];
       if (pos <= 51) {
         const abs = absolut(slot, pos);
         if (!SAFE.has(abs)) {
-          for (let s = 0; s < next.tokens.length; s += 1) {
+          for (const key of Object.keys(next.tokens)) {
+            const s = Number(key);
             if (s === slot) continue;
             for (let t = 0; t < 4; t += 1) {
-              if (absolut(s, next.tokens[s][t]) === abs) {
-                next.tokens[s][t] = -1;
+              if (absolut(s, next.tokens[key][t]) === abs) {
+                next.tokens[key][t] = -1;
                 tertangkap += 1;
+                ditangkap.push({ slot: s, token: t, pos: abs });
               }
             }
           }
@@ -598,6 +611,15 @@
 
       next.rolled = false;
       next.dice = null;
+      next.lastMove = {
+        slot,
+        token,
+        from: posisiLama,
+        to: pos,
+        dice,
+        keluar,
+        captured: ditangkap,
+      };
 
       if (tokens.every((p) => p === 57)) {
         next.lastEvent = `Pemain ${slot + 1} memasukkan semua bidak ke rumah dan menang!`;
@@ -621,17 +643,87 @@
   /* ---------------- engine: Snakes & Ladders ---------------- */
 
   const snakes = (function () {
+    // Peta bawaan dipakai hanya kalau room lama belum punya peta acak.
     const LADDERS = { 1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100 };
     const SNAKES = { 16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 95: 75, 98: 79 };
+    const JUMLAH_TANGGA = 8;
+    const JUMLAH_ULAR = 8;
 
-    function create(players) {
+    function kocok(arr, rnd) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i -= 1) {
+        const j = rnd(i + 1);
+        const t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+      }
+      return a;
+    }
+
+    // Peta baru tiap pertandingan. Pengacakan memakai rngInt dari ctx supaya
+    // tetap bisa dites, dan selalu berhenti (jumlah percobaan dibatasi).
+    function acakPeta(ctx) {
+      const rnd = ctx && typeof ctx.rngInt === "function" ? ctx.rngInt : rngInt;
+      const ladders = {};
+      const ularMap = {};
+      const terpakai = new Set([1, 100]);
+      const kandidat = [];
+      for (let n = 2; n <= 97; n += 1) kandidat.push(n);
+      const urut = kocok(kandidat, rnd);
+
+      let tangga = 0;
+      for (const from of urut) {
+        if (tangga >= JUMLAH_TANGGA) break;
+        if (terpakai.has(from)) continue;
+        const lo = from + 5;
+        const hi = Math.min(98, from + 34);
+        if (hi < lo) continue;
+        let to = 0;
+        for (let coba = 0; coba < 16 && !to; coba += 1) {
+          const calon = lo + rnd(hi - lo + 1);
+          if (calon > from && !terpakai.has(calon)) to = calon;
+        }
+        if (!to) continue;
+        ladders[String(from)] = to;
+        terpakai.add(from);
+        terpakai.add(to);
+        tangga += 1;
+      }
+
+      let ular = 0;
+      for (const from of urut) {
+        if (ular >= JUMLAH_ULAR) break;
+        if (terpakai.has(from) || from < 12) continue;
+        const lo = Math.max(2, from - 34);
+        const hi = from - 5;
+        if (hi < lo) continue;
+        let to = 0;
+        for (let coba = 0; coba < 16 && !to; coba += 1) {
+          const calon = lo + rnd(hi - lo + 1);
+          if (calon < from && !terpakai.has(calon)) to = calon;
+        }
+        if (!to) continue;
+        ularMap[String(from)] = to;
+        terpakai.add(from);
+        terpakai.add(to);
+        ular += 1;
+      }
+
+      return { ladders, snakes: ularMap };
+    }
+
+    function create(players, ctx) {
+      const peta = acakPeta(ctx);
       return {
         state: {
           positions: players.map(() => 0),
           turn: 0,
           dice: null,
           lastRoll: null,
-          lastEvent: "Pertandingan dimulai. Lempar dadu buat jalan.",
+          lastMove: null,
+          ladders: peta.ladders,
+          snakes: peta.snakes,
+          lastEvent: "Pertandingan dimulai. Peta ular & tangga baru tiap game. Lempar dadu buat jalan.",
         },
       };
     }
@@ -645,23 +737,31 @@
       if (next.turn !== slot) throw err(400, "Bukan giliranmu.", "not-your-turn");
       if (payload && payload.type !== "roll") throw err(400, "Aksi tidak dikenal.", "invalid-move");
 
+      const ladders = next.ladders && typeof next.ladders === "object" ? next.ladders : LADDERS;
+      const ularMap = next.snakes && typeof next.snakes === "object" ? next.snakes : SNAKES;
       const jumlah = next.positions.length;
       const dice = ctx.rngInt(6) + 1;
-      let pos = next.positions[slot] + dice;
+      const dari = next.positions[slot];
+      let pos = dari + dice;
       if (pos > 100) pos = 100;
+      const mendarat = pos;
 
+      let jump = null;
       let lompat = "";
-      if (LADDERS[pos]) {
-        lompat = ` Naik tangga dari ${pos} ke ${LADDERS[pos]}.`;
-        pos = LADDERS[pos];
-      } else if (SNAKES[pos]) {
-        lompat = ` Kena ular dari ${pos}, turun ke ${SNAKES[pos]}.`;
-        pos = SNAKES[pos];
+      if (ladders[pos]) {
+        lompat = ` Naik tangga dari ${pos} ke ${ladders[pos]}.`;
+        pos = Number(ladders[pos]);
+        jump = "ladder";
+      } else if (ularMap[pos]) {
+        lompat = ` Kena ular dari ${pos}, turun ke ${ularMap[pos]}.`;
+        pos = Number(ularMap[pos]);
+        jump = "snake";
       }
 
       next.positions[slot] = pos;
       next.dice = dice;
       next.lastRoll = dice;
+      next.lastMove = { slot, dice, from: dari, landed: mendarat, to: pos, jump };
       next.lastEvent = `Pemain ${slot + 1} dapat ${dice}, sekarang di kotak ${pos}.${lompat}`;
 
       if (pos >= 100) {

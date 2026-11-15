@@ -105,6 +105,37 @@
     return bersih.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   }
 
+  // Label bidak: inisial pemain. Kalau ada yang bentrok, pakai dua huruf
+  // pertama nama (dan terus memanjang kalau masih sama).
+  function tokenLabels(room) {
+    const aktif = (room && room.players ? room.players : []).filter((p) => !p.left);
+    const dasar = aktif.map((p) => ({
+      slot: Number(p.slot),
+      absen: Number(p.absen),
+      inis: inisial(p.nama),
+      huruf: String(p.nama || "?").replace(/\s+/g, "").toUpperCase() || "?",
+    }));
+    const jumlah = {};
+    dasar.forEach((p) => { jumlah[p.inis] = (jumlah[p.inis] || 0) + 1; });
+    const pakai = new Set();
+    const hasil = {};
+    dasar.forEach((p) => {
+      let label = p.inis;
+      if (jumlah[p.inis] > 1) {
+        let n = 2;
+        label = p.huruf.slice(0, n);
+        while (n < p.huruf.length && (pakai.has(label) || dasar.some((q) => q !== p && q.huruf.slice(0, n) === label))) {
+          n += 1;
+          label = p.huruf.slice(0, n);
+        }
+        if (pakai.has(label)) label = `${p.huruf.slice(0, 2)}${p.absen}`;
+      }
+      pakai.add(label);
+      hasil[p.slot] = label;
+    });
+    return hasil;
+  }
+
   function hue(absen) {
     return (Number(absen) * 47) % 360;
   }
@@ -196,13 +227,21 @@
   }
   function papanCheckers(room, mySlot, ui) {
     const st = room.state || {};
-    const board = st.board || [];
+    const board = st.board || {};
     const aktif = room.status === "playing" && st.turn === mySlot;
     const legal = aktif ? chkLegal(board, mySlot, st.pending || null) : [];
     const sel = ui && ui.sel ? ui.sel : null;
     const tujuan = new Set();
     if (sel) legal.forEach((m) => { if (m.from[0] === sel[0] && m.from[1] === sel[1]) tujuan.add(`${m.to[0]},${m.to[1]}`); });
     const bisaDipilih = new Set(legal.map((m) => `${m.from[0]},${m.from[1]}`));
+
+    const anim = ui && ui.animate && st.lastMove ? st.lastMove : null;
+    const segar = !!(ui && ui.animate && !st.lastMove);
+    const mvDari = anim && Array.isArray(anim.from) ? anim.from : null;
+    const mvKe = anim && Array.isArray(anim.to) ? anim.to : null;
+    const mvTangkap = anim && anim.capture && mvDari && mvKe
+      ? [(mvDari[0] + mvKe[0]) / 2, (mvDari[1] + mvKe[1]) / 2]
+      : null;
 
     let cells = "";
     for (let r = 0; r < 8; r += 1) {
@@ -218,14 +257,21 @@
           tujuan.has(`${r},${c}`) ? "is-target" : "",
           tombol ? "is-action" : "",
         ].filter(Boolean).join(" ");
-        cells += `<button type="button" class="${kelas}" data-tv-act="chk" data-r="${r}" data-c="${c}" ${tombol ? "" : "disabled"} aria-label="Baris ${r + 1} kolom ${c + 1}">${
-          piece ? `<span class="tv-chk-piece ${milik === "r" ? "is-r" : "is-b"} ${piece === "R" || piece === "B" ? "is-king" : ""}">${piece === "R" || piece === "B" ? "♛" : ""}</span>` : ""
-        }</button>`;
+        let isi = "";
+        if (piece) {
+          const pindah = !!(mvDari && mvKe && mvKe[0] === r && mvKe[1] === c);
+          const holderKelas = `tv-chk-holder ${pindah ? "is-moving" : ""}`;
+          const gaya = pindah ? ` style="--dx:${(mvDari[1] - mvKe[1]) * 100}%;--dy:${(mvDari[0] - mvKe[0]) * 100}%"` : "";
+          isi = `<span class="${holderKelas}"${gaya}><span class="tv-chk-piece ${milik === "r" ? "is-r" : "is-b"} ${piece === "R" || piece === "B" ? "is-king" : ""}">${piece === "R" || piece === "B" ? "♛" : ""}</span></span>`;
+        } else if (mvTangkap && mvTangkap[0] === r && mvTangkap[1] === c) {
+          isi = `<span class="tv-chk-burst" aria-hidden="true"></span>`;
+        }
+        cells += `<button type="button" class="${kelas}" data-tv-act="chk" data-r="${r}" data-c="${c}" ${tombol ? "" : "disabled"} aria-label="Baris ${r + 1} kolom ${c + 1}">${isi}</button>`;
       }
     }
     return `
       <div class="tv-board-wrap">
-        <div class="tv-board tv-chk">${cells}</div>
+        <div class="tv-board tv-chk ${segar ? "is-fresh" : ""}">${cells}</div>
         <p class="tv-board-note">${aktif ? (st.pending ? "Lompatan beruntun: lanjutkan dengan bidak yang sama." : "Giliranmu. Pilih bidak lalu tujuan.") : `Menunggu ${esc(namaPemain(room, st.turn))}.`}</p>
       </div>`;
   }
@@ -258,7 +304,11 @@
     const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
     const last = st.lastMove || {};
     const sel = ui && ui.sel ? ui.sel : null;
+    const anim = ui && ui.animate && last.from && last.to ? last : null;
+    const segar = !!(ui && ui.animate && !st.lastMove);
     let cells = "";
+
+    const keRC = (sq) => [8 - Number(sq[1]), sq.charCodeAt(0) - 97];
 
     for (let br = 0; br < 8; br += 1) {
       for (let bc = 0; bc < 8; bc += 1) {
@@ -268,6 +318,7 @@
         const sq = files[c] + (8 - r);
         const terang = (r + c) % 2 === 0;
         const milikku = piece && (putih ? piece === piece.toUpperCase() : piece === piece.toLowerCase());
+        const rajaDiskak = st.check && !!(piece && ((st.turn === 0 && piece === "K") || (st.turn === 1 && piece === "k")));
         const kelas = [
           "tv-chess-cell",
           terang ? "is-light" : "is-dark",
@@ -275,15 +326,27 @@
           sel === sq ? "is-sel" : "",
           last.from === sq ? "is-last" : "",
           last.to === sq ? "is-last-to" : "",
+          rajaDiskak ? "is-check" : "",
         ].filter(Boolean).join(" ");
-        cells += `<button type="button" class="${kelas}" data-tv-act="chess" data-sq="${sq}" ${aktif ? "" : "disabled"} aria-label="${sq}">
-          ${piece ? `<span class="tv-chess-piece ${piece === piece.toUpperCase() ? "is-putih" : "is-hitam"}">${CHESS_GLYPH[piece] || ""}</span>` : ""}
-        </button>`;
+        let isi = "";
+        if (piece) {
+          const pindah = !!(anim && last.to === sq);
+          let gaya = "";
+          if (pindah) {
+            const [r0, c0] = keRC(last.from);
+            const [r1, c1] = keRC(last.to);
+            const dr = putih ? r0 - r1 : r1 - r0;
+            const dc = putih ? c0 - c1 : c1 - c0;
+            gaya = ` style="--dx:${dc * 100}%;--dy:${dr * 100}%"`;
+          }
+          isi = `<span class="tv-chess-holder ${pindah ? "is-moving" : ""}"${gaya}><span class="tv-chess-piece ${piece === piece.toUpperCase() ? "is-putih" : "is-hitam"}">${CHESS_GLYPH[piece] || ""}</span></span>`;
+        }
+        cells += `<button type="button" class="${kelas}" data-tv-act="chess" data-sq="${sq}" ${aktif ? "" : "disabled"} aria-label="${sq}">${isi}</button>`;
       }
     }
     return `
       <div class="tv-board-wrap">
-        <div class="tv-board tv-chess">${cells}</div>
+        <div class="tv-board tv-chess ${segar ? "is-fresh" : ""}">${cells}</div>
         <p class="tv-board-note">${aktif ? "Giliranmu. Klik bidak lalu kotak tujuan. Promosi otomatis jadi Ratu." : `Menunggu ${esc(namaPemain(room, st.turn))}.`}${st.check ? " Raja sedang diskak!" : ""}</p>
       </div>`;
   }
@@ -308,18 +371,28 @@
     }
     return hasil;
   }
-  function papanLudo(room, mySlot) {
+  function papanLudo(room, mySlot, ui) {
     const st = room.state || {};
-    const tokens = st.tokens || [[-1, -1, -1, -1], [-1, -1, -1, -1]];
+    const tokens = st.tokens && typeof st.tokens === "object" ? st.tokens : {};
+    const labels = tokenLabels(room);
     const aktif = room.status === "playing" && st.turn === mySlot;
     const legal = aktif && st.rolled ? ludoLegal(tokens, mySlot, st.dice) : [];
+    const segar = !!(ui && ui.animate && !st.lastMove);
+    const mv = ui && ui.animate && st.lastMove ? st.lastMove : null;
+    const jumlahPemain = room.players ? room.players.filter((p) => !p.left).length : 2;
+
     const startSet = {};
     LUDO_START.forEach((idx, slot) => { startSet[idx] = slot; });
+    const laneSet = {};
+    LUDO_LANES.forEach((lane, slot) => lane.forEach((p) => { laneSet[`${p[0]},${p[1]}`] = slot; }));
+    const safeSet = new Set(Array.from(LUDO_SAFE).map((idx) => (LUDO_PATH[idx] ? `${LUDO_PATH[idx][0]},${LUDO_PATH[idx][1]}` : "")));
 
     let cells = "";
     for (let r = 0; r < 15; r += 1) {
       for (let c = 0; c < 15; c += 1) {
+        const k = `${r},${c}`;
         let kelas = "tv-ludo-blank";
+        let isi = "";
         let slotBase = -1;
         LUDO_BASE_QUADRANTS.forEach((q, slot) => {
           if (r >= q[0] && r <= q[2] && c >= q[1] && c <= q[3]) slotBase = slot;
@@ -332,23 +405,33 @@
           const idx = LUDO_PATH.findIndex((p) => p[0] === r && p[1] === c);
           if (idx >= 0) {
             kelas = "tv-ludo-path";
-            if (startSet[idx] !== undefined) kelas += ` tv-ludo-start tv-ludo-start-${startSet[idx]}`;
-            LUDO_LANES.forEach((lane, slot) => {
-              if (lane.some((p) => p[0] === r && p[1] === c)) kelas = `tv-ludo-lane tv-ludo-lane-${slot}`;
-            });
-          } else {
-            LUDO_LANES.forEach((lane, slot) => {
-              if (lane.some((p) => p[0] === r && p[1] === c)) kelas = `tv-ludo-lane tv-ludo-lane-${slot}`;
-            });
+            if (startSet[idx] !== undefined) {
+              kelas += ` tv-ludo-start tv-ludo-start-${startSet[idx]}`;
+              isi = `<span class="tv-ludo-mark" aria-hidden="true">★</span>`;
+            } else if (safeSet.has(k)) {
+              kelas += " tv-ludo-safe";
+              isi = `<span class="tv-ludo-mark" aria-hidden="true">✦</span>`;
+            }
           }
+          if (laneSet[k] !== undefined) kelas = `tv-ludo-lane tv-ludo-lane-${laneSet[k]}`;
         }
-        cells += `<span class="${kelas}"></span>`;
+        cells += `<span class="${kelas}">${isi}</span>`;
       }
     }
 
+    let dekor = "";
+    for (let slot = 0; slot < jumlahPemain && slot < 4; slot += 1) {
+      const q = LUDO_BASE_QUADRANTS[slot];
+      const top = ((q[0] + q[2]) / 2 + 0.5) / 15 * 100;
+      const left = ((q[1] + q[3]) / 2 + 0.5) / 15 * 100;
+      dekor += `<span class="tv-ludo-pad tv-ludo-pad-${slot}" style="left:${left}%;top:${top}%"><i></i><i></i><i></i><i></i></span>`;
+    }
+    dekor += `<span class="tv-ludo-home" aria-hidden="true">★</span>`;
+
     const posisi = [];
-    tokens.forEach((row, slot) => {
-      row.forEach((pos, i) => {
+    Object.keys(tokens).forEach((key) => {
+      const slot = Number(key);
+      (tokens[key] || []).forEach((pos, i) => {
         const [r, c] = ludoCell(slot, pos, i);
         posisi.push({ slot, i, pos, r, c });
       });
@@ -367,9 +450,30 @@
         const left = ((t.c + 0.5 + offset) / 15) * 100;
         const top = ((t.r + 0.5 + (list.length > 1 ? offset * 0.5 : 0)) / 15) * 100;
         const bisa = aktif && legal.includes(t.i) && t.slot === mySlot;
-        tokenHtml += `<button type="button" class="tv-ludo-token tv-ludo-token-${t.slot} ${bisa ? "is-action" : ""}" style="left:${left}%;top:${top}%" data-tv-act="ludo-token" data-token="${t.i}" ${bisa ? "" : "disabled"} title="${esc(namaPemain(room, t.slot))} bidak ${t.i + 1}">${t.i + 1}</button>`;
+        const label = labels[t.slot] || String(t.slot + 1);
+        let kelas = `tv-ludo-token tv-ludo-token-${t.slot}`;
+        if (label.length > 1) kelas += " is-dua";
+        let gaya = `left:${left}%;top:${top}%`;
+        if (mv && mv.slot === t.slot && mv.token === t.i) {
+          const [fr, fc] = ludoCell(t.slot, mv.from, t.i);
+          gaya += `;--fl:${((fc + 0.5) / 15) * 100}%;--ft:${((fr + 0.5) / 15) * 100}%`;
+          kelas += " is-moving";
+        }
+        if (bisa) kelas += " is-action";
+        tokenHtml += `<button type="button" class="${kelas}" style="${gaya}" data-tv-act="ludo-token" data-token="${t.i}" ${bisa ? "" : "disabled"} title="${esc(namaPemain(room, t.slot))} bidak ${t.i + 1}">${esc(label)}</button>`;
       });
     });
+
+    let burst = "";
+    if (mv && Array.isArray(mv.captured)) {
+      mv.captured.forEach((cap) => {
+        const [r, c] = ludoCell(cap.slot, cap.pos, cap.token);
+        burst += `<span class="tv-burst tv-burst-ludo" aria-hidden="true" style="left:${((c + 0.5) / 15) * 100}%;top:${((r + 0.5) / 15) * 100}%"></span>`;
+      });
+    }
+
+    const legenda = (room.players || []).filter((p) => !p.left).map((p) => `
+      <span class="tv-legend-chip"><b class="tv-legend-dot tv-legend-${p.slot}">${esc(labels[p.slot] || p.slot + 1)}</b>${esc(p.nama)}</span>`).join("");
 
     const dice = st.dice ? dadu(st.dice) : `<span class="tv-dice tv-dice-kosong">?</span>`;
     const status = aktif
@@ -380,12 +484,13 @@
 
     return `
       <div class="tv-board-wrap tv-ludo-wrap">
-        <div class="tv-board tv-ludo">${cells}${tokenHtml}</div>
+        <div class="tv-board tv-ludo ${segar ? "is-fresh" : ""}">${cells}${dekor}${tokenHtml}${burst}</div>
         <div class="tv-dice-row">
-          ${dice}
+          <span class="tv-dice-slot ${ui && ui.animate && st.dice ? "is-rolling" : ""}">${dice}</span>
           ${aktif && !st.rolled ? `<button type="button" class="tv-btn tv-btn-primary" data-tv-act="ludo-roll">Lempar Dadu</button>` : ""}
           <span class="tv-board-note">${status}</span>
         </div>
+        <div class="tv-board-legend">${legenda}</div>
       </div>`;
   }
 
@@ -408,66 +513,141 @@
     const row = 9 - b;
     return [row, col];
   }
-  function papanSnakes(room, mySlot) {
+  function snakePoint(n) {
+    const [r, c] = snakeCellCenter(Math.max(1, Math.min(100, Number(n) || 1)));
+    return [(c + 0.5) * 10, (r + 0.5) * 10];
+  }
+  function snakePercent(pos) {
+    const [r, c] = snakeCellCenter(Math.max(1, Math.min(100, Number(pos) || 1)));
+    return { l: ((c + 0.5) / 10) * 100, t: ((r + 0.5) / 10) * 100 };
+  }
+  function papanSnakes(room, mySlot, ui) {
     const st = room.state || {};
     const positions = st.positions || [];
+    const labels = tokenLabels(room);
     const aktif = room.status === "playing" && st.turn === mySlot;
+    const segar = !!(ui && ui.animate && !st.lastMove);
+    const mv = ui && ui.animate && st.lastMove ? st.lastMove : null;
+    const ladders = st.ladders && typeof st.ladders === "object" ? st.ladders : SNAKES_LADDERS;
+    const ular = st.snakes && typeof st.snakes === "object" ? st.snakes : SNAKES_SNAKES;
+    const kakiTangga = new Set(Object.keys(ladders).map(Number));
+    const ujungTangga = new Set(Object.keys(ladders).map((k) => Number(ladders[k])));
+    const kepalaUlar = new Set(Object.keys(ular).map(Number));
+    const ekorUlar = new Set(Object.keys(ular).map((k) => Number(ular[k])));
+
     let cells = "";
     for (let i = 0; i < 100; i += 1) {
       const rowDisplay = Math.floor(i / 10);
       const pos = i % 10;
       const b = 9 - rowDisplay;
       const n = b * 10 + (b % 2 === 0 ? pos + 1 : 10 - pos);
-      const kelas = `tv-snake-cell ${(Math.floor((n - 1) / 10) + (n % 10)) % 2 === 0 ? "is-alt" : ""} ${n === 100 ? "is-finish" : ""}`;
+      const kelas = [
+        "tv-snake-cell",
+        (Math.floor((n - 1) / 10) + (n % 10)) % 2 === 0 ? "is-alt" : "",
+        n === 1 ? "is-start" : "",
+        n === 100 ? "is-finish" : "",
+        kakiTangga.has(n) ? "is-ladder-foot" : "",
+        ujungTangga.has(n) ? "is-ladder-top" : "",
+        kepalaUlar.has(n) ? "is-snake-head" : "",
+        ekorUlar.has(n) ? "is-snake-tail" : "",
+      ].filter(Boolean).join(" ");
       cells += `<span class="${kelas}">${n}</span>`;
     }
 
-    const posisi = [];
-    positions.forEach((pos, slot) => {
-      const tampil = pos || 1; // pemain di posisi 0 tetap kelihatan di kotak start
-      let [r, c] = snakeCellCenter(tampil);
-      if (tampil === 100) [r, c] = [0, 9];
-      posisi.push({ slot, pos: tampil, r, c });
+    const posisi = positions.map((pos, slot) => {
+      const tampil = pos > 0 ? Math.min(100, pos) : 1;
+      const [r, c] = snakeCellCenter(tampil);
+      return { slot, pos: tampil, r, c };
     });
     const grup = {};
     posisi.forEach((t) => { grup[`${t.r},${t.c}`] = grup[`${t.r},${t.c}`] || []; grup[`${t.r},${t.c}`].push(t); });
     let tokens = "";
     Object.values(grup).forEach((list) => {
       list.forEach((t, idx) => {
-        const off = list.length > 1 ? (idx - (list.length - 1) / 2) * 0.24 : 0;
-        const left = ((t.c + 0.5 + off) / 10) * 100;
-        const top = ((t.r + 0.5 + (list.length > 1 ? off * 0.6 : 0)) / 10) * 100;
-        tokens += `<span class="tv-snake-token tv-ludo-token-${t.slot}" style="left:${left}%;top:${top}%">${t.slot + 1}</span>`;
+        // Bidak yang menempati kotak sama digeser menyamping supaya dua
+        // inisial tetap terbaca, bukan saling menumpuk di satu titik.
+        const off = list.length > 1 ? (idx - (list.length - 1) / 2) * 0.46 : 0;
+        const left = Math.max(4, Math.min(96, ((t.c + 0.5 + off) / 10) * 100));
+        const top = Math.max(4, Math.min(96, ((t.r + 0.5 + (list.length > 1 ? off * 0.35 : 0)) / 10) * 100));
+        const label = labels[t.slot] || String(t.slot + 1);
+        let kelas = `tv-snake-token tv-ludo-token-${t.slot}`;
+        if (list.length > 1) kelas += " is-tumpuk";
+        if (label.length > 1) kelas += " is-dua";
+        let gaya = `left:${left}%;top:${top}%`;
+        if (mv && mv.slot === t.slot) {
+          const p0 = snakePercent(mv.from);
+          const p1 = snakePercent(mv.landed);
+          gaya += `;--p0l:${p0.l}%;--p0t:${p0.t}%;--p1l:${p1.l}%;--p1t:${p1.t}%;--p2l:${left}%;--p2t:${top}%`;
+          kelas += " is-hopping";
+        }
+        tokens += `<span class="${kelas}" style="${gaya}" title="${esc(namaPemain(room, t.slot))}">${esc(label)}</span>`;
       });
     });
 
     let svg = "";
-    Object.keys(SNAKES_LADDERS).forEach((from) => {
-      const [r1, c1] = snakeCellCenter(Number(from));
-      const [r2, c2] = snakeCellCenter(SNAKES_LADDERS[from]);
-      svg += `<line x1="${(c1 + 0.5) * 10}" y1="${(r1 + 0.5) * 10}" x2="${(c2 + 0.5) * 10}" y2="${(r2 + 0.5) * 10}" class="tv-ladder-line" />`;
+    Object.keys(ladders).forEach((from) => {
+      const to = Number(ladders[from]);
+      const [x1, y1] = snakePoint(Number(from));
+      const [x2, y2] = snakePoint(to);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const px = (-dy / len) * 1.25;
+      const py = (dx / len) * 1.25;
+      const jumlah = Math.max(3, Math.round(len / 3.6));
+      let rungs = "";
+      for (let i = 1; i < jumlah; i += 1) {
+        const t = i / jumlah;
+        const cx = x1 + dx * t;
+        const cy = y1 + dy * t;
+        rungs += `<line x1="${(cx + px).toFixed(2)}" y1="${(cy + py).toFixed(2)}" x2="${(cx - px).toFixed(2)}" y2="${(cy - py).toFixed(2)}" class="tv-ladder-rung" />`;
+      }
+      const nyala = mv && mv.jump === "ladder" && Number(mv.landed) === Number(from);
+      svg += `<g class="tv-ladder ${nyala ? "is-active" : ""}">
+        <line x1="${(x1 + px).toFixed(2)}" y1="${(y1 + py).toFixed(2)}" x2="${(x2 + px).toFixed(2)}" y2="${(y2 + py).toFixed(2)}" class="tv-ladder-rail" />
+        <line x1="${(x1 - px).toFixed(2)}" y1="${(y1 - py).toFixed(2)}" x2="${(x2 - px).toFixed(2)}" y2="${(y2 - py).toFixed(2)}" class="tv-ladder-rail" />
+        ${rungs}
+      </g>`;
     });
-    Object.keys(SNAKES_SNAKES).forEach((from) => {
-      const [r1, c1] = snakeCellCenter(Number(from));
-      const [r2, c2] = snakeCellCenter(SNAKES_SNAKES[from]);
-      const mx = ((c1 + c2) / 2 + (c1 % 2 === 0 ? 2.5 : -2.5)) * 10;
-      const my = ((r1 + r2) / 2) * 10;
-      svg += `<path d="M ${(c1 + 0.5) * 10} ${(r1 + 0.5) * 10} Q ${mx} ${my} ${(c2 + 0.5) * 10} ${(r2 + 0.5) * 10}" class="tv-snake-line" />`;
+    Object.keys(ular).forEach((from) => {
+      const to = Number(ular[from]);
+      const [x1, y1] = snakePoint(Number(from));
+      const [x2, y2] = snakePoint(to);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const bengkok = Math.min(9, len * 0.34);
+      const mx = (x1 + x2) / 2 + (-dy / len) * bengkok;
+      const my = (y1 + y2) / 2 + (dx / len) * bengkok;
+      const d = `M ${x1} ${y1} Q ${mx.toFixed(2)} ${my.toFixed(2)} ${x2} ${y2}`;
+      const nyala = mv && mv.jump === "snake" && Number(mv.landed) === Number(from);
+      svg += `<g class="tv-snake-body ${nyala ? "is-active" : ""}">
+        <path d="${d}" class="tv-snake-line" />
+        <path d="${d}" class="tv-snake-scale" />
+        <circle cx="${x2}" cy="${y2}" r="1.5" class="tv-snake-tail" />
+        <circle cx="${x1}" cy="${y1}" r="2.1" class="tv-snake-head" />
+        <circle cx="${(x1 - 0.7).toFixed(2)}" cy="${(y1 - 0.6).toFixed(2)}" r="0.48" class="tv-snake-eye" />
+        <circle cx="${(x1 + 0.7).toFixed(2)}" cy="${(y1 - 0.6).toFixed(2)}" r="0.48" class="tv-snake-eye" />
+      </g>`;
     });
+
+    const legenda = (room.players || []).filter((p) => !p.left).map((p) => `
+      <span class="tv-legend-chip"><b class="tv-legend-dot tv-legend-${p.slot}">${esc(labels[p.slot] || p.slot + 1)}</b>${esc(p.nama)}</span>`).join("");
 
     const dice = st.dice ? dadu(st.dice) : `<span class="tv-dice tv-dice-kosong">?</span>`;
     return `
       <div class="tv-board-wrap tv-snake-wrap">
-        <div class="tv-board tv-snake">
+        <div class="tv-board tv-snake ${segar ? "is-fresh" : ""}">
           ${cells}
           <svg class="tv-snake-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${svg}</svg>
           ${tokens}
         </div>
         <div class="tv-dice-row">
-          ${dice}
+          <span class="tv-dice-slot ${ui && ui.animate && st.dice ? "is-rolling" : ""}">${dice}</span>
           ${aktif ? `<button type="button" class="tv-btn tv-btn-primary" data-tv-act="snakes-roll">Lempar Dadu</button>` : ""}
           <span class="tv-board-note">${aktif ? "Lempar dadu, jalan otomatis." : `Menunggu ${esc(namaPemain(room, st.turn))}.`}</span>
         </div>
+        <div class="tv-board-legend">${legenda}</div>
       </div>`;
   }
 
@@ -578,6 +758,7 @@
     GAME_ORDER,
     esc,
     inisial,
+    tokenLabels,
     avatar,
     thumbnail,
     papan,

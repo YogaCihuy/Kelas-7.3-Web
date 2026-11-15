@@ -10,6 +10,16 @@
   const INVITE_FALLBACK_TTL = 120000;
   const ONLINE_MS = 75000;
 
+  // SoundFX milik Web Kelas; dibungkus biar TableVerse tetap jalan walau
+  // efek suara dimatikan atau browser memblokir audio.
+  function sfx(nama) {
+    try {
+      if (typeof SoundFX !== "undefined" && SoundFX && typeof SoundFX[nama] === "function") SoundFX[nama]();
+    } catch (err) {
+      /* suara opsional */
+    }
+  }
+
   const st = {
     inited: false,
     visible: false,
@@ -63,6 +73,7 @@
     profileFresh: null,
     profileAt: 0,
     ui: { sel: null },
+    animKey: "",
     busy: false,
     syncTimer: null,
     pollTimer: null,
@@ -841,7 +852,11 @@
     const my = mySlot(room);
     const turn = Number(room.turnSlot);
     const aktif = isMyTurn(room);
-    const papan = B.papan ? B.papan(room.gameId, room, my, { hand: st.hand, sel: st.ui.sel }) : "";
+    // Animasi hanya diputar sekali untuk tiap versi state (id room + seq).
+    const animKey = `${room.id}:${room.seq}`;
+    const animate = st.animKey === animKey ? "" : animKey;
+    st.animKey = animKey;
+    const papan = B.papan ? B.papan(room.gameId, room, my, { hand: st.hand, sel: st.ui.sel, animate }) : "";
     const handKurang = room.gameId === "uno" && room.status === "playing" && !st.handLoaded;
     return `
       <div class="tv-play-grid">
@@ -1139,6 +1154,54 @@
     st.ui.sel = null;
   }
 
+  function suaraPerubahan(lama, room) {
+    if (!lama || lama.id !== room.id) return;
+    if (lama.status === room.status && Number(lama.seq) === Number(room.seq)) return;
+    const stt = room.state || {};
+    const mv = stt.lastMove || {};
+
+    if (room.status === "playing" && lama.status !== "playing") {
+      sfx("teamsReady");
+      return;
+    }
+    if (room.status === "finished" && lama.status !== "finished") {
+      const winners = room.result && Array.isArray(room.result.winners) ? room.result.winners : [];
+      const akuMenang = winners.some((w) => Number(w.absen) === Number(st.absen));
+      if (room.draw || !winners.length) sfx("resultReveal");
+      else if (akuMenang) sfx("win");
+      else sfx("lose");
+      return;
+    }
+    if (room.status !== "playing") return;
+
+    if (room.gameId === "ttt") {
+      sfx("placePiece");
+    } else if (room.gameId === "checkers") {
+      sfx(mv.capture ? "capture" : "placePiece");
+    } else if (room.gameId === "chess") {
+      const san = String(mv.san || "");
+      if (stt.check) sfx("check");
+      else if (san.includes("x")) sfx("capture");
+      else sfx("placePiece");
+    } else if (room.gameId === "ludo") {
+      const langkahSama = JSON.stringify(lama.state && lama.state.lastMove) === JSON.stringify(stt.lastMove);
+      if (langkahSama && stt.dice) {
+        sfx("diceRoll");
+      } else if (Array.isArray(mv.captured) && mv.captured.length) {
+        sfx("capture");
+      } else if (mv.keluar) {
+        sfx("ladderUp");
+      } else {
+        sfx("placePiece");
+      }
+    } else if (room.gameId === "snakes") {
+      sfx("diceRoll");
+      const nada = mv.jump === "ladder" ? "ladderUp" : mv.jump === "snake" ? "snakeDown" : "placePiece";
+      // Selaraskan dengan animasi lompat: dadu dulu, baru efek naik/turun.
+      window.setTimeout(() => sfx(nada), 520);
+    }
+  }
+
   function langgananRoom(id) {
     if (!id) return;
     if (st.roomId === id && st.roomUnsub) return;
@@ -1159,6 +1222,7 @@
         st.roomSnapshotOk = true;
         const lama = st.room;
         const room = snap.data() || {};
+        if (lama) suaraPerubahan(lama, room);
         st.room = room;
         st.roomId = room.id || id;
         st.roomSetAt = Date.now();
@@ -1396,6 +1460,7 @@
             st.snapshotInvites = true;
             if (st.invitesSiap && baru.length) {
               const inv = baru[0];
+              sfx("notify");
               toast(`${inv.fromNama} mengundangmu main ${meta(inv.gameId).judul}!`, "invite");
             }
             st.invitesSiap = true;
@@ -1918,6 +1983,9 @@
   function onAppClick(e) {
     const el = e.target.closest("[data-tv-tab], [data-tv-play], [data-tv-open-invites], [data-tv-open-room], [data-tv-hub], [data-tv-ready], [data-tv-start], [data-tv-kick], [data-tv-leave], [data-tv-visibility], [data-tv-invite-room], [data-tv-rematch], [data-tv-back-hub], [data-tv-copy-code], [data-tv-refresh-players], [data-tv-challenge], [data-tv-challenge-game], [data-tv-reload-history], [data-tv-reload-profile], [data-tv-login], [data-tv-retry-hand], [data-tv-act]");
     if (!el) return;
+
+    const actSuara = el.getAttribute("data-tv-act") || "";
+    if (["ttt", "chk", "chess", "ludo-token", "ludo-roll", "snakes-roll"].indexOf(actSuara) < 0) sfx("buttonClick");
 
     if (el.hasAttribute("data-tv-tab")) {
       st.tab = el.getAttribute("data-tv-tab");
