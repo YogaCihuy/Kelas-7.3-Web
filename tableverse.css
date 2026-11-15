@@ -1272,9 +1272,9 @@
   box-shadow: 0 18px 32px -18px rgba(0, 0, 0, 0.55);
   background: #f6f1e3;
 }
-.tv-board.is-fresh { animation: tv-board-in 0.42s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+.tv-board.is-fresh { animation: tv-board-in 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
 @keyframes tv-board-in {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  from { opacity: 0; transform: scale(0.94) translateY(12px); }
   to { opacity: 1; transform: none; }
 }
 .tv-board-note {
@@ -1307,6 +1307,12 @@
 .tv-ttt-cell.is-o { color: #c8702f; }
 .tv-ttt-cell.is-open:hover { background: #fffdf5; transform: translateY(-2px); box-shadow: 0 8px 14px -10px rgba(0, 0, 0, 0.4); }
 .tv-ttt-cell.is-last { box-shadow: inset 0 0 0 3px #e6b450; }
+.tv-ttt-cell.is-pop span { display: inline-block; animation: tv-mark-pop 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+@keyframes tv-mark-pop {
+  0% { opacity: 0; transform: scale(0.2) rotate(-14deg); }
+  60% { opacity: 1; transform: scale(1.18) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
 .tv-ttt-cell:disabled { cursor: default; }
 
 /* Checkers */
@@ -1348,7 +1354,7 @@
   place-items: center;
   pointer-events: none;
 }
-.tv-chk-holder.is-moving { animation: tv-chk-move 0.26s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.tv-chk-holder.is-moving { animation: tv-chk-move 0.48s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .tv-chk-holder.is-moving .tv-chk-piece { box-shadow: 0 10px 16px -6px rgba(0, 0, 0, 0.5), inset 0 -4px 0 rgba(0, 0, 0, 0.2); }
 @keyframes tv-chk-move {
   from { transform: translate(var(--dx, 0%), var(--dy, 0%)) scale(1.08); }
@@ -1420,7 +1426,7 @@
   place-items: center;
   pointer-events: none;
 }
-.tv-chess-holder.is-moving { animation: tv-chk-move 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.tv-chess-holder.is-moving { animation: tv-chk-move 0.52s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .tv-chess-piece { font-size: clamp(1.4rem, 5.5vw, 2.6rem); line-height: 1; pointer-events: none; }
 .tv-chess-piece.is-putih { color: #fffdf7; text-shadow: 0 1px 0 #8a7458, 0 -1px 0 #8a7458, 1px 0 0 #8a7458, -1px 0 0 #8a7458, 0 3px 4px rgba(0, 0, 0, 0.25); }
 .tv-chess-piece.is-hitam { color: #223a31; text-shadow: 0 2px 3px rgba(255, 255, 255, 0.25); }
@@ -1534,10 +1540,8 @@
 .tv-ludo-token-2 { background: radial-gradient(circle at 32% 26%, #7fdaa9, #2f8a5b 72%, #1f6440); }
 .tv-ludo-token-3 { background: radial-gradient(circle at 32% 26%, #93aae6, #4766a8 72%, #324a80); }
 .tv-ludo-token.is-action { cursor: pointer; box-shadow: 0 0 0 3px #ffe28a, 0 3px 6px rgba(0, 0, 0, 0.35); animation: tv-pulse 1.2s ease-in-out infinite; z-index: 5; }
-.tv-ludo-token.is-moving { animation: tv-ludo-glide 0.42s cubic-bezier(0.25, 0.9, 0.3, 1); z-index: 6; }
-@keyframes tv-ludo-glide {
-  from { left: var(--fl, 50%); top: var(--ft, 50%); }
-}
+/* Gerakan bidak Ludo diatur JS (satu kotak per satu), CSS cuma naikkan lapisan. */
+.tv-ludo-token.is-moving { z-index: 6; }
 @keyframes tv-pulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); }
   50% { transform: translate(-50%, -50%) scale(1.14); }
@@ -1556,7 +1560,7 @@
 
 .tv-dice-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .tv-dice-slot { display: inline-grid; }
-.tv-dice-slot.is-rolling .tv-dice { animation: tv-dice-roll 0.55s cubic-bezier(0.3, 0.8, 0.3, 1); }
+.tv-dice-slot.is-rolling .tv-dice { animation: tv-dice-roll 0.78s cubic-bezier(0.3, 0.8, 0.3, 1); }
 @keyframes tv-dice-roll {
   0% { transform: rotate(-14deg) scale(0.8); }
   35% { transform: rotate(11deg) scale(1.14); }
@@ -1697,12 +1701,8 @@
 }
 .tv-snake-token.is-dua { font-size: clamp(0.36rem, 1vw, 0.56rem); letter-spacing: -0.04em; }
 .tv-snake-token.is-tumpuk { width: 6.4%; }
-.tv-snake-token.is-hopping { animation: tv-snake-hop 0.74s cubic-bezier(0.3, 0.8, 0.3, 1); z-index: 6; }
-@keyframes tv-snake-hop {
-  0% { left: var(--p0l); top: var(--p0t); transform: translate(-50%, -50%) scale(1); }
-  45% { left: var(--p1l); top: var(--p1t); transform: translate(-50%, -50%) scale(1.22); }
-  100% { left: var(--p2l); top: var(--p2t); transform: translate(-50%, -50%) scale(1); }
-}
+/* Gerakan bidak Ular Tangga diatur JS (kotak per kotak + jalur ular/tangga). */
+.tv-snake-token.is-hopping { z-index: 6; }
 .tv-snake-token.tv-ludo-token-0 { background: radial-gradient(circle at 32% 26%, #ff9d90, #c94b40 72%, #93312a); }
 .tv-snake-token.tv-ludo-token-1 { background: radial-gradient(circle at 32% 26%, #ffd68a, #d49a27 72%, #a4711a); }
 .tv-snake-token.tv-ludo-token-2 { background: radial-gradient(circle at 32% 26%, #7fdaa9, #2f8a5b 72%, #1f6440); }
@@ -1710,11 +1710,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tv-board.is-fresh,
+  .tv-ttt-cell.is-pop span,
   .tv-chk-holder.is-moving,
   .tv-chess-holder.is-moving,
-  .tv-ludo-token.is-moving,
   .tv-ludo-token.is-action,
-  .tv-snake-token.is-hopping,
   .tv-dice-slot.is-rolling .tv-dice,
   .tv-chk-burst,
   .tv-burst,

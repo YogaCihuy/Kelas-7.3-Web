@@ -384,9 +384,89 @@
       updateBadges();
       return;
     }
-    if (st.screen === "room" && st.room) app.innerHTML = renderRoom();
-    else app.innerHTML = renderHub();
+    if (st.screen === "room" && st.room) {
+      app.innerHTML = renderRoom();
+      if (st.visible) jalankanAnimasiPapan();
+    } else {
+      app.innerHTML = renderHub();
+    }
     updateBadges();
+  }
+
+  /* ---------------- animasi papan ---------------- */
+
+  function gerakLangkah(el, titik) {
+    if (!el || !titik || titik.length < 2) return;
+    const total = titik.reduce((n, p) => n + (Number(p.ms) || 0), 0);
+    if (!(total > 0)) return;
+    el.style.left = `${titik[0].l}%`;
+    el.style.top = `${titik[0].t}%`;
+    const frames = [{
+      offset: 0,
+      left: `${titik[0].l}%`,
+      top: `${titik[0].t}%`,
+      transform: "translate(-50%, -50%) scale(1)",
+    }];
+    let jalan = 0;
+    for (let i = 1; i < titik.length; i += 1) {
+      const ms = Number(titik[i].ms) || 0;
+      jalan += ms;
+      frames.push({
+        offset: Math.max(0.001, (jalan - ms * 0.45) / total),
+        left: `${titik[i].l}%`,
+        top: `${titik[i].t}%`,
+        transform: "translate(-50%, -50%) scale(1.22)",
+        easing: "ease-in-out",
+      });
+      frames.push({
+        offset: Math.min(1, jalan / total),
+        left: `${titik[i].l}%`,
+        top: `${titik[i].t}%`,
+        transform: "translate(-50%, -50%) scale(1)",
+        easing: "ease-in-out",
+      });
+    }
+    try {
+      el.animate(frames, { duration: total, fill: "forwards" });
+    } catch (err) {
+      el.style.left = `${titik[titik.length - 1].l}%`;
+      el.style.top = `${titik[titik.length - 1].t}%`;
+    }
+  }
+
+  function tundaMuncul(el, ms) {
+    if (!el) return;
+    el.style.display = "none";
+    window.setTimeout(() => { el.style.display = ""; }, Math.max(0, ms));
+  }
+
+  function jalankanAnimasiPapan() {
+    const room = st.room;
+    if (!room || room.status !== "playing") return;
+    const stt = room.state || {};
+    const mv = stt.lastMove;
+    if (!mv) return;
+    // Markup hanya membawa penanda gerak saat state baru, jadi aman dari dobel.
+    const kurangi = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (room.gameId === "ludo") {
+      const el = document.querySelector(`.tv-ludo-token[data-token="${Number(mv.token)}"].is-moving`);
+      if (!el) return;
+      const jalur = B.ludoTrack ? B.ludoTrack(mv.slot, Number(mv.token), mv.from, mv.to) : [];
+      if (!kurangi) gerakLangkah(el, jalur.map((p, i) => ({ l: p.l, t: p.t, ms: i === 0 ? 0 : 230 })));
+      const total = Math.max(0, (jalur.length - 1) * 230);
+      document.querySelectorAll(".tv-ludo .tv-burst").forEach((b) => tundaMuncul(b, total));
+      return;
+    }
+    if (room.gameId === "snakes") {
+      const el = document.querySelector(`.tv-snake-token[data-slot="${Number(mv.slot)}"].is-hopping`);
+      if (!el) return;
+      const jalur = B.snakeTrack ? B.snakeTrack(mv, 250) : [];
+      if (!kurangi) gerakLangkah(el, jalur);
+      return;
+    }
+    if (room.gameId === "checkers") {
+      document.querySelectorAll(".tv-chk-burst").forEach((b) => tundaMuncul(b, 230));
+    }
   }
 
   function renderJikaBoleh() {
@@ -1177,28 +1257,37 @@
     if (room.gameId === "ttt") {
       sfx("placePiece");
     } else if (room.gameId === "checkers") {
-      sfx(mv.capture ? "capture" : "placePiece");
+      // Bunyi tangkap menyusul supaya pas dengan bidak yang mendarat.
+      if (mv.capture) window.setTimeout(() => sfx("capture"), 230);
+      else sfx("placePiece");
     } else if (room.gameId === "chess") {
       const san = String(mv.san || "");
-      if (stt.check) sfx("check");
-      else if (san.includes("x")) sfx("capture");
+      if (stt.check) window.setTimeout(() => sfx("check"), 280);
+      else if (san.includes("x")) window.setTimeout(() => sfx("capture"), 280);
       else sfx("placePiece");
     } else if (room.gameId === "ludo") {
       const langkahSama = JSON.stringify(lama.state && lama.state.lastMove) === JSON.stringify(stt.lastMove);
       if (langkahSama && stt.dice) {
         sfx("diceRoll");
-      } else if (Array.isArray(mv.captured) && mv.captured.length) {
-        sfx("capture");
-      } else if (mv.keluar) {
-        sfx("ladderUp");
       } else {
-        sfx("placePiece");
+        const dari = Number(mv.from);
+        const ke = Number(mv.to);
+        const jumlah = dari === -1 ? ke + 1 : Math.max(1, ke - dari);
+        const durasi = jumlah * 230;
+        if (mv.keluar) sfx("ladderUp");
+        else sfx("placePiece");
+        if (Array.isArray(mv.captured) && mv.captured.length) {
+          window.setTimeout(() => sfx("capture"), Math.max(140, durasi));
+        }
       }
     } else if (room.gameId === "snakes") {
       sfx("diceRoll");
+      const dari = Number(mv.from) || 0;
+      const mendarat = Math.min(100, Number(mv.landed) || dari + 1);
+      const durasi = Math.max(1, mendarat - dari) * 250;
       const nada = mv.jump === "ladder" ? "ladderUp" : mv.jump === "snake" ? "snakeDown" : "placePiece";
-      // Selaraskan dengan animasi lompat: dadu dulu, baru efek naik/turun.
-      window.setTimeout(() => sfx(nada), 520);
+      // Selaraskan dengan animasi: jalan kotak per kotak dulu, baru efek naik/turun.
+      window.setTimeout(() => sfx(nada), durasi);
     }
   }
 

@@ -3031,6 +3031,64 @@
   color: #b52548;
 }
 
+.like-siapa {
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e2efe7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.like-siapa-title {
+  margin: 0 0 0.4rem;
+  color: var(--forest);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.like-siapa-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.like-siapa-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.25rem;
+  border-radius: 999px;
+  background: var(--mint);
+  color: var(--forest);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.like-siapa-avatar {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--emerald);
+  color: var(--white);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.like-siapa-kosong {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 480px) {
+  .like-siapa { padding: 0.5rem 0.55rem; }
+  .like-siapa-item { font-size: 0.74rem; }
+}
+
 .like-btn.is-liked .like-heart {
   color: #e0355f;
   animation: sosial-heart-pop 0.4s cubic-bezier(0.3, 1.4, 0.5, 1);
@@ -3096,8 +3154,44 @@
 
 .komentar-kepala {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.45rem;
+}
+
+.komentar-aksi {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.komentar-balas-btn {
+  border: none;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: transparent;
+  color: #2f8a5b;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.komentar-balas-btn:hover { background: #e4f4ea; color: #1f6d52; }
+
+.komentar-balas-ke {
+  margin: 0.15rem 0 0;
+  color: #2f8a5b;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.komentar-anak {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0 0.6rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid #cfe6d8;
 }
 
 .komentar-nama {
@@ -3112,7 +3206,6 @@
 }
 
 .komentar-hapus {
-  margin-left: auto;
   width: 1.45rem;
   height: 1.45rem;
   border: none;
@@ -3134,6 +3227,36 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.komentar-balas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #e4f4ea;
+  color: #1f6d52;
+  font-size: 0.76rem;
+}
+
+.komentar-balas[hidden] { display: none; }
+.komentar-balas strong { font-weight: 700; }
+
+.komentar-balas-batal {
+  margin-left: auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(31, 109, 82, 0.12);
+  color: #1f6d52;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.komentar-balas-batal:hover { background: rgba(31, 109, 82, 0.22); }
 
 .komentar-form {
   display: flex;

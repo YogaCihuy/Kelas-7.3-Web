@@ -169,6 +169,7 @@ const sosialState = {        // like & komentar biodata siswa
   likesUnsub: null,
   komentar: [],
   komentarUnsub: null,
+  balas: null,               // { id, nama } komentar yang sedang dibalas
   target: null,
   likeBusy: false,
   komentarKirim: false,
@@ -927,11 +928,51 @@ function renderLikeDetail() {
   btn.setAttribute("aria-pressed", String(info.aku));
   const akuEl = document.getElementById("like-aku");
   if (akuEl) akuEl.hidden = !info.aku;
+  renderLikeSiapa(absen);
 }
+
+function escSosial(teks) {
+  return String(teks).replace(/[&<>"']/g, (ch) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
+  ));
+}
+
+function renderLikeSiapa(absen) {
+  const box = document.getElementById("like-siapa");
+  const list = document.getElementById("like-siapa-list");
+  if (!box || !list) return;
+  const milikku = !!(currentUser && Number(currentUser.absen) === Number(absen));
+  if (!milikku) {
+    box.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  const data = sosialState.likes[String(absen)] || {};
+  const daftar = Object.keys(data.users || {})
+    .map(Number)
+    .filter((n) => n > 0)
+    .sort((a, b) => a - b);
+  box.hidden = false;
+  if (!daftar.length) {
+    list.innerHTML = '<li class="like-siapa-kosong">Belum ada yang like biodatamu.</li>';
+    return;
+  }
+  list.innerHTML = daftar.map((n) => {
+    const akun = getMergedAccount(n);
+    const nama = (akun && akun.namaPanggilan) || `Siswa ${n}`;
+    const inisial = nama.trim().charAt(0).toUpperCase() || "?";
+    return `<li class="like-siapa-item">
+      <span class="like-siapa-avatar" aria-hidden="true">${escSosial(inisial)}</span>
+      <span class="like-siapa-nama">${escSosial(nama)}</span>
+    </li>`;
+  }).join("");
+}
+
 
 function bukaSosialDetail(absen) {
   sosialState.target = Number(absen);
   sosialState.komentar = [];
+  batalBalas();
   setSosialHint("");
   const input = document.getElementById("komentar-input");
   if (input) input.value = "";
@@ -1008,6 +1049,72 @@ function waktuRelatif(ts) {
   return new Date(Number(ts)).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function buatItemKomentar(k, anakDari) {
+  const item = document.createElement("div");
+  item.className = "komentar-item";
+
+  const kepala = document.createElement("div");
+  kepala.className = "komentar-kepala";
+
+  const nama = document.createElement("strong");
+  nama.className = "komentar-nama";
+  nama.textContent = k.nama || "Siswa";
+  kepala.appendChild(nama);
+
+  const waktu = document.createElement("span");
+  waktu.className = "komentar-waktu";
+  waktu.textContent = waktuRelatif(k.createdAt);
+  kepala.appendChild(waktu);
+
+  const aksi = document.createElement("span");
+  aksi.className = "komentar-aksi";
+
+  const balas = document.createElement("button");
+  balas.type = "button";
+  balas.className = "komentar-balas-btn";
+  balas.setAttribute("data-balas-komentar", k.id);
+  balas.textContent = "Balas";
+  aksi.appendChild(balas);
+
+  const bolehHapus = currentUser && (
+    Number(k.absen) === Number(currentUser.absen) ||
+    currentUser.role === "admin" ||
+    currentUser.role === "owner"
+  );
+  if (bolehHapus) {
+    const hapus = document.createElement("button");
+    hapus.type = "button";
+    hapus.className = "komentar-hapus";
+    hapus.setAttribute("data-hapus-komentar", k.id);
+    hapus.setAttribute("aria-label", "Hapus komentar");
+    hapus.textContent = "×";
+    aksi.appendChild(hapus);
+  }
+  kepala.appendChild(aksi);
+  item.appendChild(kepala);
+
+  if (k.balasKe) {
+    const tanda = document.createElement("p");
+    tanda.className = "komentar-balas-ke";
+    tanda.textContent = `Membalas ${k.balasNama || "komentar"}`;
+    item.appendChild(tanda);
+  }
+
+  const teks = document.createElement("p");
+  teks.className = "komentar-teks";
+  teks.textContent = k.pesan || "";
+  item.appendChild(teks);
+
+  const balasan = anakDari.get(k.id) || [];
+  if (balasan.length) {
+    const wadah = document.createElement("div");
+    wadah.className = "komentar-anak";
+    balasan.forEach((b) => wadah.appendChild(buatItemKomentar(b, anakDari)));
+    item.appendChild(wadah);
+  }
+  return item;
+}
+
 function renderKomentar() {
   const list = document.getElementById("komentar-list");
   if (!list) return;
@@ -1023,46 +1130,57 @@ function renderKomentar() {
     return;
   }
 
+  // Balasan ditempel di bawah komentar induknya (thread satu tingkat ke bawah).
+  const peta = new Map(sosialState.komentar.map((k) => [k.id, k]));
+  const anakDari = new Map();
+  const akar = [];
   sosialState.komentar.forEach((k) => {
-    const item = document.createElement("div");
-    item.className = "komentar-item";
-
-    const kepala = document.createElement("div");
-    kepala.className = "komentar-kepala";
-
-    const nama = document.createElement("strong");
-    nama.className = "komentar-nama";
-    nama.textContent = k.nama || "Siswa";
-    kepala.appendChild(nama);
-
-    const waktu = document.createElement("span");
-    waktu.className = "komentar-waktu";
-    waktu.textContent = waktuRelatif(k.createdAt);
-    kepala.appendChild(waktu);
-
-    const bolehHapus = currentUser && (
-      Number(k.absen) === Number(currentUser.absen) ||
-      currentUser.role === "admin" ||
-      currentUser.role === "owner"
-    );
-    if (bolehHapus) {
-      const hapus = document.createElement("button");
-      hapus.type = "button";
-      hapus.className = "komentar-hapus";
-      hapus.setAttribute("data-hapus-komentar", k.id);
-      hapus.setAttribute("aria-label", "Hapus komentar");
-      hapus.textContent = "×";
-      kepala.appendChild(hapus);
+    const induk = k.balasKe && peta.has(k.balasKe) ? k.balasKe : null;
+    if (induk) {
+      if (!anakDari.has(induk)) anakDari.set(induk, []);
+      anakDari.get(induk).push(k);
+    } else {
+      akar.push(k);
     }
-    item.appendChild(kepala);
-
-    const teks = document.createElement("p");
-    teks.className = "komentar-teks";
-    teks.textContent = k.pesan || "";
-    item.appendChild(teks);
-
-    list.appendChild(item);
   });
+  akar.forEach((k) => list.appendChild(buatItemKomentar(k, anakDari)));
+  renderBalas();
+}
+
+function renderBalas() {
+  const bar = document.getElementById("komentar-balas");
+  const nama = document.getElementById("komentar-balas-nama");
+  if (!bar) return;
+  const aktif = !!sosialState.balas;
+  bar.hidden = !aktif;
+  if (nama) nama.textContent = aktif ? sosialState.balas.nama || "komentar" : "";
+}
+
+function mulaiBalas(id) {
+  const item = sosialState.komentar.find((k) => k.id === id);
+  if (!item) return;
+  if (!currentUser) {
+    setSosialHint("Login dulu buat balas komentar.");
+    document.getElementById("btn-show-login").click();
+    return;
+  }
+  const nama = item.nama || "Siswa";
+  sosialState.balas = { id: item.id, nama };
+  renderBalas();
+  const input = document.getElementById("komentar-input");
+  if (input) {
+    input.placeholder = `Balas ${nama}...`;
+    input.focus();
+  }
+  SoundFX.buttonClick();
+}
+
+function batalBalas() {
+  sosialState.balas = null;
+  const bar = document.getElementById("komentar-balas");
+  if (bar) bar.hidden = true;
+  const input = document.getElementById("komentar-input");
+  if (input) input.placeholder = "Tulis komentar...";
 }
 
 async function kirimKomentar(e) {
@@ -1078,14 +1196,20 @@ async function kirimKomentar(e) {
   if (!pesan || sosialState.komentarKirim) return;
   sosialState.komentarKirim = true;
   try {
-    await db.collection("profilKomentar").add({
+    const data = {
       absenSiswa: Number(detailAbsenAktif),
       absen: Number(currentUser.absen),
       nama: currentUser.namaPanggilan || currentUser.namaLengkap,
       pesan: pesan.slice(0, 280),
       createdAt: Date.now(),
-    });
+    };
+    if (sosialState.balas) {
+      data.balasKe = sosialState.balas.id;
+      data.balasNama = String(sosialState.balas.nama || "").slice(0, 60);
+    }
+    await db.collection("profilKomentar").add(data);
     if (input) input.value = "";
+    batalBalas();
     setSosialHint("");
     SoundFX.commentPop();
   } catch (err) {
@@ -1121,15 +1245,24 @@ function setupSosial() {
   const list = document.getElementById("komentar-list");
   if (list) {
     list.addEventListener("click", (e) => {
-      const tombol = e.target.closest("[data-hapus-komentar]");
-      if (tombol) hapusKomentar(tombol.getAttribute("data-hapus-komentar"));
+      const hapus = e.target.closest("[data-hapus-komentar]");
+      if (hapus) {
+        hapusKomentar(hapus.getAttribute("data-hapus-komentar"));
+        return;
+      }
+      const balas = e.target.closest("[data-balas-komentar]");
+      if (balas) mulaiBalas(balas.getAttribute("data-balas-komentar"));
     });
   }
+
+  const batal = document.getElementById("btn-batal-balas");
+  if (batal) batal.addEventListener("click", batalBalas);
 
   muatLikeSosial();
 }
 
 function renderSosialKarenaLogin() {
+  if (!currentUser) batalBalas();
   terapkanBadgeLike();
   renderLikeDetail();
   renderKomentar();
@@ -3292,6 +3425,15 @@ function gameSvgPohon() {
 
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
+  {
+    tanggal: "15/11/26",
+    items: [
+      "Version 2.5.0 Sound Effect TableVerse: Dadu, Bidak, Skak, Sampai Menang",
+      "Version 2.5.0 Like & Komentar Biodata di Home, Bisa Balas Komentar Juga",
+      "Version 2.5.0 Animasi Bidak Ludo & Ular Tangga Jalan Satu per Satu",
+      "Version 2.5.1 Pemilik Biodata Bisa Lihat Siapa Saja yang Like Bio Nya",
+    ],
+  },
   {
     tanggal: "14/11/26",
     items: [

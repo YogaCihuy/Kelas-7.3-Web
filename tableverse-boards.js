@@ -169,17 +169,19 @@
   }
 
   /* ---------------- TIC TAC TOE ---------------- */
-  function papanTTT(room, mySlot) {
+  function papanTTT(room, mySlot, ui) {
     const st = room.state || {};
     const board = st.board || Array(9).fill(null);
     const aktif = room.status === "playing" && st.turn === mySlot;
     const last = st.lastMove ? st.lastMove.index : -1;
+    const segar = !!(ui && ui.animate && st.lastMove);
     const cells = board.map((v, i) => {
       const disabled = !aktif || !!v;
       const kelas = [
         "tv-ttt-cell",
         v ? `is-${v.toLowerCase()}` : "",
         last === i ? "is-last" : "",
+        segar && last === i ? "is-pop" : "",
         !disabled ? "is-open" : "",
       ].filter(Boolean).join(" ");
       return `<button type="button" class="${kelas}" data-tv-act="ttt" data-index="${i}" ${disabled ? "disabled" : ""} aria-label="Kotak ${i + 1}">${v ? `<span>${v}</span>` : ""}</button>`;
@@ -454,13 +456,14 @@
         let kelas = `tv-ludo-token tv-ludo-token-${t.slot}`;
         if (label.length > 1) kelas += " is-dua";
         let gaya = `left:${left}%;top:${top}%`;
+        let awal = "";
         if (mv && mv.slot === t.slot && mv.token === t.i) {
           const [fr, fc] = ludoCell(t.slot, mv.from, t.i);
-          gaya += `;--fl:${((fc + 0.5) / 15) * 100}%;--ft:${((fr + 0.5) / 15) * 100}%`;
+          awal = ` data-mv-l="${((fc + 0.5) / 15) * 100}" data-mv-t="${((fr + 0.5) / 15) * 100}"`;
           kelas += " is-moving";
         }
         if (bisa) kelas += " is-action";
-        tokenHtml += `<button type="button" class="${kelas}" style="${gaya}" data-tv-act="ludo-token" data-token="${t.i}" ${bisa ? "" : "disabled"} title="${esc(namaPemain(room, t.slot))} bidak ${t.i + 1}">${esc(label)}</button>`;
+        tokenHtml += `<button type="button" class="${kelas}" style="${gaya}" data-tv-act="ludo-token" data-token="${t.i}" data-slot="${t.slot}"${awal} ${bisa ? "" : "disabled"} title="${esc(namaPemain(room, t.slot))} bidak ${t.i + 1}">${esc(label)}</button>`;
       });
     });
 
@@ -521,6 +524,55 @@
     const [r, c] = snakeCellCenter(Math.max(1, Math.min(100, Number(pos) || 1)));
     return { l: ((c + 0.5) / 10) * 100, t: ((r + 0.5) / 10) * 100 };
   }
+
+  /* Jalur animasi bidak: satu titik per kotak supaya gerakan tidak melompat. */
+  function ludoTrack(slot, token, from, to) {
+    const f = Number(from);
+    const t = Number(to);
+    const daftar = [];
+    daftar.push(f);
+    const mulai = f === -1 ? 0 : f + 1;
+    for (let p = mulai; p <= t; p += 1) daftar.push(p);
+    if (!daftar.length) daftar.push(f);
+    return daftar.map((p) => {
+      const [r, c] = ludoCell(slot, p, token);
+      return { l: ((c + 0.5) / 15) * 100, t: ((r + 0.5) / 15) * 100 };
+    });
+  }
+
+  function snakeTrack(mv, msPerStep) {
+    const langkah = Math.max(120, Number(msPerStep) || 250);
+    const from = Math.max(0, Number(mv && mv.from) || 0);
+    const landed = Math.max(1, Math.min(100, Number(mv && mv.landed) || 1));
+    const akhir = Math.max(1, Math.min(100, Number(mv && mv.to) || landed));
+    const clampPct = (v) => Math.max(4, Math.min(96, v));
+    const mulai = snakePercent(from);
+    const titik = [{ l: clampPct(mulai.l), t: clampPct(mulai.t), ms: 0 }];
+    for (let n = Math.max(from + 1, 2); n <= landed; n += 1) {
+      const p = snakePercent(n);
+      titik.push({ l: clampPct(p.l), t: clampPct(p.t), ms: langkah });
+    }
+    const jump = mv && (mv.jump === "ladder" || mv.jump === "snake") ? mv.jump : "";
+    if (jump && akhir !== landed) {
+      const [x1, y1] = snakePoint(landed);
+      const [x2, y2] = snakePoint(akhir);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const bengkok = jump === "snake" ? Math.min(9, len * 0.34) : 0;
+      const mx = (x1 + x2) / 2 + (-dy / len) * bengkok;
+      const my = (y1 + y2) / 2 + (dx / len) * bengkok;
+      const totalMs = jump === "ladder" ? 780 : 1000;
+      const sampel = jump === "ladder" ? 6 : 10;
+      for (let i = 1; i <= sampel; i += 1) {
+        const t = i / sampel;
+        const x = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * mx + t * t * x2;
+        const y = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * my + t * t * y2;
+        titik.push({ l: clampPct(x), t: clampPct(y), ms: totalMs / sampel });
+      }
+    }
+    return titik;
+  }
   function papanSnakes(room, mySlot, ui) {
     const st = room.state || {};
     const positions = st.positions || [];
@@ -574,13 +626,13 @@
         if (list.length > 1) kelas += " is-tumpuk";
         if (label.length > 1) kelas += " is-dua";
         let gaya = `left:${left}%;top:${top}%`;
+        let awal = "";
         if (mv && mv.slot === t.slot) {
           const p0 = snakePercent(mv.from);
-          const p1 = snakePercent(mv.landed);
-          gaya += `;--p0l:${p0.l}%;--p0t:${p0.t}%;--p1l:${p1.l}%;--p1t:${p1.t}%;--p2l:${left}%;--p2t:${top}%`;
+          awal = ` data-mv-l="${p0.l}" data-mv-t="${p0.t}"`;
           kelas += " is-hopping";
         }
-        tokens += `<span class="${kelas}" style="${gaya}" title="${esc(namaPemain(room, t.slot))}">${esc(label)}</span>`;
+        tokens += `<span class="${kelas}" style="${gaya}" data-slot="${t.slot}"${awal} title="${esc(namaPemain(room, t.slot))}">${esc(label)}</span>`;
       });
     });
 
@@ -765,6 +817,8 @@
     dadu,
     ludoLegal,
     ludoCell,
+    ludoTrack,
+    snakeTrack,
     chkLegal,
     fenBoard,
     unoCard,
