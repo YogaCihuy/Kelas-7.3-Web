@@ -1365,6 +1365,159 @@ body.fishing-modal-open { overflow: hidden; }
 
 .game-card-fishing::after { background: radial-gradient(circle, rgba(63, 193, 201, 0.2), transparent 70%); }
 
+/* ================= AUTO SELL ================= */
+.fishing-autosell {
+  border: 1px solid var(--fish-line);
+  border-radius: 18px;
+  padding: 0.85rem 0.95rem;
+  background: linear-gradient(160deg, #ffffff, #f8fcfc);
+  margin-bottom: 0.9rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.fishing-autosell.is-on { border-color: #bfe5cd; background: linear-gradient(160deg, #f7fdf9, #eefaf1); }
+
+.fishing-autosell-head { display: flex; align-items: center; gap: 0.7rem; }
+.fishing-autosell-icon { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; font-size: 1.5rem; border-radius: 14px; background: linear-gradient(160deg, #eefcff, #d6f1f3); border: 1px solid #c4e8e6; }
+.fishing-autosell.is-on .fishing-autosell-icon { background: linear-gradient(160deg, #effaf3, #d7f3e2); border-color: #bfe5cd; }
+.fishing-autosell-head > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.08rem; }
+.fishing-autosell-head strong { font-family: var(--font-display); font-size: 1rem; color: var(--forest); }
+.fishing-autosell-head small { font-size: 0.72rem; color: var(--muted); line-height: 1.45; }
+
+.fishing-switch { flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+.fishing-switch input { position: absolute; width: 0; height: 0; opacity: 0; }
+.fishing-switch > span { position: relative; width: 44px; height: 25px; border-radius: 999px; background: #d9e6e5; transition: background-color 0.2s ease; }
+.fishing-switch > span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(14, 58, 68, 0.3); transition: transform 0.2s ease; }
+.fishing-switch input:checked + span { background: linear-gradient(180deg, #3fc1c9, #118a8c); }
+.fishing-switch input:checked + span::after { transform: translateX(19px); }
+.fishing-switch input:focus-visible + span { outline: 2px solid #9fdbd7; outline-offset: 2px; }
+.fishing-switch em { font-style: normal; font-size: 0.66rem; font-weight: 800; color: var(--muted); }
+
+.fishing-autosell-form { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.fishing-autosell-form label { font-size: 0.74rem; color: var(--muted); }
+.fishing-autosell-input { display: inline-flex; align-items: center; gap: 0.25rem; background: #fff; border: 1px solid var(--fish-line); border-radius: 10px; padding: 0.18rem 0.55rem; }
+.fishing-autosell-input input { width: 84px; border: none; outline: none; background: transparent; font-size: 0.88rem; font-weight: 800; color: var(--fish-deep); font-variant-numeric: tabular-nums; }
+.fishing-autosell-input span { font-size: 0.7rem; color: var(--muted); }
+.fishing-autosell-stats { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin-top: 0.65rem; font-size: 0.7rem; color: var(--muted); }
+
+.fishing-autosell-strip { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; padding: 0.65rem 0.8rem; border-radius: 14px; border: 1px solid var(--fish-line); background: #fbfdfd; margin-bottom: 0.85rem; }
+.fishing-autosell-strip.is-on { background: linear-gradient(120deg, #f1fbf4, #f9fdfb); border-color: #bfe5cd; }
+.fishing-autosell-strip .fishing-autosell-icon { width: 38px; height: 38px; font-size: 1.2rem; }
+.fishing-autosell-strip > div { flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 0.05rem; }
+.fishing-autosell-strip strong { font-size: 0.84rem; color: var(--forest); }
+.fishing-autosell-strip small { font-size: 0.71rem; color: var(--muted); line-height: 1.4; }
+
+/* ================= WORKER ================= */
+.fishing-worker-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.85rem;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #f1fbfa, #f9fdfd);
+  border: 1px solid #d9efed;
+  margin-bottom: 0.85rem;
+}
+
+.fishing-worker-count { display: flex; align-items: baseline; gap: 0.3rem; }
+.fishing-worker-count strong { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--fish-deep); font-variant-numeric: tabular-nums; }
+.fishing-worker-count span { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.fishing-worker-hint { flex: 1; min-width: 190px; font-size: 0.76rem; color: var(--muted); line-height: 1.45; }
+.fishing-worker-hint b { color: var(--fish-deep); }
+
+.fishing-worker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.8rem; }
+
+.fishing-worker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid var(--fish-line);
+  border-top: 4px solid #cfd9d8;
+  background: #fff;
+  box-shadow: 0 12px 30px -28px rgba(14, 58, 68, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fishing-worker-card:hover { transform: translateY(-2px); box-shadow: 0 18px 34px -28px rgba(14, 58, 68, 0.6); }
+.fishing-worker-card.is-working { border-top-color: #37b26b; }
+.fishing-worker-card.is-resting { border-top-color: #d9cfae; background: linear-gradient(180deg, #ffffff, #fcfbf7); }
+
+.fishing-worker-head { display: flex; align-items: center; gap: 0.6rem; }
+.fishing-worker-avatar { flex-shrink: 0; width: 48px; height: 48px; display: grid; place-items: center; font-size: 1.7rem; border-radius: 14px; background: linear-gradient(160deg, #eefcff, #d6f1f3); border: 1px solid #c4e8e6; }
+.fishing-worker-theme-1 .fishing-worker-avatar { background: linear-gradient(160deg, #fdf1e8, #f7dfc8); border-color: #f0d6b8; }
+.fishing-worker-id { flex: 1; min-width: 0; }
+.fishing-worker-id h4 { margin: 0; font-family: var(--font-display); font-size: 1.05rem; color: var(--forest); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fishing-worker-id small { display: block; font-size: 0.68rem; color: var(--muted); }
+.fishing-worker-level { flex-shrink: 0; font-size: 0.64rem; font-weight: 800; color: var(--fish-teal); background: var(--fish-foam); border: 1px solid #c9e8e6; border-radius: 999px; padding: 0.14rem 0.5rem; }
+
+.fishing-worker-status { display: flex; align-items: center; gap: 0.45rem; padding: 0.42rem 0.6rem; border-radius: 11px; font-size: 0.74rem; }
+.fishing-worker-status p { margin: 0; font-weight: 700; }
+.fishing-worker-status.is-on { background: #ecf9f1; color: #1f7a50; }
+.fishing-worker-status.is-off { background: #f7f4ea; color: #8a7434; }
+
+.fishing-worker-rod { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.55rem; border-radius: 12px; background: #f8fcfc; border: 1px solid #e4f0ef; }
+.fishing-worker-rod-art { flex-shrink: 0; width: 42px; height: 42px; display: grid; place-items: center; }
+.fishing-worker-rod-art svg { width: 100%; height: auto; }
+.fishing-worker-rod > div { flex: 1; min-width: 0; }
+.fishing-worker-rod strong { display: block; font-size: 0.8rem; color: var(--fish-ink); }
+.fishing-worker-rod small { display: block; font-size: 0.65rem; color: var(--muted); margin-bottom: 0.15rem; }
+
+.fishing-worker-meter { display: flex; flex-direction: column; gap: 0.22rem; }
+.fishing-worker-meter-label { display: flex; align-items: center; justify-content: space-between; font-size: 0.67rem; color: var(--muted); }
+.fishing-worker-meter-label b { color: var(--fish-teal); font-variant-numeric: tabular-nums; }
+.fishing-worker-bar { height: 10px; border-radius: 999px; background: #e7f2f1; overflow: hidden; box-shadow: inset 0 1px 3px rgba(14, 58, 68, 0.12); }
+.fishing-worker-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3fc1c9, #118a8c); transition: width 0.6s linear; }
+.fishing-worker-card.is-resting .fishing-worker-bar span { background: #cfc6ad; }
+.fishing-worker-meter small { font-size: 0.64rem; color: var(--muted); }
+
+.fishing-worker-stats { display: flex; flex-wrap: wrap; gap: 0.3rem 0.85rem; font-size: 0.7rem; color: var(--muted); }
+.fishing-worker-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; }
+.fishing-worker-actions .fishing-mini-btn { flex: 1 1 auto; }
+
+/* Form worker */
+.fishing-worker-form h3, .fishing-worker-rods h3 { font-size: 1.35rem; margin: 0.15rem 0 0.75rem; }
+.fishing-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.65rem; }
+.fishing-field > span { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.fishing-field input, .fishing-field select { width: 100%; border: 1px solid var(--fish-line); border-radius: 11px; padding: 0.55rem 0.65rem; font-size: 0.86rem; color: var(--fish-ink); background: #fbfdfd; }
+.fishing-field input:focus, .fishing-field select:focus { outline: 2px solid #9fdbd7; outline-offset: 1px; border-color: #9fdbd7; background: #fff; }
+
+.fishing-look-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+.fishing-look-btn { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; border: 1px solid var(--fish-line); background: #fff; border-radius: 12px; padding: 0.42rem 0.25rem; color: var(--muted); font-size: 0.62rem; font-weight: 700; transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease; }
+.fishing-look-btn span { font-size: 1.45rem; line-height: 1.1; }
+.fishing-look-btn:hover { border-color: #b7e0dd; transform: translateY(-1px); }
+.fishing-look-btn.is-active { border-color: #37b26b; background: #ecf9f1; color: #1f7a50; box-shadow: inset 0 0 0 1px #bfe5cd; }
+
+.fishing-modal-note { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin: 0 0 0.6rem; }
+.fishing-rod-pick-list { display: flex; flex-direction: column; gap: 0.45rem; max-height: 46vh; overflow-y: auto; margin-bottom: 0.2rem; padding-right: 0.15rem; }
+.fishing-rod-pick { display: flex; align-items: center; gap: 0.6rem; border: 1px solid var(--fish-line); border-radius: 14px; padding: 0.5rem 0.6rem; background: #fff; }
+.fishing-rod-pick.is-active { border-color: #a9ddc1; background: #f5fdf8; }
+.fishing-rod-pick .fishing-list-art { width: 52px; height: 52px; }
+.fishing-rod-pick .fishing-list-body { flex: 1; min-width: 0; }
+
+/* Penanda joran dipakai worker */
+.fishing-tag.is-worker { color: #6a4c12; border-style: solid; border-color: #f0e2b8; background: #fff8e8; }
+.fishing-list-row.is-worker-rod { border-color: #f0e2b8; background: linear-gradient(180deg, #fffdf7, #fffaf0); }
+.fishing-new-badge.is-auto { background: linear-gradient(180deg, #f2b64f, #d99323); box-shadow: 0 3px 8px -4px rgba(217, 147, 35, 0.8); }
+
+@media (max-width: 720px) {
+  .fishing-worker-grid { grid-template-columns: minmax(0, 1fr); }
+  .fishing-autosell-head { align-items: flex-start; }
+  .fishing-autosell-form { align-items: stretch; }
+  .fishing-autosell-form label { flex: 1 1 100%; }
+  .fishing-autosell-input { flex: 1; }
+  .fishing-autosell-form .fishing-mini-btn { flex: 1 1 auto; }
+  .fishing-autosell-strip > div { min-width: 0; }
+}
+
+@media (max-width: 480px) {
+  .fishing-worker-actions .fishing-mini-btn { flex: 1 1 100%; }
+  .fishing-look-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fishing-autosell-stats { flex-direction: column; gap: 0.2rem; }
+}
+
 /* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {
   .fishing-grid-2 { grid-template-columns: minmax(0, 1fr); }

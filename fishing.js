@@ -10,7 +10,7 @@
 
   const REGION = "us-central1";
   const FUNCTION_NAME = "fishingApi";
-  const CAT_KEY = "kelas73-fishing-catalog-v1";
+  const CAT_KEY = "kelas73-fishing-catalog-v2";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
 
@@ -41,6 +41,8 @@
     baitMap: {},
     achMap: {},
     terakhirState: 0,
+    tickTimer: null,
+    terakhirTickWorker: 0,
   };
 
   let artSeq = 0;
@@ -247,12 +249,32 @@
       collection[id] = { caught: Math.max(0, Number(rec && rec.caught) || 0), firstAt: tsMs(rec && rec.firstAt) };
     });
     const rods = Array.isArray(raw.rods) ? raw.rods.map((r) => ({ id: String(r && r.id), durability: Math.max(0, Number(r && r.durability) || 0) })) : [];
+    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 3;
+    const maxLevel = (FC.cat && FC.cat.worker && FC.cat.worker.maxLevel) || 6;
+    const workers = (Array.isArray(raw.workers) ? raw.workers : []).slice(0, maxWorker).map((w, i) => ({
+      id: String((w && w.id) || `w-${i + 1}`),
+      name: String((w && w.name) || `Worker ${i + 1}`),
+      gender: String((w && w.gender) || "laki"),
+      look: String((w && w.look) || "topi"),
+      level: Math.max(0, Math.min(maxLevel, Number(w && w.level) || 0)),
+      rodId: String((w && w.rodId) || ""),
+      lastCatchAt: tsMs(w && w.lastCatchAt),
+      catches: Math.max(0, Number(w && w.catches) || 0),
+      earned: Math.max(0, Number(w && w.earned) || 0),
+      hiredAt: tsMs(w && w.hiredAt),
+    }));
+    const dipakaiWorker = new Set(workers.map((w) => w.rodId).filter(Boolean));
+    let equippedRod = String(raw.equippedRod || "");
+    if (!equippedRod || dipakaiWorker.has(equippedRod) || !rods.some((r) => r.id === equippedRod)) {
+      const bebas = rods.find((r) => !dipakaiWorker.has(r.id));
+      equippedRod = bebas ? bebas.id : "";
+    }
     return {
       absen: Number(raw.absen) || 0,
       name: String(raw.name || ""),
       coins: Math.max(0, Number(raw.coins) || 0),
       rods,
-      equippedRod: String(raw.equippedRod || (rods[0] && rods[0].id) || "bambu"),
+      equippedRod,
       baits: Object.assign({}, raw.baits || {}),
       equippedBait: String(raw.equippedBait || "cacing"),
       fish: Object.assign({}, raw.fish || {}),
@@ -263,6 +285,11 @@
       stats: normStats(raw.stats),
       achievements: Object.assign({}, raw.achievements || {}),
       activeCast: raw.activeCast || null,
+      autoSell: {
+        enabled: !!(raw.autoSell && raw.autoSell.enabled === true),
+        minPrice: Math.max(0, Math.min(1000000, Math.floor(Number(raw.autoSell && raw.autoSell.minPrice) || 0))),
+      },
+      workers,
       createdAt: tsMs(raw.createdAt),
       updatedAt: tsMs(raw.updatedAt),
     };
@@ -314,7 +341,53 @@
 
   function rodDipakai() {
     if (!FC.state) return null;
-    return FC.state.rods.find((r) => r.id === FC.state.equippedRod) || FC.state.rods[0] || null;
+    const dipakai = new Set(FC.state.workers.map((w) => w.rodId).filter(Boolean));
+    return FC.state.rods.find((r) => r.id === FC.state.equippedRod && !dipakai.has(r.id))
+      || FC.state.rods.find((r) => !dipakai.has(r.id))
+      || null;
+  }
+
+  function akurasiPemain(s) {
+    if (!s || !s.stats || !s.stats.casts) return 0;
+    const tangkapanPemain = Math.max(0, (Number(s.stats.catches) || 0) - (Number(s.stats.workerCatches) || 0));
+    return Math.min(100, Math.round((tangkapanPemain / s.stats.casts) * 100));
+  }
+
+  function infoWorker() { return (FC.cat && FC.cat.worker) || {}; }
+  function workerMax() { return Number(infoWorker().max) || 3; }
+  function workerPrice() { return Number(infoWorker().price) || 3000; }
+  function workerLevelMaks() { return Number(infoWorker().maxLevel) || 6; }
+  function kecepatanWorker(level) {
+    const base = Number(infoWorker().baseSpeedMs) || 60000;
+    const min = Number(infoWorker().minSpeedMs) || 30000;
+    const step = Number(infoWorker().stepMs) || 5000;
+    return Math.max(min, base - Math.max(0, Math.min(workerLevelMaks(), Number(level) || 0)) * step);
+  }
+  function biayaUpgradeWorker(level) {
+    const arr = infoWorker().upgradeCosts || [];
+    return Number(arr[Math.max(0, Math.min(workerLevelMaks(), Number(level) || 0))] || 0);
+  }
+  function rodPemakai(rodId) {
+    if (!FC.state || !rodId) return null;
+    return FC.state.workers.find((w) => w.rodId === rodId) || null;
+  }
+  function infoGender(id) {
+    return (infoWorker().genders || []).find((g) => g.id === id) || { id, label: id || "—" };
+  }
+  function infoLook(id) {
+    return (infoWorker().looks || []).find((l) => l.id === id) || { id, emoji: "🧑", label: "Nelayan" };
+  }
+  function statusWorker(w) {
+    const rod = FC.state ? FC.state.rods.find((r) => r.id === w.rodId) : null;
+    const info = rod ? infoRod(rod.id) : null;
+    if (!rod) return { kode: "tanpa", label: "Istirahat · belum dikasih joran", rod: null, info: null };
+    if (Number(rod.durability) <= 0) return { kode: "rusak", label: "Istirahat · joran rusak", rod, info };
+    return { kode: "kerja", label: "Sedang memancing", rod, info };
+  }
+  function progresWorker(w) {
+    if (!w || !w.lastCatchAt) return 0;
+    const speed = kecepatanWorker(w.level);
+    return Math.max(0, Math.min(1, (serverNow() - w.lastCatchAt) / speed));
   }
 
   function infoRod(id) { return FC.rodMap[id] || null; }
@@ -654,6 +727,7 @@
     ["area", "🎣", "Mancing"],
     ["toko", "🛒", "Toko"],
     ["tas", "🎒", "Tas"],
+    ["pekerja", "👷", "Worker"],
     ["koleksi", "📖", "Koleksi"],
     ["peringkat", "🏆", "Peringkat"],
     ["legenda", "👑", "Legenda"],
@@ -689,7 +763,7 @@
         <div class="fishing-hero-stats">
           <div><span>Total tangkapan</span><strong>${angka(s.totalCaught)}</strong></div>
           <div><span>Spesies</span><strong>${angka(species)}/${(FC.cat.fish || []).length}</strong></div>
-          <div><span>Akurasi</span><strong>${s.stats.casts ? Math.round((s.stats.catches / s.stats.casts) * 100) : 0}%</strong></div>
+          <div><span>Akurasi</span><strong>${akurasiPemain(s)}%</strong></div>
         </div>
       </header>`;
   }
@@ -759,6 +833,7 @@
       case "area": return panelArea();
       case "toko": return panelToko();
       case "tas": return panelTas();
+      case "pekerja": return panelWorker();
       case "koleksi": return panelKoleksi();
       case "peringkat": return panelPeringkat();
       case "legenda": return panelLegenda();
@@ -835,6 +910,7 @@
             </div>
             <div class="fishing-quick-links">
               <button type="button" data-fish-nav="tas">🎒 Buka Tas</button>
+              <button type="button" data-fish-nav="pekerja">👷 Worker</button>
               <button type="button" data-fish-nav="koleksi">📖 Koleksi</button>
               <button type="button" data-fish-nav="peringkat">🏆 Peringkat</button>
               <button type="button" data-fish-nav="profil">👤 Profil</button>
@@ -871,6 +947,102 @@
             </div>
           </article>
         </div>
+      </div>`;
+  }
+
+  /* ================= PANEL: WORKER ================= */
+  function autoSellRingkas() {
+    const auto = (FC.state && FC.state.autoSell) || { enabled: false, minPrice: 0 };
+    return `<article class="fishing-autosell-strip ${auto.enabled ? "is-on" : ""}">
+      <span class="fishing-autosell-icon" aria-hidden="true">🤖</span>
+      <div>
+        <strong>Auto Sell ${auto.enabled ? "aktif" : "nonaktif"}</strong>
+        <small>${auto.enabled ? `Ikan baru di bawah 💰 ${angka(auto.minPrice)} langsung dijual.` : "Atur ambang harga di Tas supaya tangkapan kecil langsung terjual."}</small>
+      </div>
+      <button class="btn-secondary fishing-mini-btn" type="button" data-fish-nav="tas">Atur di Tas</button>
+    </article>`;
+  }
+
+  function workerCard(w) {
+    const st = statusWorker(w);
+    const look = infoLook(w.look);
+    const gender = infoGender(w.gender);
+    const speed = kecepatanWorker(w.level);
+    const maxLv = workerLevelMaks();
+    const biaya = biayaUpgradeWorker(w.level);
+    const maks = w.level >= maxLv;
+    const pct = Math.round(progresWorker(w) * 100);
+    const durasiRod = st.rod && st.info ? Math.round((st.rod.durability / st.info.durability) * 100) : 0;
+    return `
+      <article class="fishing-worker-card ${st.kode === "kerja" ? "is-working" : "is-resting"}">
+        <div class="fishing-worker-head">
+          <span class="fishing-worker-avatar" aria-hidden="true">${esc(look.emoji)}</span>
+          <div class="fishing-worker-id">
+            <h4>${esc(w.name)}</h4>
+            <small>${esc(gender.label)} · ${esc(look.label)}</small>
+          </div>
+          <span class="fishing-worker-level">Lv ${angka(w.level)}</span>
+        </div>
+        <div class="fishing-worker-status ${st.kode === "kerja" ? "is-on" : "is-off"}">
+          <span aria-hidden="true">${st.kode === "kerja" ? "🎣" : st.kode === "rusak" ? "🔧" : "💤"}</span>
+          <p>${esc(st.label)}</p>
+        </div>
+        ${st.rod ? `
+          <div class="fishing-worker-rod">
+            <span class="fishing-worker-rod-art">${rodArt(st.info)}</span>
+            <div>
+              <strong>${esc(st.info ? st.info.name : st.rod.id)}</strong>
+              <small>🛠️ ${angka(st.rod.durability)}/${angka(st.info ? st.info.durability : 0)} durability</small>
+              <div class="fishing-durability"><span style="width:${durasiRod}%"></span></div>
+            </div>
+          </div>` : ""}
+        <div class="fishing-worker-meter" data-worker-id="${esc(w.id)}">
+          <div class="fishing-worker-meter-label">
+            <span>${st.kode === "kerja" ? "Menunggu tangkapan" : "Berhenti"}</span>
+            <b data-worker-pct>${st.kode === "kerja" ? `${pct}%` : "—"}</b>
+          </div>
+          <div class="fishing-worker-bar"><span data-worker-fill style="width:${st.kode === "kerja" ? pct : 0}%"></span></div>
+          <small>${speed / 1000} detik/ikan${maks ? " · kecepatan maksimal" : ""}</small>
+        </div>
+        <div class="fishing-worker-stats">
+          <span>🐟 ${angka(w.catches)} tangkapan</span>
+          <span>💰 ${angka(w.earned)} hasil</span>
+        </div>
+        <div class="fishing-worker-actions">
+          <button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="worker-rod" data-worker="${esc(w.id)}">${st.rod ? "Ganti Joran" : "Kasih Joran"}</button>
+          <button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="worker-customize" data-worker="${esc(w.id)}">✏️ Customize</button>
+          <button class="btn-primary fishing-mini-btn" type="button" data-fish-act="worker-upgrade" data-worker="${esc(w.id)}" ${maks ? "disabled" : ""}>${maks ? "Kecepatan Maks" : `⬆ Upgrade · 💰 ${angka(biaya)}`}</button>
+        </div>
+      </article>`;
+  }
+
+  function panelWorker() {
+    const s = FC.state;
+    const max = workerMax();
+    const harga = workerPrice();
+    const penuh = s.workers.length >= max;
+    const cukup = s.coins >= harga;
+    const cards = s.workers.length
+      ? s.workers.map(workerCard).join("")
+      : `<div class="fishing-empty-card">
+          <span aria-hidden="true">👷</span>
+          <h4>Belum punya Worker</h4>
+          <p>Rekrut Worker seharga 💰 ${angka(harga)} supaya dia memancing sendiri. Jangan lupa kasih joran!</p>
+          <button class="btn-primary" type="button" data-fish-act="hire-worker" ${cukup ? "" : "disabled"}>${cukup ? "Rekrut Worker Pertama" : "Koin kurang"}</button>
+        </div>`;
+    return `
+      <div class="fishing-workers">
+        <div class="fishing-section-head">
+          <div><p class="fishing-kicker">Kru nelayan</p><h3>Worker memancing sendiri</h3><p>Setiap Worker wajib punya joran. Tanpa joran atau saat joran rusak, Worker istirahat. Joran yang dipakai Worker tidak bisa kamu pakai.</p></div>
+          <span class="fishing-coin-pill">💰 <strong>${angka(s.coins)}</strong></span>
+        </div>
+        <div class="fishing-worker-top">
+          <div class="fishing-worker-count"><strong>${s.workers.length}/${max}</strong><span>Worker</span></div>
+          <div class="fishing-worker-hint">Rekrut <b>💰 ${angka(harga)}</b> · awal 60 detik/ikan · upgrade sampai 30 detik/ikan.</div>
+          <button class="btn-primary" type="button" data-fish-act="hire-worker" ${penuh || !cukup ? "disabled" : ""}>${penuh ? "Worker penuh" : cukup ? "＋ Rekrut Worker" : "Koin kurang"}</button>
+        </div>
+        ${autoSellRingkas()}
+        <div class="fishing-worker-grid">${cards}</div>
       </div>`;
   }
 
@@ -934,7 +1106,8 @@
     const seq = FC.seq || {};
     const rusak = !!rod && Number(rod.durability) <= 0;
     const habis = stok <= 0;
-    const bisaLempar = phase === "idle" && !FC.aksi && !rusak && !habis;
+    const takAdaJoran = !rod;
+    const bisaLempar = phase === "idle" && !FC.aksi && !rusak && !habis && !!rod;
     const label = phase === "waiting" ? "Menunggu gigitan…"
       : phase === "bite" ? "GIGITAN! Tarik sekarang!"
       : phase === "reeling" ? "Menarik pancing…"
@@ -965,11 +1138,13 @@
           <span>Lempar Pancing</span><small>1 umpan per lemparan</small>
         </button>`;
 
-    const peringatan = rusak
-      ? `<div class="fishing-alert is-error"><span>🔧</span><p><strong>Joran rusak.</strong> Durability-nya habis. Repair dulu di Toko.</p><button type="button" class="fishing-text-link" data-fish-nav="toko">Buka Toko →</button></div>`
-      : habis
-        ? `<div class="fishing-alert is-warn"><span>🐛</span><p><strong>Umpan habis.</strong> Stok ${esc(baitInfo ? baitInfo.name : "umpan")} kamu 0. Beli dulu sebelum melempar.</p><button type="button" class="fishing-text-link" data-fish-nav="toko">Beli Umpan →</button></div>`
-        : "";
+    const peringatan = takAdaJoran
+      ? `<div class="fishing-alert is-warn"><span>👷</span><p><strong>Semua joran dipakai Worker.</strong> Lepas joran dari Worker atau beli joran baru supaya kamu bisa memancing sendiri.</p><button type="button" class="fishing-text-link" data-fish-nav="pekerja">Buka Worker →</button></div>`
+      : rusak
+        ? `<div class="fishing-alert is-error"><span>🔧</span><p><strong>Joran rusak.</strong> Durability-nya habis. Repair dulu di Toko.</p><button type="button" class="fishing-text-link" data-fish-nav="toko">Buka Toko →</button></div>`
+        : habis
+          ? `<div class="fishing-alert is-warn"><span>🐛</span><p><strong>Umpan habis.</strong> Stok ${esc(baitInfo ? baitInfo.name : "umpan")} kamu 0. Beli dulu sebelum melempar.</p><button type="button" class="fishing-text-link" data-fish-nav="toko">Beli Umpan →</button></div>`
+          : "";
 
     return `
       <div class="fishing-area">
@@ -1006,7 +1181,7 @@
               <div>
                 <small>Joran aktif</small>
                 <strong>${esc(rodInfo ? rodInfo.name : "—")}</strong>
-                <em>${rod ? `${angka(rod.durability)}/${angka(rodInfo ? rodInfo.durability : 0)} durability · 🍀 +${angka(rodInfo ? rodInfo.luck : 0)}` : "Belum punya joran"}</em>
+                <em>${rod ? `${angka(rod.durability)}/${angka(rodInfo ? rodInfo.durability : 0)} durability · 🍀 +${angka(rodInfo ? rodInfo.luck : 0)}` : "Tidak ada joran bebas"}</em>
               </div>
             </div>
             <div class="fishing-cast-gear">
@@ -1083,14 +1258,17 @@
     return (FC.cat.rods || []).map((rod) => {
       const milik = s.rods.find((r) => r.id === rod.id);
       const dipakai = s.equippedRod === rod.id;
+      const pekerja = rodPemakai(rod.id);
       const cukup = s.coins >= rod.price;
       const beda = eq && eq.id !== rod.id
         ? `<div class="fishing-compare"><span>Luck ${rod.luck >= eq.luck ? "+" : ""}${angka(rod.luck - eq.luck)}</span><span>Durability ${rod.durability >= eq.durability ? "+" : ""}${angka(rod.durability - eq.durability)}</span></div>`
         : "";
       const aksi = milik
-        ? (dipakai
-          ? `<span class="fishing-tag is-on">Sedang dipakai</span>`
-          : `<button class="btn-secondary fishing-buy-btn" type="button" data-fish-act="equip-rod" data-rod="${esc(rod.id)}">Pakai</button>`)
+        ? (pekerja
+          ? `<span class="fishing-tag is-worker">👷 ${esc(pekerja.name)}</span>`
+          : dipakai
+            ? `<span class="fishing-tag is-on">Sedang dipakai</span>`
+            : `<button class="btn-secondary fishing-buy-btn" type="button" data-fish-act="equip-rod" data-rod="${esc(rod.id)}">Pakai</button>`)
         : `<button class="btn-primary fishing-buy-btn" type="button" data-fish-act="buy-rod" data-rod="${esc(rod.id)}" ${cukup ? "" : "disabled"}>${cukup ? "Beli" : "Koin kurang"}</button>`;
       return `
         <article class="fishing-shop-item ${milik ? "is-owned" : ""} ${dipakai ? "is-equipped" : ""}">
@@ -1164,15 +1342,17 @@
       ${rusak.map(({ rod, info, hilang, biaya }) => {
         const pct = Math.round((rod.durability / info.durability) * 100);
         const cukup = s.coins >= biaya;
+        const pekerja = rodPemakai(rod.id);
         return `
           <article class="fishing-shop-item repair-item ${rod.id === s.equippedRod ? "is-equipped" : ""}">
             <span class="fishing-shop-art">${rodArt(info)}</span>
             <div class="fishing-shop-body">
-              <div class="fishing-shop-title"><h4>${esc(info.name)}</h4>${rod.id === s.equippedRod ? `<span class="fishing-tier">Aktif</span>` : ""}</div>
+              <div class="fishing-shop-title"><h4>${esc(info.name)}</h4>${rod.id === s.equippedRod ? `<span class="fishing-tier">Aktif</span>` : pekerja ? `<span class="fishing-tier">👷 ${esc(pekerja.name)}</span>` : ""}</div>
               <div class="fishing-durability big"><span style="width:${pct}%"></span></div>
               <div class="fishing-stat-row">
                 <span>🛠️ ${angka(rod.durability)}/${angka(info.durability)}</span>
                 <span>Hilang ${angka(hilang)}</span>
+                ${pekerja ? `<span>👷 Dipakai ${esc(pekerja.name)}</span>` : ""}
               </div>
             </div>
             <div class="fishing-shop-buy">
@@ -1194,6 +1374,40 @@
     </div>`;
   }
 
+  function autoSellCard() {
+    const auto = (FC.state && FC.state.autoSell) || { enabled: false, minPrice: 0 };
+    const st = (FC.state && FC.state.stats) || {};
+    return `
+      <div class="fishing-autosell ${auto.enabled ? "is-on" : ""}">
+        <div class="fishing-autosell-head">
+          <span class="fishing-autosell-icon" aria-hidden="true">🤖</span>
+          <div>
+            <strong>Auto Sell</strong>
+            <small>Ikan baru yang harganya di bawah ambang langsung dijual. Ikan terkunci dan ikan di Tas sekarang tidak ikut terjual.</small>
+          </div>
+          <label class="fishing-switch">
+            <input type="checkbox" id="auto-sell-enabled" ${auto.enabled ? "checked" : ""}>
+            <span aria-hidden="true"></span>
+            <em>${auto.enabled ? "Aktif" : "Mati"}</em>
+          </label>
+        </div>
+        <div class="fishing-autosell-form">
+          <label for="auto-sell-min">Jual otomatis ikan berharga di bawah</label>
+          <div class="fishing-autosell-input">
+            <span>💰</span>
+            <input type="number" id="auto-sell-min" min="0" max="1000000" step="50" value="${auto.minPrice}" inputmode="numeric">
+            <span>koin</span>
+          </div>
+          <button class="btn-primary fishing-mini-btn" type="button" data-fish-act="save-autosell">Simpan</button>
+        </div>
+        <div class="fishing-autosell-stats">
+          <span>🤖 ${angka(st.autoSold || 0)} ikan auto sell</span>
+          <span>💰 ${angka(st.autoSoldValue || 0)} total</span>
+          <span>👷 ${angka(st.workerCatches || 0)} tangkapan Worker</span>
+        </div>
+      </div>`;
+  }
+
   function panelTas() {
     const s = FC.state;
     const isi = FC.invTab === "rod" ? tasJoran() : FC.invTab === "bait" ? tasUmpan() : tasIkan();
@@ -1203,6 +1417,7 @@
           <div><p class="fishing-kicker">Tas pemancing</p><h3>Semua hasil tangkapanmu</h3><p>Ikan bisa dijual kapan saja. Ikan yang dikunci tidak ikut terjual saat Jual Semua.</p></div>
           <span class="fishing-value-pill">📦 Nilai <strong>${angka(s.totalValue)}</strong></span>
         </div>
+        ${autoSellCard()}
         ${tasTabs()}
         ${isi}
       </div>`;
@@ -1268,17 +1483,20 @@
       if (!info) return "";
       const pct = Math.round((r.durability / info.durability) * 100);
       const dipakai = s.equippedRod === r.id;
+      const pekerja = rodPemakai(r.id);
       return `
-        <article class="fishing-list-row ${dipakai ? "is-equipped" : ""}">
+        <article class="fishing-list-row ${dipakai ? "is-equipped" : ""} ${pekerja ? "is-worker-rod" : ""}">
           <span class="fishing-list-art">${rodArt(info)}</span>
           <div class="fishing-list-body">
             <div class="fishing-list-title"><h4>${esc(info.name)}</h4><span class="fishing-tier">Tier ${angka(info.tier)}</span></div>
             <div class="fishing-durability"><span style="width:${pct}%"></span></div>
             <div class="fishing-stat-row"><span>🛠️ ${angka(r.durability)}/${angka(info.durability)}</span><span>🍀 Luck +${angka(info.luck)}</span></div>
           </div>
-          ${dipakai
-            ? `<span class="fishing-tag is-on">Dipakai</span>`
-            : `<button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="equip-rod" data-rod="${esc(r.id)}">Pakai</button>`}
+          ${pekerja
+            ? `<span class="fishing-tag is-worker">👷 ${esc(pekerja.name)}</span>`
+            : dipakai
+              ? `<span class="fishing-tag is-on">Dipakai</span>`
+              : `<button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="equip-rod" data-rod="${esc(r.id)}">Pakai</button>`}
         </article>`;
     }).join("")}</div>`;
   }
@@ -1508,7 +1726,7 @@
     const totalIkan = Object.values(s.fish || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const species = Object.keys(s.collection || {}).length;
     const biggest = s.stats.biggest && infoIkan(s.stats.biggest.fishId);
-    const akurasi = s.stats.casts ? Math.round((s.stats.catches / s.stats.casts) * 100) : 0;
+    const akurasi = akurasiPemain(s);
     const totalRarity = (FC.cat.rarityOrder || []).reduce((a, r) => a + (Number(s.stats.byRarity[r]) || 0), 0);
     const maxRarity = Math.max(1, ...(FC.cat.rarityOrder || []).map((r) => Number(s.stats.byRarity[r]) || 0));
     const achs = FC.cat.achievements || [];
@@ -1660,6 +1878,18 @@
     toast(`🏆 Pencapaian terbuka: <b>${list.map((a) => esc(a.name)).join(", ")}</b>`, "ach", 4200);
   }
 
+  function beritahuWorker(list) {
+    if (!list || !list.length) return;
+    if (list.length === 1) {
+      const c = list[0];
+      toast(`👷 <b>${esc(c.workerName)}</b> menangkap ${esc(c.fishName)}${c.autoSold ? ` · 🤖 auto sell +💰 ${angka(c.autoSold)}` : ""}`, "ok", 3800);
+      return;
+    }
+    const auto = list.filter((c) => Number(c.autoSold) > 0);
+    const nilai = auto.reduce((a, c) => a + Number(c.autoSold), 0);
+    toast(`👷 Worker menangkap <b>${angka(list.length)} ikan</b>${auto.length ? ` · 🤖 ${angka(auto.length)} auto sell (💰 ${angka(nilai)})` : ""}`, "ok", 4400);
+  }
+
   function tampilkanPengumuman(a) {
     if (!FC.aktif || !a) return;
     const root = document.getElementById("fishing-toast-root");
@@ -1696,6 +1926,7 @@
       const res = await tugas();
       if (res && res.state) terapkanState(res.state);
       if (res && res.achievements && res.achievements.length) toastPencapaian(res.achievements);
+      if (res && res.workerCatches && res.workerCatches.length) beritahuWorker(res.workerCatches);
       return res;
     } catch (err) {
       toast(esc(err.message || "Aksi gagal."), "error");
@@ -1741,7 +1972,7 @@
     const s = FC.state;
     const rod = rodDipakai();
     const info = rod ? infoRod(rod.id) : null;
-    if (!rod || !info) return toast("Joran tidak ditemukan.", "error");
+    if (!rod || !info) return toast("Semua joran sedang dipakai Worker. Lepas satu joran atau beli joran baru.", "error");
     if (Number(rod.durability) <= 0) return toast("Joran rusak. Repair dulu di Toko.", "error");
     if (stokUmpan(s.equippedBait) <= 0) return toast("Umpan habis. Beli dulu di Toko.", "error");
     if (s.activeCast && Number(s.activeCast.expiresAt) > serverNow()) {
@@ -1760,6 +1991,8 @@
       if (!res || !res.cast) throw new Error("Server tidak mengirim data lemparan.");
       hitungOffset(res.cast.serverNow, t0);
       if (res.state) terapkanState(res.state);
+      if (res.achievements && res.achievements.length) toastPencapaian(res.achievements);
+      beritahuWorker(res.workerCatches);
       mulaiSekuens(res.cast);
     } catch (err) {
       FC.seq = null;
@@ -1879,6 +2112,7 @@
         requestId: reqId(),
       });
       if (res.state) terapkanState(res.state);
+      if (res.workerCatches && res.workerCatches.length) beritahuWorker(res.workerCatches);
       if (res.ok) hasilSukses(res);
       else hasilGagal(res);
     } catch (err) {
@@ -1900,7 +2134,8 @@
   function hasilSukses(res) {
     const fish = res.fish;
     const special = ["epic", "mythic", "legend", "secret"].includes(res.rarity);
-    FC.seq = { phase: "result", hasil: "sukses", timers: [] };
+    const autoSold = Number(res.autoSold) || 0;
+    FC.seq = { phase: "result", hasil: "sukses", timers: [], autoSold };
     FC.tahanRender = true;
     SFX.catchR(res.rarity);
     if (res.rarity === "legend" || res.rarity === "secret") {
@@ -1917,17 +2152,19 @@
         <p class="fishing-kicker">${res.firstSlot ? `First ${esc(info.label)} #${res.firstSlot}` : "Tangkapan berhasil"}</p>
         <div class="fishing-result-art">${fishArt(fish)}</div>
         <h3>${esc(fish.name)}</h3>
-        <div class="fishing-result-chips">${rarityChip(res.rarity)}${res.isNew ? `<span class="fishing-new-badge">Spesies baru!</span>` : ""}${res.firstSlot ? `<span class="fishing-first-badge">👑 First #${res.firstSlot}</span>` : ""}</div>
+        <div class="fishing-result-chips">${rarityChip(res.rarity)}${res.isNew ? `<span class="fishing-new-badge">Spesies baru!</span>` : ""}${res.firstSlot ? `<span class="fishing-first-badge">👑 First #${res.firstSlot}</span>` : ""}${autoSold ? `<span class="fishing-new-badge is-auto">🤖 Auto Sell +💰 ${angka(autoSold)}</span>` : ""}</div>
         <div class="fishing-result-grid">
           <div><span>Berat</span><strong>${beratNilai(res.weight)} kg</strong></div>
           <div><span>Nilai jual</span><strong>💰 ${angka(fish.value)}</strong></div>
           <div><span>Durability</span><strong>-${angka(res.durabilityLoss)}</strong></div>
         </div>
-        <p class="fishing-result-desc">${esc(fish.desc)}</p>
+        <p class="fishing-result-desc">${autoSold ? `Auto Sell menjual ikan ini otomatis karena harganya di bawah ambang 💰 ${angka((FC.state && FC.state.autoSell && FC.state.autoSell.minPrice) || 0)}. ` : ""}${esc(fish.desc)}</p>
         ${ach.length ? `<div class="fishing-result-ach">🏆 ${ach.map((a) => esc(a.name)).join(" · ")}</div>` : ""}
         <div class="fishing-result-actions">
-          <button class="btn-primary" type="button" data-fish-act="result-keep">Simpan ke Tas</button>
-          <button class="btn-secondary" type="button" data-fish-act="result-sell" data-fish-id="${esc(fish.id)}">Jual +💰 ${angka(fish.value)}</button>
+          ${autoSold
+            ? `<button class="btn-primary" type="button" data-fish-act="result-keep">Lanjut</button>`
+            : `<button class="btn-primary" type="button" data-fish-act="result-keep">Simpan ke Tas</button>
+               <button class="btn-secondary" type="button" data-fish-act="result-sell" data-fish-id="${esc(fish.id)}">Jual +💰 ${angka(fish.value)}</button>`}
         </div>
       </div>`, { kelas: "fishing-modal-result", tutup: false });
   }
@@ -2120,6 +2357,211 @@
     }
   }
 
+  /* ================= AKSI AUTO SELL / WORKER ================= */
+  async function simpanAutoSell() {
+    if (!FC.state) return;
+    const aktif = document.getElementById("auto-sell-enabled");
+    const input = document.getElementById("auto-sell-min");
+    const enabled = !!(aktif && aktif.checked);
+    const minPrice = Math.max(0, Math.min(1000000, Math.floor(Number(input && input.value) || 0)));
+    if (enabled && minPrice <= 0) return toast("Isi ambang harga lebih dari 0 untuk mengaktifkan Auto Sell.", "error");
+    const res = await jalankanAksi(null, () => api("setAutoSell", {
+      absen: FC.absen, token: FC.token, enabled, minPrice, requestId: reqId(),
+    }));
+    if (res) {
+      SFX.click();
+      toast(res.autoSell && res.autoSell.enabled
+        ? `🤖 Auto Sell aktif · ikan di bawah 💰 ${angka(res.autoSell.minPrice)} langsung terjual.`
+        : "🤖 Auto Sell dimatikan.", "ok");
+    }
+  }
+
+  function formWorkerHtml(worker) {
+    const genders = infoWorker().genders || [];
+    const looks = infoWorker().looks || [];
+    const w = worker || {
+      name: "",
+      gender: (genders[0] && genders[0].id) || "laki",
+      look: (looks[0] && looks[0].id) || "topi",
+    };
+    return `
+      <div class="fishing-worker-form">
+        <p class="fishing-kicker">${worker ? "Customize Worker" : "Rekrut Worker"}</p>
+        <h3>${worker ? "Atur penampilan kru" : `Worker baru · 💰 ${angka(workerPrice())}`}</h3>
+        <label class="fishing-field"><span>Nama Worker</span><input id="worker-name" maxlength="20" value="${esc(w.name)}" placeholder="Contoh: Sari" autocomplete="off"></label>
+        <label class="fishing-field"><span>Gender</span><select id="worker-gender">${genders.map((g) => `<option value="${esc(g.id)}" ${g.id === w.gender ? "selected" : ""}>${esc(g.label)}</option>`).join("")}</select></label>
+        <div class="fishing-field"><span>Penampilan</span>
+          <div class="fishing-look-grid">${looks.map((l) => `
+            <button class="fishing-look-btn ${l.id === w.look ? "is-active" : ""}" type="button" data-fish-act="worker-look" data-look="${esc(l.id)}">
+              <span aria-hidden="true">${esc(l.emoji)}</span><small>${esc(l.label)}</small>
+            </button>`).join("")}
+          </div>
+        </div>
+        <input type="hidden" id="worker-look" value="${esc(w.look)}">
+        <div class="fishing-result-actions">
+          <button class="btn-primary" type="button" data-fish-act="${worker ? "worker-save" : "worker-hire"}" ${worker ? `data-worker="${esc(worker.id)}"` : ""}>${worker ? "Simpan Perubahan" : `Rekrut · 💰 ${angka(workerPrice())}`}</button>
+          <button class="btn-secondary" type="button" data-fish-act="modal-close">Batal</button>
+        </div>
+      </div>`;
+  }
+
+  function bukaFormWorker(workerId) {
+    const worker = workerId && FC.state ? FC.state.workers.find((w) => w.id === workerId) : null;
+    if (workerId && !worker) return toast("Worker tidak ditemukan.", "error");
+    bukaModal(formWorkerHtml(worker), { kelas: "fishing-modal-worker" });
+    const inp = document.getElementById("worker-name");
+    if (inp) setTimeout(() => inp.focus(), 60);
+  }
+
+  function bacaFormWorker() {
+    const nama = String((document.getElementById("worker-name") || {}).value || "").trim();
+    const gender = String((document.getElementById("worker-gender") || {}).value || "");
+    const look = String((document.getElementById("worker-look") || {}).value || "");
+    if (!nama) {
+      toast("Nama Worker wajib diisi.", "error");
+      return null;
+    }
+    return { nama, gender, look };
+  }
+
+  async function rekrutWorker() {
+    if (!FC.state) return;
+    if (FC.state.workers.length >= workerMax()) return toast(`Maksimal ${workerMax()} Worker.`, "error");
+    if (FC.state.coins < workerPrice()) return toast("Koin tidak cukup untuk merekrut Worker.", "error");
+    const form = bacaFormWorker();
+    if (!form) return;
+    const res = await jalankanAksi(null, () => api("buyWorker", {
+      absen: FC.absen, token: FC.token, name: form.nama, gender: form.gender, look: form.look, requestId: reqId(),
+    }));
+    if (res) {
+      tutupModal();
+      SFX.coin();
+      toast(`👷 <b>${esc(res.worker.name)}</b> direkrut. Kasih joran supaya mulai memancing!`, "ok");
+    }
+  }
+
+  async function simpanWorker(workerId) {
+    const form = bacaFormWorker();
+    if (!form) return;
+    const res = await jalankanAksi(null, () => api("updateWorker", {
+      absen: FC.absen, token: FC.token, workerId, name: form.nama, gender: form.gender, look: form.look, requestId: reqId(),
+    }));
+    if (res) {
+      tutupModal();
+      SFX.click();
+      toast(`✏️ Worker <b>${esc(res.worker.name)}</b> diperbarui.`, "ok");
+    }
+  }
+
+  async function upgradeWorker(id) {
+    const w = FC.state ? FC.state.workers.find((x) => x.id === id) : null;
+    if (!w) return;
+    if (w.level >= workerLevelMaks()) return toast("Kecepatan Worker sudah maksimal.", "info");
+    const biaya = biayaUpgradeWorker(w.level);
+    if (FC.state.coins < biaya) return toast("Koin tidak cukup untuk upgrade.", "error");
+    const ok = await konfirmasi({
+      icon: "⬆️",
+      title: `Upgrade ${w.name}?`,
+      body: `Kecepatan <b>${kecepatanWorker(w.level) / 1000} detik</b> → <b>${kecepatanWorker(w.level + 1) / 1000} detik</b> per ikan.<br>Biaya <b>💰 ${angka(biaya)}</b>.`,
+      okLabel: "Upgrade",
+    });
+    if (!ok) return;
+    const res = await jalankanAksi(null, () => api("upgradeWorker", {
+      absen: FC.absen, token: FC.token, workerId: id, requestId: reqId(),
+    }));
+    if (res) {
+      SFX.coin();
+      toast(`⬆️ <b>${esc(w.name)}</b> naik ke Lv ${angka(res.level)} · ${angka(res.speedMs / 1000)} detik/ikan`, "ok");
+    }
+  }
+
+  function modalRodWorker(workerId) {
+    const w = FC.state ? FC.state.workers.find((x) => x.id === workerId) : null;
+    if (!w) return;
+    const daftar = FC.state.rods.map((r) => {
+      const info = infoRod(r.id);
+      if (!info) return "";
+      const pemakai = rodPemakai(r.id);
+      const sendiri = w.rodId === r.id;
+      const lain = pemakai && pemakai.id !== w.id;
+      const rusak = Number(r.durability) <= 0;
+      const untukPemain = FC.state.equippedRod === r.id && !lain;
+      const catatan = sendiri ? "Dipakai Worker ini" : lain ? `Dipakai ${pemakai.name}` : rusak ? "Rusak · repair dulu" : untukPemain ? "Dipakai kamu" : "Bebas";
+      return `
+        <article class="fishing-rod-pick ${sendiri ? "is-active" : ""}">
+          <span class="fishing-list-art">${rodArt(info)}</span>
+          <div class="fishing-list-body">
+            <div class="fishing-list-title"><h4>${esc(info.name)}</h4></div>
+            <div class="fishing-stat-row"><span>🛠️ ${angka(r.durability)}/${angka(info.durability)}</span><span>🍀 +${angka(info.luck)}</span><span>${esc(catatan)}</span></div>
+          </div>
+          ${sendiri
+            ? `<button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="worker-rod-off" data-worker="${esc(w.id)}">Lepas</button>`
+            : `<button class="btn-primary fishing-mini-btn" type="button" data-fish-act="worker-rod-pick" data-worker="${esc(w.id)}" data-rod="${esc(r.id)}" ${lain || rusak ? "disabled" : ""}>${untukPemain ? "Ambil" : "Kasih"}</button>`}
+        </article>`;
+    }).join("");
+    bukaModal(`
+      <div class="fishing-worker-rods">
+        <p class="fishing-kicker">Joran untuk Worker</p>
+        <h3>Pilih joran · ${esc(w.name)}</h3>
+        <p class="fishing-modal-note">Joran yang dipakai Worker tidak bisa kamu pakai. Kalau semua joran dipakai Worker, kamu ikut istirahat sampai ada joran bebas.</p>
+        <div class="fishing-rod-pick-list">${daftar || `<div class="fishing-empty-line">Belum punya joran.</div>`}</div>
+        <div class="fishing-result-actions"><button class="btn-secondary" type="button" data-fish-act="modal-close">Tutup</button></div>
+      </div>`, { kelas: "fishing-modal-worker" });
+  }
+
+  async function pasangRodWorker(workerId, rodId) {
+    const w = FC.state ? FC.state.workers.find((x) => x.id === workerId) : null;
+    if (!w) return;
+    const res = await jalankanAksi(null, () => api("assignWorkerRod", {
+      absen: FC.absen, token: FC.token, workerId, rodId: rodId || "", requestId: reqId(),
+    }));
+    if (res) {
+      tutupModal();
+      SFX.click();
+      const info = rodId ? infoRod(rodId) : null;
+      toast(rodId
+        ? `🎣 <b>${esc(info ? info.name : "Joran")}</b> sekarang dipakai <b>${esc(w.name)}</b>.`
+        : `🎣 Joran dilepas dari <b>${esc(w.name)}</b>.`, "ok");
+    }
+  }
+
+  /* ================= TICKER WORKER ================= */
+  function hentikanTicker() {
+    if (FC.tickTimer) clearInterval(FC.tickTimer);
+    FC.tickTimer = null;
+  }
+
+  function mulaiTicker() {
+    hentikanTicker();
+    FC.tickTimer = setInterval(tickerWorker, 1000);
+  }
+
+  function tickerWorker() {
+    if (!FC.aktif || !FC.state) return;
+    const list = FC.state.workers || [];
+    if (!list.length) return;
+
+    document.querySelectorAll("[data-worker-id]").forEach((el) => {
+      const w = list.find((x) => x.id === el.dataset.workerId);
+      if (!w) return;
+      const kerja = statusWorker(w).kode === "kerja";
+      const p = progresWorker(w);
+      const fill = el.querySelector("[data-worker-fill]");
+      const pct = el.querySelector("[data-worker-pct]");
+      if (fill) fill.style.width = kerja ? `${Math.round(p * 100)}%` : "0%";
+      if (pct) pct.textContent = kerja ? `${Math.round(p * 100)}%` : "—";
+    });
+
+    const siap = list.some((w) => statusWorker(w).kode === "kerja" && serverNow() - w.lastCatchAt >= kecepatanWorker(w.level));
+    if (!siap || FC.aksi || Date.now() - FC.terakhirTickWorker < 5000) return;
+    FC.terakhirTickWorker = Date.now();
+    api("workerTick", { absen: FC.absen, token: FC.token, requestId: reqId() }).then((res) => {
+      if (res && res.state) terapkanState(res.state);
+      if (res && res.achievements && res.achievements.length) toastPencapaian(res.achievements);
+      beritahuWorker(res && res.catches);
+    }).catch(() => { /* coba lagi di tick berikutnya */ });
+  }
+
   /* ================= NAVIGASI ================= */
   function pindahPanel(id) {
     if (!FC.aktif || !id || FC.panel === id) return;
@@ -2206,10 +2648,12 @@
         tutupModal();
         pindahPanel("tas");
         break;
-      case "result-keep":
+      case "result-keep": {
+        const auto = Number(FC.seq && FC.seq.autoSold) || 0;
         selesaiHasil();
-        toast("🎒 Ikan disimpan ke Tas.", "ok");
+        toast(auto ? `🤖 Ikan sudah terjual otomatis · +💰 ${angka(auto)}` : "🎒 Ikan disimpan ke Tas.", "ok");
         break;
+      }
       case "result-sell":
         jualHasil(el);
         break;
@@ -2223,6 +2667,40 @@
       case "refresh":
         sinkronState().then(() => toast("🔄 Data tersinkron.", "ok"));
         break;
+      case "save-autosell":
+        simpanAutoSell();
+        break;
+      case "hire-worker":
+        bukaFormWorker("");
+        break;
+      case "worker-customize":
+        bukaFormWorker(el.dataset.worker);
+        break;
+      case "worker-hire":
+        rekrutWorker();
+        break;
+      case "worker-save":
+        simpanWorker(el.dataset.worker);
+        break;
+      case "worker-upgrade":
+        upgradeWorker(el.dataset.worker);
+        break;
+      case "worker-rod":
+        modalRodWorker(el.dataset.worker);
+        break;
+      case "worker-rod-pick":
+        pasangRodWorker(el.dataset.worker, el.dataset.rod);
+        break;
+      case "worker-rod-off":
+        pasangRodWorker(el.dataset.worker, "");
+        break;
+      case "worker-look": {
+        const grid = el.closest(".fishing-look-grid");
+        if (grid) grid.querySelectorAll(".fishing-look-btn").forEach((btn) => btn.classList.toggle("is-active", btn === el));
+        const inp = document.getElementById("worker-look");
+        if (inp) inp.value = el.dataset.look || "";
+        break;
+      }
       default:
         break;
     }
@@ -2248,6 +2726,7 @@
       FC.membuka = false;
       FC.errMsg = "";
       render();
+      mulaiTicker();
       if (FC.panel === "area" && FC.state && FC.state.activeCast) lanjutkanCastAktif();
     } catch (err) {
       FC.membuka = false;
@@ -2267,6 +2746,7 @@
     FC.tahanRender = false;
     FC.resumeId = null;
     tutupModal();
+    hentikanTicker();
     hentikanLangganan();
     const root = document.getElementById("fishing-toast-root");
     if (root) root.innerHTML = "";
@@ -2280,6 +2760,7 @@
     FC.aktif = false;
     FC.aksi = false;
     FC.resumeId = null;
+    hentikanTicker();
     hentikanLangganan();
     tutupModal();
     const root = document.getElementById("fishing-toast-root");
@@ -2290,6 +2771,7 @@
     const absen = currentUser ? Number(currentUser.absen) : null;
     if (absen && absen === FC.absen && FC.aktif) return;
     bersihkanTimer();
+    hentikanTicker();
     hentikanLangganan();
     tutupModal();
     FC.state = null;

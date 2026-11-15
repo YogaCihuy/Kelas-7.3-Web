@@ -3433,6 +3433,8 @@ const UPDATE_LOG = [
       "Version 2.5.0 Animasi Bidak Ludo & Ular Tangga Jalan Satu per Satu",
       "Version 2.5.1 Pemilik Biodata Bisa Lihat Siapa Saja yang Like Bio Nya",
       "Version 2.5.2 Fishing Tanpa Blaze: Main, Jual Ikan, Upgrade Joran, Peringkat & Legenda",
+      "Version 2.5.3 Fishing Auto Sell: Ikan di Bawah Harga Bisa Terjual Otomatis",
+      "Version 2.5.3 Fishing Worker: Rekrut hingga 3 Worker, Upgrade Kecepatan, dan Pasang Joran Sendiri",
     ],
   },
   {
@@ -3760,12 +3762,12 @@ function renderGames() {
     {
       id: "fishing",
       judul: "Fishing",
-      deskripsi: "Lempar pancing, tarik tepat waktu, kumpulkan 102 spesies ikan. Jual tangkapan, upgrade joran, kejar Legend & Secret.",
+      deskripsi: "Lempar pancing, tarik tepat waktu, kumpulkan 102 spesies ikan. Jual tangkapan, rekrut Worker, atur Auto Sell, dan kejar Legend & Secret.",
       progress: ringkasFishing,
       icon: "🎣",
       spark: "🌊",
       kelas: "game-card-fishing",
-      cari: "fishing mancing ikan pancing joran umpan kolam laut koleksi legenda secret koin",
+      cari: "fishing mancing ikan pancing joran umpan kolam laut koleksi legenda secret koin worker auto sell",
     },
     {
       id: "streak",

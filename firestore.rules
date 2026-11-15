@@ -30,6 +30,21 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Like biodata siswa di Home (satu dokumen per siswa, isi users = map absen)
+    match /profilLikes/{absenSiswa} {
+      allow read: if true;
+      allow create, update: if isValidProfilLike(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Komentar biodata siswa di Home
+    match /profilKomentar/{komentarId} {
+      allow read: if true;
+      allow create: if isValidKomentar(request.resource.data);
+      allow update: if false;
+      allow delete: if true;
+    }
+
     // Polling kelas
     match /polling/{pollId} {
       allow read: if true;
@@ -51,26 +66,346 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── FISHING GAME ──────────────────────────────────────────
-    // Semua tulisan ke data mancing HANYA boleh lewat Cloud Functions (admin SDK).
-    // Client cuma boleh membaca untuk leaderboard/collection realtime.
+    // ── FISHING GAME (tanpa Blaze) ────────────────────────────
+    // Ditulis langsung dari browser lewat transaksi Firestore. RNG & aturan
+    // main ada di fishing-local.js, bentuk dokumen dijaga rules di bawah.
     match /fishing/{absen} {
       allow read: if true;
-      allow write: if false;
+      allow create, update: if isValidFishingState(request.resource.data);
+      allow delete: if false;
     }
     match /fishingCasts/{castId} {
-      allow read, write: if false; // isi cast & hasil RNG rahasia
+      allow read, write: if false; // peninggalan versi server, sudah tidak dipakai
     }
     match /fishingSecrets/{absen} {
-      allow read, write: if false; // token sesi, jangan pernah dibaca client
+      allow read, write: if false; // peninggalan versi server, jangan pernah dibaca client
     }
     match /fishingMeta/{docId} {
       allow read: if true; // First Legend/Secret
-      allow write: if false;
+      allow create, update: if isValidFirstCatches(request.resource.data);
+      allow delete: if false;
     }
     match /fishingAnnouncements/{docId} {
       allow read: if true; // pengumuman global
-      allow write: if false;
+      allow create: if isValidFishingAnnouncement(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    function isValidFishingState(d) {
+      return d.keys().hasOnly(['absen','name','coins','rods','equippedRod','baits','equippedBait',
+                                'fish','locked','collection','totalValue','totalCaught','stats',
+                                'achievements','activeCast','requests','autoSell','workers',
+                                'createdAt','updatedAt','version'])
+        && d.keys().hasAll(['absen','name','coins','rods','equippedRod','baits','equippedBait',
+                            'fish','locked','collection','totalValue','totalCaught','stats',
+                            'achievements','createdAt','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() <= 60
+        && d.coins is number
+        && d.coins >= 0
+        && d.coins <= 1000000000
+        && d.rods is list
+        && d.rods.size() >= 1
+        && d.rods.size() <= 12
+        && d.equippedRod is string
+        && d.baits is map
+        && d.equippedBait is string
+        && d.fish is map
+        && d.locked is map
+        && d.collection is map
+        && d.totalValue is number
+        && d.totalValue >= 0
+        && d.totalCaught is number
+        && d.totalCaught >= 0
+        && d.stats is map
+        && d.achievements is map
+        && (!('activeCast' in d) || d.activeCast == null || d.activeCast is map)
+        && (!('requests' in d) || (d.requests is list && d.requests.size() <= 12))
+        && (!('autoSell' in d) || isValidAutoSell(d.autoSell))
+        && (!('workers' in d) || isValidFishingWorkers(d.workers))
+        && d.createdAt is number
+        && d.updatedAt is number
+        && (!('version' in d) || d.version is number);
+    }
+
+    function isValidAutoSell(a) {
+      return a is map
+        && a.keys().hasOnly(['enabled','minPrice'])
+        && a.keys().hasAll(['enabled','minPrice'])
+        && a.enabled is bool
+        && a.minPrice is number
+        && a.minPrice >= 0
+        && a.minPrice <= 1000000;
+    }
+
+    function isValidFishingWorkers(list) {
+      return list is list
+        && list.size() <= 3
+        && (list.size() < 1 || isValidFishingWorker(list[0]))
+        && (list.size() < 2 || isValidFishingWorker(list[1]))
+        && (list.size() < 3 || isValidFishingWorker(list[2]));
+    }
+
+    function isValidFishingWorker(w) {
+      return w is map
+        && w.keys().hasOnly(['id','name','gender','look','level','rodId','lastCatchAt','catches','earned','hiredAt'])
+        && w.keys().hasAll(['id','name','gender','look','level','rodId','lastCatchAt','catches','earned','hiredAt'])
+        && w.id is string
+        && w.id.size() >= 1
+        && w.id.size() <= 40
+        && w.name is string
+        && w.name.size() >= 1
+        && w.name.size() <= 20
+        && w.gender is string
+        && w.gender in ['laki','perempuan','lainnya']
+        && w.look is string
+        && w.look in ['topi','kapten','anak','nenek','kakek','keren']
+        && w.level is number
+        && w.level >= 0
+        && w.level <= 6
+        && w.rodId is string
+        && w.rodId.size() <= 40
+        && w.lastCatchAt is number
+        && w.catches is number
+        && w.catches >= 0
+        && w.earned is number
+        && w.earned >= 0
+        && w.hiredAt is number;
+    }
+
+    function isValidFirstCatches(d) {
+      return d.keys().hasOnly(['legend','secret'])
+        && (!('legend' in d) || (d.legend is list && d.legend.size() <= 3))
+        && (!('secret' in d) || (d.secret is list && d.secret.size() <= 3));
+    }
+
+    function isValidFishingAnnouncement(d) {
+      return d.keys().hasOnly(['type','absen','name','fishId','fishName','firstSlot','at'])
+        && d.keys().hasAll(['type','absen','name','fishId','fishName','firstSlot','at'])
+        && d.type in ['legend','secret']
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() <= 60
+        && d.fishId is string
+        && d.fishId.size() <= 40
+        && d.fishName is string
+        && d.fishName.size() <= 60
+        && d.firstSlot is number
+        && d.firstSlot >= 0
+        && d.firstSlot <= 3
+        && d.at is number;
+    }
+
+    // ── TABLEVERSE (tanpa server) ────────────────────────────
+    // Ditulis langsung dari browser lewat transaksi Firestore. Validasi bentuk
+    // dokumen tetap jalan di rules; validasi gerakan ada di tableverse-local.js.
+    match /tvPlayers/{absen} {
+      allow read: if true;
+      allow create, update: if isValidTvPlayer(request.resource.data);
+      allow delete: if false;
+    }
+    match /tvRooms/{roomId} {
+      allow read: if true;
+      allow create, update: if isValidTvRoom(request.resource.data);
+      allow delete: if true;
+    }
+    match /tvInvites/{inviteId} {
+      allow read: if true;
+      allow create, update: if isValidTvInvite(request.resource.data);
+      allow delete: if true;
+    }
+    match /tvHistory/{historyId} {
+      allow read: if true;
+      allow create: if isValidTvHistory(request.resource.data);
+      allow update, delete: if false;
+    }
+    // Tidak dipakai lagi (UNO disembunyikan), tetap ditutup total.
+    match /tvHidden/{docId} {
+      allow read, write: if false;
+    }
+
+    // ── GUESS THE COLOR (duel 1v1 tanpa server) ──────────────
+    // Ditulis langsung dari browser. Kode rahasia warna cuma disimpan di
+    // localStorage masing-masing pemain dan baru ditulis ke room saat selesai.
+    match /gcPlayers/{absen} {
+      allow read: if true;
+      allow create, update: if isValidGcPlayer(request.resource.data);
+      allow delete: if true;
+    }
+    match /gcInvites/{inviteId} {
+      allow read: if true;
+      allow create, update: if isValidGcInvite(request.resource.data);
+      allow delete: if true;
+    }
+    match /gcRooms/{roomId} {
+      allow read: if true;
+      allow create, update: if isValidGcRoom(request.resource.data);
+      allow delete: if true;
+      match /moves/{moveId} {
+        allow read: if true;
+        allow create, update: if isValidGcMove(request.resource.data);
+        allow delete: if true;
+      }
+    }
+
+    function isValidGcPlayer(d) {
+      return d.keys().hasOnly(['nama','online','lastSeen','status'])
+        && (!('nama' in d) || d.nama is string)
+        && (!('online' in d) || d.online is bool)
+        && (!('lastSeen' in d) || d.lastSeen is number)
+        && (!('status' in d) || d.status is string);
+    }
+
+    function isValidGcInvite(d) {
+      return d.keys().hasOnly(['fromAbsen','fromNama','toAbsen','toNama','roomId',
+                                'createdAt','status','respondedAt'])
+        && (!('roomId' in d) || d.roomId is string)
+        && (!('createdAt' in d) || d.createdAt is number)
+        && (!('respondedAt' in d) || d.respondedAt is number)
+        && (!('status' in d) || d.status in ['pending','accepted','declined','expired']);
+    }
+
+    function isValidGcRoom(d) {
+      return d.keys().hasOnly(['code','createdAt','updatedAt','lastActivity',
+                                'hostAbsen','hostNama','guestAbsen','guestNama',
+                                'status','hostReady','guestReady','hostSeen','guestSeen',
+                                'startAt','endAt','winner','alasan','finishedAt',
+                                'hostSecret','guestSecret','hostRematch','guestRematch'])
+        && (!('status' in d) || d.status in ['lobby','setup','playing','finished'])
+        && (!('winner' in d) || d.winner == null || d.winner in ['host','guest','draw'])
+        && (!('hostSecret' in d) || d.hostSecret == null || (d.hostSecret is list && d.hostSecret.size() == 4))
+        && (!('guestSecret' in d) || d.guestSecret == null || (d.guestSecret is list && d.guestSecret.size() == 4));
+    }
+
+    function isValidGcMove(d) {
+      return d.keys().hasOnly(['n','by','colors','at','exact','partial','evaluatedAt','evaluatedBy'])
+        && (!('n' in d) || d.n is number)
+        && (!('by' in d) || d.by in ['host','guest'])
+        && (!('colors' in d) || (d.colors is list && d.colors.size() == 4))
+        && (!('exact' in d) || d.exact == null || (d.exact is number && d.exact >= 0 && d.exact <= 4))
+        && (!('partial' in d) || d.partial == null || (d.partial is number && d.partial >= 0 && d.partial <= 4));
+    }
+
+    function isValidProfilLike(d) {
+      return d.keys().hasOnly(['users','count','updatedAt'])
+        && (!('users' in d) || d.users is map)
+        && (!('count' in d) || (d.count is number && d.count >= 0 && d.count <= 100))
+        && (!('updatedAt' in d) || d.updatedAt is number);
+    }
+
+    function isValidKomentar(d) {
+      return d.keys().hasOnly(['absenSiswa','absen','nama','pesan','createdAt','balasKe','balasNama'])
+        && d.keys().hasAll(['absenSiswa','absen','nama','pesan','createdAt'])
+        && d.absenSiswa is number
+        && d.absenSiswa >= 1
+        && d.absenSiswa <= 64
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.nama is string
+        && d.nama.size() <= 60
+        && d.pesan is string
+        && d.pesan.size() > 0
+        && d.pesan.size() <= 280
+        && d.createdAt is number
+        && (!('balasKe' in d) || (d.balasKe is string && d.balasKe.size() > 0 && d.balasKe.size() <= 40))
+        && (!('balasNama' in d) || (d.balasNama is string && d.balasNama.size() <= 60));
+    }
+
+    function isValidTvPlayer(d) {
+      return d.keys().hasOnly(['absen','nama','username','stats','lastSeen','roomId','roomStatus','createdAt','lastMatchAt'])
+        && d.keys().hasAll(['absen','nama'])
+        && d.absen is number
+        && d.nama is string
+        && d.nama.size() <= 60
+        && (!('username' in d) || (d.username is string && d.username.size() <= 60))
+        && (!('stats' in d) || d.stats == null || d.stats is map)
+        && (!('lastSeen' in d) || d.lastSeen is number)
+        && (!('roomId' in d) || d.roomId == null || (d.roomId is string && d.roomId.size() <= 24))
+        && (!('roomStatus' in d) || d.roomStatus == null || d.roomStatus in ['waiting','playing','finished'])
+        && (!('createdAt' in d) || d.createdAt is number || d.createdAt is timestamp)
+        && (!('lastMatchAt' in d) || d.lastMatchAt is number);
+    }
+
+    function isValidTvRoom(d) {
+      return d.keys().hasOnly(['id','gameId','gameTitle','mode','visibility','code','hostAbsen','players',
+                                'minPlayers','maxPlayers','status','state','seq','turnSlot','handVersions',
+                                'winnerSlots','draw','result','historyId','createdAt','startedAt','finishedAt',
+                                'lastActivity','lastEvent'])
+        && d.keys().hasAll(['id','gameId','hostAbsen','players','status','seq'])
+        && d.id is string
+        && d.id.size() <= 24
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.hostAbsen is number
+        && d.players is list
+        && d.players.size() >= 1
+        && d.players.size() <= 4
+        && d.status in ['lobby','playing','finished']
+        && d.seq is number
+        && d.seq >= 0
+        && (!('gameTitle' in d) || (d.gameTitle is string && d.gameTitle.size() <= 40))
+        && (!('mode' in d) || d.mode in ['duel','party'])
+        && (!('visibility' in d) || d.visibility in ['public','private'])
+        && (!('code' in d) || (d.code is string && d.code.size() <= 24))
+        && (!('minPlayers' in d) || (d.minPlayers is number && d.minPlayers >= 2 && d.minPlayers <= 4))
+        && (!('maxPlayers' in d) || (d.maxPlayers is number && d.maxPlayers >= 2 && d.maxPlayers <= 4))
+        && (!('state' in d) || d.state == null || d.state is map)
+        && (!('turnSlot' in d) || d.turnSlot == null || (d.turnSlot is number && d.turnSlot >= 0 && d.turnSlot <= 3))
+        && (!('handVersions' in d) || d.handVersions is map)
+        && (!('winnerSlots' in d) || d.winnerSlots is list)
+        && (!('draw' in d) || d.draw is bool)
+        && (!('result' in d) || d.result == null || d.result is map)
+        && (!('historyId' in d) || d.historyId == null || d.historyId is string)
+        && (!('createdAt' in d) || d.createdAt is number)
+        && (!('startedAt' in d) || d.startedAt == null || d.startedAt is number)
+        && (!('finishedAt' in d) || d.finishedAt == null || d.finishedAt is number)
+        && (!('lastActivity' in d) || d.lastActivity is number)
+        && (!('lastEvent' in d) || (d.lastEvent is string && d.lastEvent.size() <= 300));
+    }
+
+    function isValidTvInvite(d) {
+      return d.keys().hasOnly(['id','roomId','fromAbsen','fromNama','toAbsen','toNama','gameId','mode',
+                                'status','createdAt','expiresAt','respondedAt'])
+        && d.keys().hasAll(['id','roomId','fromAbsen','toAbsen','gameId','status'])
+        && d.id is string
+        && d.id.size() <= 200
+        && d.roomId is string
+        && d.roomId.size() <= 24
+        && d.fromAbsen is number
+        && d.toAbsen is number
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.status in ['pending','accepted','declined','expired']
+        && (!('fromNama' in d) || (d.fromNama is string && d.fromNama.size() <= 60))
+        && (!('toNama' in d) || (d.toNama is string && d.toNama.size() <= 60))
+        && (!('mode' in d) || d.mode in ['duel','party'])
+        && (!('createdAt' in d) || d.createdAt is number)
+        && (!('expiresAt' in d) || d.expiresAt is number)
+        && (!('respondedAt' in d) || d.respondedAt == null || d.respondedAt is number);
+    }
+
+    function isValidTvHistory(d) {
+      return d.keys().hasOnly(['roomId','gameId','gameTitle','mode','playerAbsens','players','winnerAbsens',
+                                'winnerNama','draw','durationMs','startedAt','finishedAt'])
+        && d.keys().hasAll(['roomId','gameId','playerAbsens','finishedAt'])
+        && d.roomId is string
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.playerAbsens is list
+        && d.playerAbsens.size() >= 1
+        && d.playerAbsens.size() <= 4
+        && d.finishedAt is number
+        && (!('gameTitle' in d) || d.gameTitle is string)
+        && (!('mode' in d) || d.mode in ['duel','party'])
+        && (!('players' in d) || d.players is list)
+        && (!('winnerAbsens' in d) || d.winnerAbsens is list)
+        && (!('winnerNama' in d) || d.winnerNama is list)
+        && (!('draw' in d) || d.draw is bool)
+        && (!('durationMs' in d) || d.durationMs is number)
+        && (!('startedAt' in d) || d.startedAt == null || d.startedAt is number);
     }
 
     function isValidAccount(d) {
