@@ -3432,6 +3432,7 @@ const UPDATE_LOG = [
       "Version 2.5.0 Like & Komentar Biodata di Home, Bisa Balas Komentar Juga",
       "Version 2.5.0 Animasi Bidak Ludo & Ular Tangga Jalan Satu per Satu",
       "Version 2.5.1 Pemilik Biodata Bisa Lihat Siapa Saja yang Like Bio Nya",
+      "Version 2.5.2 Fishing Tanpa Blaze: Main, Jual Ikan, Upgrade Joran, Peringkat & Legenda",
     ],
   },
   {
@@ -3479,12 +3480,12 @@ function setupUpdatesModal() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-// Fishing sengaja tidak ikut diatur.
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "streak", "quiz"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
   tableverse: { judul: "TableVerse", icon: "🎲" },
+  fishing: { judul: "Fishing", icon: "🎣" },
   streak: { judul: "Streak", icon: "🔥" },
   quiz: { judul: "Quiz", icon: "🧠" },
 };
@@ -3712,6 +3713,18 @@ function renderGames() {
       : "Belum pernah main. Coba tema pertamamu!";
   }
 
+  let ringkasFishing = "Login dulu buat memancing";
+  if (login) {
+    try {
+      const rf = JSON.parse(localStorage.getItem("kelas73-fishing-ringkas") || "null");
+      ringkasFishing = rf && Number(rf.absen) === Number(currentUser.absen)
+        ? `💰 ${Number(rf.coins || 0).toLocaleString("id-ID")} koin · ${Number(rf.totalCaught || 0).toLocaleString("id-ID")} ikan · ${Number(rf.species || 0)} spesies`
+        : "Belum pernah mancing. Lempar pancing pertamamu!";
+    } catch (e) {
+      ringkasFishing = "Kolam siap · 102 spesies";
+    }
+  }
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -3743,6 +3756,16 @@ function renderGames() {
       spark: "♟️",
       kelas: "game-card-tableverse",
       cari: "tableverse meja board game tic tac toe checkers catur chess ludo ular tangga multiplayer room duel party undangan",
+    },
+    {
+      id: "fishing",
+      judul: "Fishing",
+      deskripsi: "Lempar pancing, tarik tepat waktu, kumpulkan 102 spesies ikan. Jual tangkapan, upgrade joran, kejar Legend & Secret.",
+      progress: ringkasFishing,
+      icon: "🎣",
+      spark: "🌊",
+      kelas: "game-card-fishing",
+      cari: "fishing mancing ikan pancing joran umpan kolam laut koleksi legenda secret koin",
     },
     {
       id: "streak",

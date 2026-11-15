@@ -1,8 +1,9 @@
 /* ===================================================
    FISHING GAME — client
-   Semua mutasi (koin, ikan, rarity, durability, jual/beli)
-   dikerjakan Cloud Functions. Client hanya menampilkan &
-   mengirim aksi. Firestore rules menolak write langsung.
+   Aksi (koin, ikan, rarity, durability, jual/beli) dijalankan
+   fishing-local.js lewat transaksi Firestore, tanpa Cloud
+   Functions. Kalau modul lokal tidak termuat, fallback ke
+   callable fishingApi lama.
 =================================================== */
 (function () {
   "use strict";
@@ -182,7 +183,18 @@
   })();
 
   /* ================= API ================= */
+  function modeLokal() {
+    return !!(window.FishingLocal && typeof window.FishingLocal.call === "function");
+  }
+
   function panggil(action, payload) {
+    if (modeLokal()) {
+      return Promise.resolve(window.FishingLocal.call(action, payload)).catch((err) => {
+        const e = new Error(String((err && err.message) || "Aksi mancing gagal."));
+        e.code = String((err && err.code) || "");
+        throw e;
+      });
+    }
     return new Promise((resolve, reject) => {
       let call;
       try {
@@ -323,7 +335,7 @@
   /* ================= CATALOG & SESSION ================= */
   async function muatKatalogServer() {
     const res = await api("catalog");
-    if (!res || !res.catalog) throw new Error("Katalog Fishing tidak diterima dari server.");
+    if (!res || !res.catalog) throw new Error("Katalog Fishing belum siap.");
     FC.cat = res.catalog;
     petaKatalog();
     try { localStorage.setItem(CAT_KEY, JSON.stringify(FC.cat)); } catch (err) { /* ignore */ }
@@ -347,10 +359,10 @@
     if (!currentUser) throw new Error("Login dulu buat memancing.");
     const absen = Number(currentUser.absen);
     const password = String(currentUser.password || "");
-    if (!password) throw new Error("Akun ini tidak punya password. Login ulang dulu.");
+    if (!modeLokal() && !password) throw new Error("Akun ini tidak punya password. Login ulang dulu.");
     const lama = forceToken ? "" : tokenTersimpan(absen);
     const res = await api("ensure", { absen, password, token: lama });
-    if (!res || !res.ok) throw new Error("Server menolak sesi mancing.");
+    if (!res || !res.ok) throw new Error("Sesi mancing ditolak.");
     FC.absen = absen;
     if (res.token) simpanToken(res.token);
     else if (lama) simpanToken(lama);
@@ -446,7 +458,7 @@
   }
 
   async function sinkronState() {
-    if (!FC.absen || !FC.token) return;
+    if (!FC.absen || (!FC.token && !modeLokal())) return;
     try {
       const res = await api("state", { absen: FC.absen, token: FC.token });
       if (res.state) terapkanState(res.state);
@@ -946,7 +958,7 @@
       : phase === "reeling" || phase === "result" || phase === "casting" ? `<button class="fishing-cast-btn is-loading" type="button" disabled>
           <span class="fishing-cast-emoji" aria-hidden="true">🌀</span>
           <span>${phase === "reeling" ? "Menarik pancing…" : phase === "casting" ? "Melempar pancing…" : "Selesai…"}</span>
-          <small>Server sedang memproses tangkapan</small>
+          <small>Sedang memproses tangkapan</small>
         </button>`
       : `<button class="fishing-cast-btn" type="button" data-fish-act="cast" ${bisaLempar ? "" : "disabled"}>
           <span class="fishing-cast-emoji" aria-hidden="true">🎣</span>
@@ -1033,7 +1045,7 @@
               </div>
             </div>` : ""}
 
-          <p class="fishing-area-note">Setiap lemparan memakai <b>1 umpan</b>. Tunggu sampai ikan menggigit, lalu tekan <b>TARIK!</b> sebelum waktunya habis. Hasil dan rarity dihitung di server.</p>
+          <p class="fishing-area-note">Setiap lemparan memakai <b>1 umpan</b>. Tunggu sampai ikan menggigit, lalu tekan <b>TARIK!</b> sebelum waktunya habis. Hasil dan rarity dihitung otomatis oleh game.</p>
         </div>
 
         <div class="fishing-area-tips">
@@ -1057,7 +1069,7 @@
     return `
       <div class="fishing-shop">
         <div class="fishing-section-head">
-          <div><p class="fishing-kicker">Toko fishing</p><h3>Perlengkapan &amp; perawatan</h3><p>Semua pembelian divalidasi server dan langsung tersimpan di akunmu.</p></div>
+          <div><p class="fishing-kicker">Toko fishing</p><h3>Perlengkapan &amp; perawatan</h3><p>Semua pembelian langsung tersimpan di akunmu.</p></div>
           <span class="fishing-coin-pill">💰 <strong>${angka(s.coins)}</strong></span>
         </div>
         ${shopTabs()}
@@ -1481,12 +1493,12 @@
     return `
       <div class="fishing-legends">
         <div class="fishing-section-head">
-          <div><p class="fishing-kicker">Kompetisi permanen</p><h3>First Legend &amp; Secret</h3><p>Slot ditentukan atomik oleh server, jadi dua pemain tidak bisa mendapatkan slot yang sama walaupun menangkap bersamaan.</p></div>
+          <div><p class="fishing-kicker">Kompetisi permanen</p><h3>First Legend &amp; Secret</h3><p>Slot dikunci lewat transaksi Firestore, jadi dua pemain tidak bisa mendapatkan slot yang sama walaupun menangkap bersamaan.</p></div>
           <span class="fishing-live-dot">LIVE</span>
         </div>
         ${bagian("legend")}
         ${bagian("secret")}
-        <p class="fishing-board-note">Waktu pencatatan memakai timestamp server. Slot yang sudah terisi tidak akan pernah berubah.</p>
+        <p class="fishing-board-note">Slot yang sudah terisi tidak akan pernah berubah.</p>
       </div>`;
   }
 
@@ -2209,7 +2221,7 @@
         selesaiHasil();
         break;
       case "refresh":
-        sinkronState().then(() => toast("🔄 Data tersinkron dengan server.", "ok"));
+        sinkronState().then(() => toast("🔄 Data tersinkron.", "ok"));
         break;
       default:
         break;
