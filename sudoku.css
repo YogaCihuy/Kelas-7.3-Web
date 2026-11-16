@@ -1,0 +1,552 @@
+/* ===================================================
+   SUDOKU — papan 9x9, 5 kesempatan, papan angka
+   Semua warna memakai token tema (theme.css) supaya
+   ikut Light, Sage, Forest, Dark, dan Dark Forest.
+=================================================== */
+
+.sd-app {
+  display: grid;
+  gap: 14px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---------- HUD ---------- */
+.sd-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.sd-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 84px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-surface-line);
+  box-shadow: 0 8px 16px -14px var(--t-card-under);
+}
+
+.sd-stat span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sd-stat strong {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-stat-level strong { color: var(--emerald); }
+
+.sd-stat-chance strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.sd-stat-time strong { color: var(--muted); }
+
+/* ---------- Arena ---------- */
+.sd-arena {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+.sd-board-wrap {
+  position: relative;
+  width: min(100%, 470px);
+  justify-self: center;
+}
+
+.sd-board {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-rows: repeat(9, minmax(0, 1fr));
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 6px;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow:
+    0 20px 36px -24px var(--t-card-under),
+    inset 0 1px 0 var(--t-card-sheen);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.sd-cell {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--t-soft-line);
+  border-bottom: 1px solid var(--t-soft-line);
+  border-radius: 0;
+  background: var(--t-surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 4.4vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sd-cell:nth-child(9n) { border-right: 0; }
+
+.sd-cell:nth-child(n + 73) { border-bottom: 0; }
+
+/* Garis tebal pemisah kotak 3x3 */
+.sd-cell:nth-child(9n + 3),
+.sd-cell:nth-child(9n + 6) {
+  border-right: 2px solid var(--forest);
+}
+
+.sd-cell:nth-child(n + 19):nth-child(-n + 27),
+.sd-cell:nth-child(n + 46):nth-child(-n + 54) {
+  border-bottom: 2px solid var(--forest);
+}
+
+.sd-cell.is-given {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--t-soft-a);
+}
+
+.sd-cell.is-user {
+  color: var(--emerald);
+  font-weight: 700;
+}
+
+.sd-cell.is-peer {
+  background: var(--t-soft-b);
+}
+
+.sd-cell.is-same {
+  background: var(--t-active-b);
+  color: var(--forest);
+}
+
+.sd-cell.is-sel,
+.sd-cell.is-sel.is-given,
+.sd-cell.is-sel.is-user {
+  background: var(--t-active-a);
+  color: var(--forest);
+  box-shadow: inset 0 0 0 2px var(--emerald);
+}
+
+.sd-cell.is-wrong,
+.sd-cell.is-wrong.is-sel {
+  background: var(--t-danger-bg);
+  color: var(--t-danger-ink);
+  box-shadow: inset 0 0 0 2px var(--t-danger-line);
+  animation: sd-shake 0.3s ease;
+}
+
+@keyframes sd-shake {
+  20% { transform: translateX(-3px); }
+  45% { transform: translateX(3px); }
+  70% { transform: translateX(-2px); }
+  90% { transform: translateX(1px); }
+}
+
+.sd-loading {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  padding: 0 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- Overlay mulai & selesai ---------- */
+.sd-start,
+.sd-over {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--t-overlay);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: auto;
+}
+
+.sd-start-card,
+.sd-over-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(100%, 330px);
+  padding: 18px 16px;
+  border-radius: 20px;
+  text-align: center;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 26px 44px -26px rgba(0, 0, 0, 0.65);
+}
+
+.sd-start-card h3 { font-size: 1.1rem; }
+
+.sd-start-note {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sd-levels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.sd-level-btn {
+  display: grid;
+  gap: 2px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-surface);
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.sd-level-btn:hover {
+  border-color: var(--emerald);
+  box-shadow: 0 10px 18px -16px var(--t-card-under);
+  transform: translateY(-2px);
+}
+
+.sd-level-btn:active { transform: translateY(0) scale(0.98); }
+
+.sd-level-btn strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--forest);
+}
+
+.sd-level-btn small {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.sd-level-btn span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--emerald);
+}
+
+.sd-over-icon { font-size: 2.1rem; }
+
+.sd-over-card h3 { font-size: 1.15rem; }
+
+.sd-over-sub {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sd-over-points {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1.1;
+  color: var(--emerald);
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-over-note {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.sd-over-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sd-over-actions button { width: 100%; }
+
+/* ---------- Panel angka ---------- */
+.sd-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sd-pad-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 14px 26px -20px var(--t-card-under);
+}
+
+.sd-pad-label {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--muted);
+}
+
+.sd-pad {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.sd-num {
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-surface);
+  color: var(--forest);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sd-num:hover:not(:disabled) {
+  background: var(--t-active-b);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+.sd-num:active:not(:disabled) { transform: scale(0.94); }
+
+.sd-num:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.sd-num.sd-erase {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.sd-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sd-actions button { width: 100%; }
+
+/* ---------- Peringkat ---------- */
+.sd-rank-card {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 14px 26px -20px var(--t-card-under);
+}
+
+.sd-rank-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.sd-rank-head h3 { font-size: 1rem; }
+
+.sd-rank-head span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.sd-rank-hint {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sd-rank-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.sd-rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: var(--t-soft-a);
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.sd-rank-list li.is-me {
+  background: var(--t-active-b);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+.sd-rank-no {
+  width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.sd-rank-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-rank-list strong {
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Notice ---------- */
+.sd-notice {
+  min-height: 1.5em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.sd-notice.is-on {
+  opacity: 1;
+  color: var(--emerald);
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 780px) {
+  .sd-arena {
+    grid-template-columns: 1fr;
+  }
+
+  .sd-board-wrap {
+    width: min(100%, 96vw);
+  }
+
+  .sd-side {
+    order: 2;
+  }
+
+  .sd-hud {
+    gap: 8px;
+  }
+
+  .sd-stat {
+    flex: 1 1 72px;
+    min-width: 0;
+    padding: 7px 10px;
+  }
+
+  .sd-stat strong { font-size: 1.15rem; }
+
+  .sd-stat-chance strong {
+    font-size: 0.92rem;
+    letter-spacing: -0.04em;
+  }
+
+  .sd-cell {
+    font-size: clamp(0.95rem, 4.6vw, 1.25rem);
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+  }
+
+  .sd-cell:nth-child(9n + 3),
+  .sd-cell:nth-child(9n + 6) {
+    border-right: 2px solid var(--forest);
+  }
+
+  .sd-cell:nth-child(n + 19):nth-child(-n + 27),
+  .sd-cell:nth-child(n + 46):nth-child(-n + 54) {
+    border-bottom: 2px solid var(--forest);
+  }
+
+  .sd-cell:nth-child(9n) { border-right: 0; }
+
+  .sd-cell:nth-child(n + 73) { border-bottom: 0; }
+
+  .sd-pad-card { padding: 10px; }
+
+  .sd-num {
+    min-height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .sd-start-card,
+  .sd-over-card {
+    padding: 16px 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sd-pad { gap: 5px; }
+
+  .sd-num {
+    min-height: 44px;
+    font-size: 1.05rem;
+  }
+
+  .sd-stat-chance strong {
+    font-size: 0.8rem;
+    letter-spacing: -0.06em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-cell.is-wrong,
+  .sd-cell.is-wrong.is-sel {
+    animation: none;
+  }
+}

@@ -1838,6 +1838,13 @@ function setupPageTabs() {
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
+        const sdView = document.getElementById("game-sudoku-view");
+        if (sdView && !sdView.hidden) {
+          if (typeof window.sudokuTutup === "function") window.sudokuTutup();
+          sdView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
       }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
@@ -3416,6 +3423,7 @@ function updateGamesAccount() {
   if (typeof window.tableverseAkunBerubah === "function") window.tableverseAkunBerubah(currentUser || null);
   if (typeof window.gtcAkunBerubah === "function") window.gtcAkunBerubah(currentUser || null);
   if (typeof window.blockblastAkunBerubah === "function") window.blockblastAkunBerubah(currentUser || null);
+  if (typeof window.sudokuAkunBerubah === "function") window.sudokuAkunBerubah(currentUser || null);
 
   if (!absen) {
     gameState = null;
@@ -3510,6 +3518,11 @@ const UPDATE_LOG = [
   {
     tanggal: "16/11/26",
     items: [
+      "Version 2.7.0 Game Baru Sudoku: Papan 9x9 dengan 4 Level, Easy sampai WNI",
+      "Version 2.7.0 Sudoku Punya 5 Kesempatan, Salah 5 Kali Berarti Gagal",
+      "Version 2.7.0 Poin Sudoku Sesuai Level dan Masuk Papan Peringkat 1-5",
+      "Version 2.7.0 Level WNI Cuma Kasih 3-5 Angka Awalan, Paling Menantang",
+      "Version 2.7.0 Block Blast di HP Lebih Enak: Blok Lebih Besar, Pratinjau Jelas, Ada Getar",
       "Version 2.6.1 Block Blast: Blok yang Ditarik Sekarang Pas Nempel di Kotak Tujuan",
       "Version 2.6.1 Block Blast Ada Suara Taruh Blok, Pecah Baris, dan Combo",
       "Version 2.6.1 Bonus Papan Bersih: Hapus Semua Blok Dapat +1.000 Plus Animasi Kilau",
@@ -3641,7 +3654,7 @@ function setupThemeSettings() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
@@ -3650,6 +3663,7 @@ const GAME_INFO_ATUR = {
   streak: { judul: "Streak", icon: "🔥" },
   quiz: { judul: "Quiz", icon: "🧠" },
   blockblast: { judul: "Block Blast", icon: "🧩" },
+  sudoku: { judul: "Sudoku", icon: "🔢" },
 };
 const GAME_MODE_INFO = [
   { id: "default", judul: "Default", sub: "Urutan bawaan web." },
@@ -3890,6 +3904,9 @@ function renderGames() {
   let ringkasBlock = "Puzzle blok 8x8";
   if (typeof window.blockblastRingkas === "function") ringkasBlock = window.blockblastRingkas(login);
 
+  let ringkasSudoku = "Sudoku 9x9 · 4 level";
+  if (typeof window.sudokuRingkas === "function") ringkasSudoku = window.sudokuRingkas(login);
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -3961,6 +3978,16 @@ function renderGames() {
       spark: "✨",
       kelas: "game-card-blockblast",
       cari: "block blast blok puzzle teka teki susun kotak baris kolom skor combo",
+    },
+    {
+      id: "sudoku",
+      judul: "Sudoku",
+      deskripsi: "Isi papan 9x9 tanpa angka dobel. 4 level dari Easy sampai WNI, 5 kesempatan, dan poin buat naik peringkat kelas.",
+      progress: ringkasSudoku,
+      icon: "🔢",
+      spark: "🧮",
+      kelas: "",
+      cari: "sudoku angka teka teki logika 9x9 level easy medium hard wni poin peringkat leaderboard",
     },
   ];
 
@@ -6241,6 +6268,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnSudokuBack = document.getElementById("btn-sudoku-back");
+  if (btnSudokuBack) {
+    btnSudokuBack.addEventListener("click", () => {
+      if (typeof window.sudokuTutup === "function") window.sudokuTutup();
+      document.getElementById("game-sudoku-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -6255,6 +6293,7 @@ function setupGamesTab() {
       if (game !== "tableverse" && typeof window.tableverseTutup === "function") window.tableverseTutup();
       if (game !== "guesscolor" && typeof window.gtcTutup === "function") window.gtcTutup();
       if (game !== "blockblast" && typeof window.blockblastTutup === "function") window.blockblastTutup();
+      if (game !== "sudoku" && typeof window.sudokuTutup === "function") window.sudokuTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
@@ -6263,6 +6302,7 @@ function setupGamesTab() {
       document.getElementById("game-fishing-view").hidden = game !== "fishing";
       document.getElementById("game-tableverse-view").hidden = game !== "tableverse";
       document.getElementById("game-blockblast-view").hidden = game !== "blockblast";
+      document.getElementById("game-sudoku-view").hidden = game !== "sudoku";
       if (game === "timer") {
         timerRender();
       } else if (game === "guesscolor") {
@@ -6279,6 +6319,8 @@ function setupGamesTab() {
         if (typeof window.fishingBuka === "function") window.fishingBuka();
       } else if (game === "blockblast") {
         if (typeof window.blockblastBuka === "function") window.blockblastBuka();
+      } else if (game === "sudoku") {
+        if (typeof window.sudokuBuka === "function") window.sudokuBuka();
       } else {
         renderGames();
       }

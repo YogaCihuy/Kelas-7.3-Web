@@ -133,6 +133,12 @@
     } catch (err) { /* audio diblokir browser */ }
   }
 
+  function getar(pola) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pola);
+    } catch (err) { /* perangkat gak dukung getar */ }
+  }
+
   function kunciStats() {
     return SKOR_KEY + (S.user ? String(S.user.absen) : "guest");
   }
@@ -523,6 +529,7 @@
     S.score += blok.sel.length;
     S.tray.splice(idx, 1);
     sfx("blockPlace");
+    getar(18);
     paintBoard();
     renderTray();
     renderHud();
@@ -579,6 +586,7 @@
 
     sfx("blockLine", jumlahGaris);
     if (S.combo >= 2) sfx("blockCombo", S.combo);
+    getar([0, 18, 28, 22]);
     hapus.forEach((i) => {
       const cell = elBoard.children[i];
       if (cell) cell.classList.add("is-clearing");
@@ -598,6 +606,7 @@
       paintBoard();
       if (sempurna) {
         sfx("blockPerfect");
+        getar([0, 30, 30, 30, 30, 70]);
         elBoard.classList.add("is-perfect");
         hujanKilau();
         setTimeout(() => elBoard.classList.remove("is-perfect"), 950);
@@ -734,6 +743,11 @@
     d.bisa = peta.ok;
     d.tl = tl;
     tempelGhost(d, tl);
+    if (d.ghost) d.ghost.classList.toggle("is-bad", !peta.ok);
+    if (d.touch && d.previewOk !== peta.ok) {
+      if (peta.ok) getar(8);
+      d.previewOk = peta.ok;
+    }
     paintBoard(peta);
   }
 
@@ -744,6 +758,8 @@
       if (d.bisa && d.tl) {
         const idx = S.tray.indexOf(d.blok);
         if (idx >= 0) pasangBlok(idx, d.tl.r, d.tl.c);
+      } else {
+        getar(12);
       }
     } else {
       const idx = S.tray.indexOf(d.blok);
@@ -790,6 +806,11 @@
     if (!blok) return;
     S.selected = -1;
     Array.prototype.forEach.call(elTray.querySelectorAll(".bb-piece"), (el) => el.classList.remove("is-selected"));
+    const touch = e.pointerType !== "mouse";
+    const g = geometriBoard();
+    const lift = touch
+      ? Math.round(Math.min(72, Math.max(44, (g ? g.cellH : 48) * 1.05)))
+      : 0;
     S.drag = {
       id: e.pointerId,
       idx,
@@ -799,7 +820,9 @@
       startY: e.clientY,
       moved: false,
       ghost: null,
-      lift: e.pointerType === "mouse" ? 0 : 56,
+      touch,
+      lift,
+      previewOk: null,
       bisa: false,
       tl: null,
     };

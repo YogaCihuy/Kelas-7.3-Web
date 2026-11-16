@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="timer.css?v=1">
 <link rel="stylesheet" href="guess-color.css?v=3">
-<link rel="stylesheet" href="blockblast.css?v=1">
+<link rel="stylesheet" href="blockblast.css?v=3">
+<link rel="stylesheet" href="sudoku.css?v=1">
 <link rel="stylesheet" href="fishing.css?v=2">
 <link rel="stylesheet" href="tableverse.css?v=6">
 <link rel="stylesheet" href="theme.css?v=5">
@@ -550,13 +551,88 @@
             <p id="bb-notice" class="bb-notice" aria-live="polite"></p>
           </div>
         </div>
+
+        <div id="game-sudoku-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-sudoku-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span class="game-coin" aria-live="polite">&#128290; Sudoku</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Sudoku</h2>
+            <p class="section-sub">Isi angka 1-9 tanpa dobel di baris, kolom, atau kotak 3x3. Salah 5 kali berarti gagal. Makin sulit levelnya, makin besar poin yang didapat.</p>
+          </div>
+
+          <div id="sd-app" class="sd-app">
+            <div class="sd-hud">
+              <div class="sd-stat sd-stat-level">
+                <span>Level</span>
+                <strong id="sd-level">Easy</strong>
+              </div>
+              <div class="sd-stat sd-stat-chance">
+                <span>Kesempatan</span>
+                <strong id="sd-chance">&#10084;&#65039;&#10084;&#65039;&#10084;&#65039;&#10084;&#65039;&#10084;&#65039;</strong>
+              </div>
+              <div class="sd-stat">
+                <span>Poin</span>
+                <strong id="sd-points">0</strong>
+              </div>
+              <div class="sd-stat sd-stat-time">
+                <span>Waktu</span>
+                <strong id="sd-time">00:00</strong>
+              </div>
+            </div>
+
+            <div class="sd-arena">
+              <div class="sd-board-wrap">
+                <div id="sd-board" class="sd-board" role="grid" aria-label="Papan Sudoku 9 kali 9"></div>
+
+                <div id="sd-start" class="sd-start">
+                  <div class="sd-start-card">
+                    <h3>Pilih Level</h3>
+                    <p id="sd-start-note" class="sd-start-note"></p>
+                    <div id="sd-levels" class="sd-levels"></div>
+                  </div>
+                </div>
+
+                <div id="sd-over" class="sd-over" hidden>
+                  <div class="sd-over-card">
+                    <span id="sd-over-icon" class="sd-over-icon" aria-hidden="true">&#127881;</span>
+                    <h3 id="sd-over-title">Sudoku Selesai!</h3>
+                    <p id="sd-over-sub" class="sd-over-sub"></p>
+                    <strong id="sd-over-points" class="sd-over-points">+10 poin</strong>
+                    <p id="sd-over-note" class="sd-over-note"></p>
+                    <div class="sd-over-actions">
+                      <button class="btn-primary" type="button" data-sd-action="ulang">Main Lagi</button>
+                      <button class="btn-secondary" type="button" data-sd-action="level">Ganti Level</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sd-side">
+                <div class="sd-pad-card">
+                  <p class="sd-pad-label">Tap kotak di papan, lalu pilih angkanya.</p>
+                  <div id="sd-pad" class="sd-pad"></div>
+                  <div class="sd-actions">
+                    <button class="btn-secondary" type="button" data-sd-action="ulang">Ulangi</button>
+                    <button class="btn-secondary" type="button" data-sd-action="level">Level</button>
+                  </div>
+                </div>
+                <div id="sd-rank" class="sd-rank"></div>
+              </div>
+            </div>
+
+            <p id="sd-notice" class="sd-notice" aria-live="polite"></p>
+          </div>
+        </div>
       </section>
     </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.6.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.7.0</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (16/11/26)</button>
   </footer>
 
@@ -958,7 +1034,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=45"></script>
+<script src="script.js?v=47"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=3"></script>
 <script src="fishing-local.js?v=4"></script>
@@ -968,7 +1044,8 @@
 <script src="tableverse-boards.js?v=7"></script>
 <script src="tableverse-local.js?v=2"></script>
 <script src="tableverse.js?v=6"></script>
-<script src="blockblast.js?v=2"></script>
+<script src="blockblast.js?v=5"></script>
+<script src="sudoku.js?v=1"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>
