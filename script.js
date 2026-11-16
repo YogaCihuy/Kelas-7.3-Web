@@ -315,6 +315,29 @@ const SoundFX = (() => {
       });
     },
     placePiece: () => tone({ freq: 520, glideTo: 400, duration: 0.09, type: "triangle", gain: 0.11 }),
+    blockPlace: () => {
+      tone({ freq: 300, glideTo: 220, duration: 0.1, type: "triangle", gain: 0.15 });
+      tone({ freq: 640, duration: 0.05, type: "square", gain: 0.06, delay: 0.01 });
+    },
+    blockLine: (garis) => {
+      const naik = Math.min(4, Math.max(1, Number(garis) || 1));
+      tone({ freq: 520, glideTo: 980, duration: 0.17, type: "triangle", gain: 0.14 });
+      for (let i = 0; i < naik; i += 1) {
+        tone({ freq: 760 + i * 130, duration: 0.13, type: "sine", gain: 0.11, delay: 0.08 + i * 0.06 });
+      }
+    },
+    blockCombo: (combo) => {
+      const dasar = 620 + Math.min(5, Math.max(0, Number(combo) || 2)) * 55;
+      [0, 0.07, 0.14].forEach((d, i) => {
+        tone({ freq: dasar + i * 150, duration: 0.1, type: "square", gain: 0.07, delay: d });
+      });
+    },
+    blockPerfect: () => {
+      [523, 659, 784, 1046, 1318].forEach((f, i) => {
+        tone({ freq: f, duration: 0.2, type: "triangle", gain: 0.14, delay: i * 0.11 });
+      });
+      tone({ freq: 1568, duration: 0.32, type: "sine", gain: 0.1, delay: 0.58 });
+    },
     capture: () => {
       tone({ freq: 400, glideTo: 130, duration: 0.24, type: "sawtooth", gain: 0.09 });
       tone({ freq: 640, duration: 0.06, type: "square", gain: 0.06, delay: 0.02 });
@@ -3487,6 +3510,9 @@ const UPDATE_LOG = [
   {
     tanggal: "16/11/26",
     items: [
+      "Version 2.6.1 Block Blast: Blok yang Ditarik Sekarang Pas Nempel di Kotak Tujuan",
+      "Version 2.6.1 Block Blast Ada Suara Taruh Blok, Pecah Baris, dan Combo",
+      "Version 2.6.1 Bonus Papan Bersih: Hapus Semua Blok Dapat +1.000 Plus Animasi Kilau",
       "Version 2.6.0 Game Baru Block Blast: Susun Blok di Papan 8x8, Hapus Baris & Kolom",
       "Version 2.6.0 Block Blast Bisa Dimainkan Tanpa Login, Skor Terbaik Tersimpan di Perangkat",
       "Version 2.6.0 Login Buat Simpan Skor Block Blast ke Akun dan Naik Papan Peringkat Kelas",

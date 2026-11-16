@@ -431,6 +431,82 @@
   color: var(--emerald);
 }
 
+/* ---------- Efek skor, blok baru, papan bersih ---------- */
+.bb-cell.is-drop {
+  animation: bb-drop 0.26s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes bb-drop {
+  0% { transform: scale(1.22); filter: brightness(1.4); }
+  60% { transform: scale(0.96); }
+  100% { transform: scale(1); filter: none; }
+}
+
+.bb-pop {
+  position: absolute;
+  z-index: 7;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--emerald);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.14);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: bb-pop-float 0.95s ease-out forwards;
+}
+
+.bb-pop.is-kecil {
+  font-size: 0.82rem;
+  color: var(--muted);
+  animation-duration: 0.7s;
+}
+
+.bb-pop.is-besar {
+  font-size: 1.55rem;
+}
+
+.bb-pop.is-emas {
+  font-size: 2rem;
+  color: #e0ab1f;
+  text-shadow: 0 2px 0 #8a6410, 0 0 18px rgba(255, 208, 74, 0.85);
+}
+
+@keyframes bb-pop-float {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.7); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -130%) scale(1.05); }
+}
+
+.bb-board.is-perfect {
+  animation: bb-perfect 0.95s ease;
+}
+
+@keyframes bb-perfect {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 208, 74, 0); }
+  30% { box-shadow: 0 0 0 7px rgba(255, 208, 74, 0.55), 0 0 42px rgba(255, 208, 74, 0.6); }
+  65% { box-shadow: 0 0 0 14px rgba(255, 208, 74, 0); }
+}
+
+.bb-spark {
+  position: absolute;
+  z-index: 6;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #ffd24a;
+  box-shadow: 0 0 10px rgba(255, 210, 74, 0.9);
+  pointer-events: none;
+  animation: bb-spark-fly 1s ease-out forwards;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes bb-spark-fly {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4) rotate(0deg); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0), var(--y, -60px)) scale(1.1) rotate(220deg); }
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 780px) {
   .bb-arena {
@@ -476,7 +552,14 @@
 @media (prefers-reduced-motion: reduce) {
   .bb-combo:not([hidden]),
   .bb-cell.is-clearing,
-  .bb-board.is-shake {
+  .bb-cell.is-drop,
+  .bb-board.is-shake,
+  .bb-board.is-perfect,
+  .bb-pop {
     animation: none;
+  }
+
+  .bb-spark {
+    display: none;
   }
 }

@@ -125,9 +125,11 @@
     return cadangan || "Siswa " + key;
   }
 
-  function sfx(nama) {
+  function sfx(nama, ...args) {
     try {
-      if (typeof SoundFX !== "undefined" && SoundFX && typeof SoundFX[nama] === "function") SoundFX[nama]();
+      if (typeof SoundFX !== "undefined" && SoundFX && typeof SoundFX[nama] === "function") {
+        SoundFX[nama](...args);
+      }
     } catch (err) { /* audio diblokir browser */ }
   }
 
@@ -439,6 +441,54 @@
     }, 2800);
   }
 
+  function posisiKotak(idx) {
+    if (!elBoard || !elBoard.parentElement) return null;
+    const cell = elBoard.children[idx];
+    if (!cell) return null;
+    const a = cell.getBoundingClientRect();
+    const b = elBoard.parentElement.getBoundingClientRect();
+    return { x: a.left - b.left + a.width / 2, y: a.top - b.top + a.height / 2 };
+  }
+
+  function tampilPoin(teks, idx, varian) {
+    const wrap = elBoard && elBoard.parentElement;
+    const pos = posisiKotak(idx);
+    if (!wrap || !pos) return;
+    const el = document.createElement("span");
+    el.className = "bb-pop" + (varian ? ` is-${varian}` : "");
+    el.textContent = teks;
+    el.style.left = `${pos.x}px`;
+    el.style.top = `${pos.y}px`;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function tandaiBlokBaru(blok, tlR, tlC) {
+    if (!elBoard) return;
+    blok.sel.forEach(([dr, dc]) => {
+      const cell = elBoard.children[(tlR + dr) * UKURAN + (tlC + dc)];
+      if (!cell) return;
+      cell.classList.add("is-drop");
+      setTimeout(() => cell.classList.remove("is-drop"), 280);
+    });
+  }
+
+  function hujanKilau() {
+    const wrap = elBoard && elBoard.parentElement;
+    if (!wrap) return;
+    for (let i = 0; i < 16; i += 1) {
+      const s = document.createElement("span");
+      s.className = "bb-spark";
+      s.style.left = `${8 + Math.random() * 84}%`;
+      s.style.top = `${8 + Math.random() * 84}%`;
+      s.style.setProperty("--d", `${(Math.random() * 0.22).toFixed(2)}s`);
+      s.style.setProperty("--x", `${Math.round(Math.random() * 90 - 45)}px`);
+      s.style.setProperty("--y", `${Math.round(-45 - Math.random() * 80)}px`);
+      wrap.appendChild(s);
+      setTimeout(() => s.remove(), 1200);
+    }
+  }
+
   function mulaiBaru() {
     S.board = new Array(TOTAL).fill(null);
     S.tray = [];
@@ -472,10 +522,14 @@
     });
     S.score += blok.sel.length;
     S.tray.splice(idx, 1);
-    sfx("placePiece");
+    sfx("blockPlace");
     paintBoard();
     renderTray();
     renderHud();
+    const pusatR = Math.round(tlR + blok.sel.reduce((n, p) => n + p[0], 0) / blok.sel.length);
+    const pusatC = Math.round(tlC + blok.sel.reduce((n, p) => n + p[1], 0) / blok.sel.length);
+    const pusatIdx = Math.max(0, Math.min(TOTAL - 1, pusatR * UKURAN + pusatC));
+    tampilPoin(`+${blok.sel.length}`, pusatIdx, "kecil");
 
     const baris = [];
     const kolom = [];
@@ -499,6 +553,7 @@
       S.combo = 0;
       renderHud();
       selesaikanGiliran();
+      tandaiBlokBaru(blok, tlR, tlC);
       return true;
     }
 
@@ -515,20 +570,38 @@
     S.runLines += jumlahGaris;
     const dasar = jumlahGaris * 100 + Math.max(0, jumlahGaris - 1) * 50;
     const bonus = Math.round(dasar * (1 + 0.25 * (S.combo - 1)));
-    S.score += bonus;
 
-    sfx("resultReveal");
-    if (S.combo >= 2) sfx("notify");
+    // Papan kosong total dapat bonus besar, bukan cuma poin per garis.
+    const sisa = S.board.reduce((n, v, i) => n + (v && !hapus.has(i) ? 1 : 0), 0);
+    const sempurna = sisa === 0;
+    const bonusBersih = sempurna ? 1000 : 0;
+    S.score += bonus + bonusBersih;
+
+    sfx("blockLine", jumlahGaris);
+    if (S.combo >= 2) sfx("blockCombo", S.combo);
     hapus.forEach((i) => {
       const cell = elBoard.children[i];
       if (cell) cell.classList.add("is-clearing");
     });
     renderHud();
-    tampilNotice(`+${bonus.toLocaleString("id-ID")} · ${jumlahGaris} garis${S.combo >= 2 ? ` · Combo x${S.combo}` : ""}`);
+    tampilPoin(
+      `+${(bonus + bonusBersih).toLocaleString("id-ID")}`,
+      pusatIdx,
+      sempurna ? "emas" : "besar"
+    );
+    tampilNotice(sempurna
+      ? "PAPAN BERSIH! Bonus +1.000"
+      : `+${bonus.toLocaleString("id-ID")} · ${jumlahGaris} garis${S.combo >= 2 ? ` · Combo x${S.combo}` : ""}`);
 
     setTimeout(() => {
       hapus.forEach((i) => { S.board[i] = null; });
       paintBoard();
+      if (sempurna) {
+        sfx("blockPerfect");
+        elBoard.classList.add("is-perfect");
+        hujanKilau();
+        setTimeout(() => elBoard.classList.remove("is-perfect"), 950);
+      }
       selesaikanGiliran();
     }, 240);
     return true;
@@ -628,6 +701,15 @@
     d.ghost.style.top = `${y - d.ghostH / 2 - d.lift}px`;
   }
 
+  // Ghost ditempel ke kotak tujuan. Jadi yang kelihatan diangkat jari
+  // dan kotak yang bakal diisi selalu sejajar, gak selisih setengah kotak.
+  function tempelGhost(d, tl) {
+    const g = geometriBoard();
+    if (!g || !d.ghost) return;
+    d.ghost.style.left = `${g.firstLeft + tl.c * g.pitchX}px`;
+    d.ghost.style.top = `${g.firstTop + tl.r * g.pitchY - d.lift}px`;
+  }
+
   function onDragMove(e) {
     const d = S.drag;
     if (!d || e.pointerId !== d.id) return;
@@ -640,17 +722,18 @@
       buatGhost(d);
     }
     if (e.cancelable) e.preventDefault();
-    posisiGhost(d, e.clientX, e.clientY);
     const tl = tlDariTitik(d.blok, e.clientX, e.clientY, d.lift);
     if (!tl) {
       d.bisa = false;
       d.tl = null;
+      posisiGhost(d, e.clientX, e.clientY);
       paintBoard();
       return;
     }
     const peta = petaPreview(d.blok, tl.r, tl.c);
     d.bisa = peta.ok;
     d.tl = tl;
+    tempelGhost(d, tl);
     paintBoard(peta);
   }
 
