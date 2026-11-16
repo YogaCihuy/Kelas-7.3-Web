@@ -43,7 +43,7 @@ const POLA_A = [
 const HINDARI_GRP_A = [
   { absen: 17, tingkat: "pasti" },
   { absen: 25, tingkat: "pasti" },
-  { absen: 09, tingkat: "pasti"}
+  { absen: 9, tingkat: "pasti"}
 ];
 
 const POLA_B = [
