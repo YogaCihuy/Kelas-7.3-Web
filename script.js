@@ -24,14 +24,16 @@ function lagiDiAplikasi() {
 // ===== Pola pembagian kelompok =====
 const ANCHOR = 29;
 const GRP_A = [1, 15, 18];
-const GRP_B = [26, 25, 16];
+// Grup B = 29 (anchor) + 26, 25, 16, 09, 04, 20.
+const GRP_B = [26, 25, 16, 9, 4, 20];
 
 // Pola grup asli 01, 15, 18 — dibikin mirip pola 29/26/25/16 biar terasa natural.
 // "semua" = bertiga satu tim, "dua" = berdua + satu pisah, "pisah" = semua terpisah.
+// Peluang "semua" sengaja dikecilin biar Grup A jarang numpuk di satu tim.
 const POLA_A = [
-  { bobot: 52, jenis: "semua" },
-  { bobot: 33, jenis: "dua" },
-  { bobot: 15, jenis: "pisah" },
+  { bobot: 25, jenis: "semua" },
+  { bobot: 45, jenis: "dua" },
+  { bobot: 30, jenis: "pisah" },
 ];
 
 // 29 (ANCHOR) otomatis gak boleh setim sama 01, 15, 18 — aturan ini dikunci.
@@ -43,15 +45,16 @@ const POLA_A = [
 const HINDARI_GRP_A = [
   { absen: 17, tingkat: "pasti" },
   { absen: 25, tingkat: "pasti" },
-  { absen: 9, tingkat: "pasti"}
+  { absen: 9, tingkat: "pasti" },
 ];
 
+// Peluang "semua" juga dikecilin; sebisa mungkin Grup B disebar ke beberapa tim.
 const POLA_B = [
-  { bobot: 35, jenis: "semua" },
-  { bobot: 36, jenis: "dua-dua" },
-  { bobot: 15, jenis: "dua-pisah" },
-  { bobot: 9, jenis: "tiga" },
-  { bobot: 5, jenis: "sendiri" },
+  { bobot: 8, jenis: "semua" },
+  { bobot: 42, jenis: "dua-dua" },
+  { bobot: 26, jenis: "dua-pisah" },
+  { bobot: 10, jenis: "tiga" },
+  { bobot: 14, jenis: "sendiri" },
 ];
 
 function acakArray(arr) {
@@ -98,13 +101,17 @@ function susunPola(semua, kapMax = Infinity) {
   if (jenis === "semua") {
     blok.push([inti, ...b]);
   } else if (jenis === "dua-dua") {
-    blok.push([inti, b[0]], [b[1], b[2]]);
+    blok.push([inti, b[0]]);
+    for (let i = 1; i < b.length; i += 2) {
+      if (b[i + 1]) blok.push([b[i], b[i + 1]]);
+      else hindar.push(b[i]);
+    }
   } else if (jenis === "dua-pisah") {
     blok.push([inti, b[0]]);
-    hindar.push(b[1], b[2]);
+    hindar.push(...b.slice(1));
   } else if (jenis === "tiga") {
-    blok.push([inti, b[0], b[1]]);
-    hindar.push(b[2]);
+    blok.push([inti, ...b.slice(0, 2)]);
+    hindar.push(...b.slice(2));
   } else {
     blok.push([inti]);
     hindar.push(...b);
@@ -133,6 +140,36 @@ function hitungKonflik(tim, aturan) {
     });
   });
   return total;
+}
+
+// Tukar anggota biasa antar tim buat menghapus sisa pelanggaran aturan.
+// Ukuran tim tetap sama, dan orang yang aturannya dikunci gak ikut dipindah.
+function perbaikiAturan(tim, tetap, aturan) {
+  if (!aturan.length) return;
+  for (let putaran = 0; putaran < 25; putaran++) {
+    if (hitungKonflik(tim, aturan) === 0) return;
+    let adaPerbaikan = false;
+    for (let a = 0; a < tim.length && !adaPerbaikan; a++) {
+      for (let i = 0; i < tim[a].length && !adaPerbaikan; i++) {
+        const orang = tim[a][i];
+        if (!aturan.some((r) => r.orang === orang.absen)) continue;
+        const sisaTimA = tim[a].filter((s) => s !== orang);
+        if (!akanKonflik(orang.absen, sisaTimA, aturan)) continue;
+        for (let b = 0; b < tim.length && !adaPerbaikan; b++) {
+          if (b === a || akanKonflik(orang.absen, tim[b], aturan)) continue;
+          for (let j = 0; j < tim[b].length; j++) {
+            const tukar = tim[b][j];
+            if (tetap.has(tukar.absen) || akanKonflik(tukar.absen, sisaTimA, aturan)) continue;
+            tim[b][j] = orang;
+            tim[a][i] = tukar;
+            adaPerbaikan = true;
+            break;
+          }
+        }
+      }
+    }
+    if (!adaPerbaikan) return;
+  }
 }
 
 // ===== Settings Picker (disimpan di browser) =====
@@ -1549,15 +1586,17 @@ function setupTeamsPicker() {
     const lebih = semua.length % jumlahTim;
     const kapasitas = acakArray(Array.from({ length: jumlahTim }, (_, i) => dasar + (i < lebih ? 1 : 0)));
 
-    // Pola kelompok harus muat di ukuran tim, supaya semua tim tetap sama besar
+    // Pola kelompok harus muat di ukuran tim DAN jumlah tim, supaya semua tim tetap sama besar
+    // dan dua kelompok aturan gak ketemu di tim yang sama.
     const kapUrut = [...kapasitas].sort((a, b) => b - a);
     let pola = null;
     for (let k = 0; k < 50 && !pola; k++) {
       const p = susunPola(semua, kapUrut[0]);
       const urut = p.blok.map((g) => g.length).sort((a, b) => b - a);
-      if (urut.every((n, i) => i < kapUrut.length && n <= kapUrut[i])) pola = p;
+      if (urut.length <= jumlahTim && urut.every((n, i) => i < kapUrut.length && n <= kapUrut[i])) pola = p;
     }
     if (!pola) pola = susunPola(semua, kapUrut[kapUrut.length - 1]);
+    if (pola.blok.length > jumlahTim) pola = { blok: pola.blok.slice(0, jumlahTim), hindar: pola.hindar };
     const { blok: grup, hindar } = pola;
     const aturan = [
       // 29 selalu dijauhkan dari 01, 15, 18.
@@ -1573,6 +1612,17 @@ function setupTeamsPicker() {
     grup.sort((a, b) => b.length - a.length);
     const sudahDiGrup = new Set();
     grup.forEach((g) => g.forEach((s) => sudahDiGrup.add(s.absen)));
+    // Kalau Grup A gak sengaja dipola jadi satu blok, sisa anggotanya diusahakan
+    // masuk tim lain (bukan tim tempat teman Grup A-nya), biar gak numpuk terus.
+    const aDalamBlok = grup.reduce((n, g) => n + g.filter((s) => GRP_A.includes(s.absen)).length, 0);
+
+    // Orang yang gak boleh dipindah-pindah waktu merapikan gender/aturan
+    const tetap = new Set([
+      ...sudahDiGrup,
+      ...hindar.map((s) => s.absen),
+      ...GRP_A,
+      ...aturan.map((r) => r.orang),
+    ]);
 
     const urutanTim = acakArray([...Array(jumlahTim).keys()]).sort((a, b) => kapasitas[b] - kapasitas[a]);
     const timGrup = new Set();
@@ -1613,19 +1663,18 @@ function setupTeamsPicker() {
         return;
       }
       const aman = slotTersedia.filter((t) => !akanKonflik(siswa.absen, tim[t], aturan));
-      const pool = aman.length ? aman : slotTersedia;
+      let pool = aman.length ? aman : slotTersedia;
+      if (aDalamBlok < GRP_A.length && GRP_A.includes(siswa.absen)) {
+        const tanpaA = aman.filter((t) => !tim[t].some((s) => GRP_A.includes(s.absen)));
+        if (tanpaA.length) pool = tanpaA;
+      }
       const pilih = pool[Math.floor(Math.random() * pool.length)];
       tim[pilih].push(siswa);
       slotTersedia.splice(slotTersedia.indexOf(pilih), 1);
     });
 
-    // Orang yang gak boleh dipindah-pindah waktu merapikan gender
-    const tetap = new Set([
-      ...sudahDiGrup,
-      ...hindar.map((s) => s.absen),
-      ...GRP_A,
-      ...aturan.map((r) => r.orang),
-    ]);
+    perbaikiAturan(tim, tetap, aturan);
+
     return { tim, tetap, aturan };
   }
 
@@ -1756,6 +1805,13 @@ function setupPageTabs() {
         if (gtcView && !gtcView.hidden) {
           if (typeof window.gtcTutup === "function") window.gtcTutup();
           gtcView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
+        const bbView = document.getElementById("game-blockblast-view");
+        if (bbView && !bbView.hidden) {
+          if (typeof window.blockblastTutup === "function") window.blockblastTutup();
+          bbView.hidden = true;
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
@@ -3336,6 +3392,7 @@ function updateGamesAccount() {
   if (typeof window.fishingAkunBerubah === "function") window.fishingAkunBerubah();
   if (typeof window.tableverseAkunBerubah === "function") window.tableverseAkunBerubah(currentUser || null);
   if (typeof window.gtcAkunBerubah === "function") window.gtcAkunBerubah(currentUser || null);
+  if (typeof window.blockblastAkunBerubah === "function") window.blockblastAkunBerubah(currentUser || null);
 
   if (!absen) {
     gameState = null;
@@ -3427,6 +3484,17 @@ function gameSvgPohon() {
 
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
+  {
+    tanggal: "16/11/26",
+    items: [
+      "Version 2.6.0 Game Baru Block Blast: Susun Blok di Papan 8x8, Hapus Baris & Kolom",
+      "Version 2.6.0 Block Blast Bisa Dimainkan Tanpa Login, Skor Terbaik Tersimpan di Perangkat",
+      "Version 2.6.0 Login Buat Simpan Skor Block Blast ke Akun dan Naik Papan Peringkat Kelas",
+      "Version 2.6.0 Block Blast Ada Combo: Hapus Beberapa Baris Sekaligus Dapat Bonus",
+      "Version 2.5.6 Fishing Ikut Tema: Kartu, Tombol, dan Panel Gak Putih Lagi di Tema Gelap",
+      "Version 2.5.6 Tab Toko, Tas, Koleksi, Worker, dan Profil Fishing Juga Ikut Warna Tema",
+    ],
+  },
   {
     tanggal: "15/11/26",
     items: [
@@ -3547,7 +3615,7 @@ function setupThemeSettings() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
@@ -3555,6 +3623,7 @@ const GAME_INFO_ATUR = {
   fishing: { judul: "Fishing", icon: "🎣" },
   streak: { judul: "Streak", icon: "🔥" },
   quiz: { judul: "Quiz", icon: "🧠" },
+  blockblast: { judul: "Block Blast", icon: "🧩" },
 };
 const GAME_MODE_INFO = [
   { id: "default", judul: "Default", sub: "Urutan bawaan web." },
@@ -3792,6 +3861,9 @@ function renderGames() {
     }
   }
 
+  let ringkasBlock = "Puzzle blok 8x8";
+  if (typeof window.blockblastRingkas === "function") ringkasBlock = window.blockblastRingkas(login);
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -3853,6 +3925,16 @@ function renderGames() {
       spark: "💡",
       kelas: "game-card-quiz",
       cari: "quiz kuis pilihan ganda mapel poin peringkat latihan",
+    },
+    {
+      id: "blockblast",
+      judul: "Block Blast",
+      deskripsi: "Susun blok warna di papan 8x8. Hapus baris atau kolom penuh, bikin combo, dan kejar skor terbaik.",
+      progress: ringkasBlock,
+      icon: "🧩",
+      spark: "✨",
+      kelas: "game-card-blockblast",
+      cari: "block blast blok puzzle teka teki susun kotak baris kolom skor combo",
     },
   ];
 
@@ -6122,6 +6204,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnBlockBlastBack = document.getElementById("btn-blockblast-back");
+  if (btnBlockBlastBack) {
+    btnBlockBlastBack.addEventListener("click", () => {
+      if (typeof window.blockblastTutup === "function") window.blockblastTutup();
+      document.getElementById("game-blockblast-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -6135,6 +6228,7 @@ function setupGamesTab() {
       if (game !== "fishing" && typeof window.fishingTutup === "function" && window.fishingTutup() === false) return;
       if (game !== "tableverse" && typeof window.tableverseTutup === "function") window.tableverseTutup();
       if (game !== "guesscolor" && typeof window.gtcTutup === "function") window.gtcTutup();
+      if (game !== "blockblast" && typeof window.blockblastTutup === "function") window.blockblastTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
@@ -6142,6 +6236,7 @@ function setupGamesTab() {
       document.getElementById("game-quiz-view").hidden = game !== "quiz";
       document.getElementById("game-fishing-view").hidden = game !== "fishing";
       document.getElementById("game-tableverse-view").hidden = game !== "tableverse";
+      document.getElementById("game-blockblast-view").hidden = game !== "blockblast";
       if (game === "timer") {
         timerRender();
       } else if (game === "guesscolor") {
@@ -6156,6 +6251,8 @@ function setupGamesTab() {
         if (typeof window.tableverseBuka === "function") window.tableverseBuka();
       } else if (game === "fishing") {
         if (typeof window.fishingBuka === "function") window.fishingBuka();
+      } else if (game === "blockblast") {
+        if (typeof window.blockblastBuka === "function") window.blockblastBuka();
       } else {
         renderGames();
       }

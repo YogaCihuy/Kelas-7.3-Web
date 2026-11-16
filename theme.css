@@ -1,9 +1,9 @@
 /* ===================================================
    PENGATURAN TEMA
    Semua tema tetap bernuansa hijau.
-   Tema hanya mengubah tampilan utama situs; area game
-   (Timer, Guess the Color, Streak, Quiz, Fishing, TableVerse)
-   dibiarkan terang supaya tetap enak dibaca.
+   Area Timer, Guess the Color, Streak, Quiz, dan TableVerse
+   dibiarkan terang supaya tetap enak dibaca. Fishing ikut
+   tema karena punya palet sendiri di bawah.
 =================================================== */
 
 /* ---------- token tambahan (default light) ---------- */
@@ -388,10 +388,6 @@ html[data-theme]:not([data-theme="light"]) #streak-content,
 html[data-theme]:not([data-theme="light"]) #streak-locked,
 html[data-theme]:not([data-theme="light"]) #quiz-content,
 html[data-theme]:not([data-theme="light"]) #quiz-locked,
-html[data-theme]:not([data-theme="light"]) #fishing-app,
-html[data-theme]:not([data-theme="light"]) #fishing-locked,
-html[data-theme]:not([data-theme="light"]) #fishing-modal-root,
-html[data-theme]:not([data-theme="light"]) #fishing-toast-root,
 html[data-theme]:not([data-theme="light"]) #tv-modal-root,
 html[data-theme]:not([data-theme="light"]) #tv-toast-root {
   color-scheme: light;
@@ -404,6 +400,352 @@ html[data-theme]:not([data-theme="light"]) #tv-toast-root {
   --forest: #17392A;
   --emerald: #2F8F5B;
   --shadow: 0 14px 30px -18px rgba(23, 57, 42, 0.35);
+}
+
+/* ---------- Fishing ikut tema ---------- */
+
+/* Sage: permukaan hijau lembut, palet ikan digeser ke hijau. */
+html[data-theme="sage"] #game-fishing-view {
+  --fish-deep: #17392A;
+  --fish-deep-2: #1F4D37;
+  --fish-teal: #2F8F5B;
+  --fish-aqua: #3C9C68;
+  --fish-foam: #E1EFE7;
+  --fish-mist: #EDF6F0;
+  --fish-line: #C7DCCE;
+  --fish-ink: #1C3426;
+
+  --t-fish-card: #F8FCF9;
+  --t-fish-card-2: #EFF7F2;
+  --t-fish-tile: #E8F3EC;
+  --t-fish-tile-line: #C7DCCE;
+  --t-fish-hover: #DDEBE1;
+  --t-fish-track: #D8E8DE;
+  --t-fish-on-accent: #FFFFFF;
+  --t-fish-accent-soft: rgba(60, 156, 104, 0.1);
+  --t-fish-accent-line: rgba(60, 156, 104, 0.35);
+  --t-fish-accent-ink: #1F7A50;
+  --t-fish-gold-soft: #F6EFD9;
+  --t-fish-gold-line: #DCC182;
+  --t-fish-gold-ink: #8A6A1F;
+  --t-fish-gold-strong: #5F4A12;
+  --t-fish-rose-soft: #F8E6E8;
+  --t-fish-rose-line: #E3AEB5;
+  --t-fish-rose-ink: #9C3A4C;
+}
+
+/* Tema gelap: palet laut malam. */
+html[data-theme="forest"] #game-fishing-view,
+html[data-theme="dark"] #game-fishing-view,
+html[data-theme="dark-forest"] #game-fishing-view {
+  color-scheme: dark;
+  --fish-deep: #E4F6F1;
+  --fish-deep-2: #9BD6D9;
+  --fish-teal: #5FD0D5;
+  --fish-aqua: #49C2CB;
+  --fish-foam: #17352B;
+  --fish-mist: #132A22;
+  --fish-line: #2A4A3D;
+  --fish-ink: #D8EADF;
+  --fish-gold: #E7C66A;
+  --fish-coral: #FF9C74;
+  --fish-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.7);
+
+  --t-fish-card: #13291F;
+  --t-fish-card-2: #10231B;
+  --t-fish-tile: #1A3A2C;
+  --t-fish-tile-line: #2C5243;
+  --t-fish-hover: #214634;
+  --t-fish-track: #1E3A2E;
+  --t-fish-on-accent: #06231E;
+  --t-fish-accent-soft: rgba(91, 201, 142, 0.13);
+  --t-fish-accent-line: rgba(111, 214, 158, 0.42);
+  --t-fish-accent-ink: #7FDDA8;
+  --t-fish-gold-soft: rgba(224, 184, 79, 0.12);
+  --t-fish-gold-line: rgba(224, 184, 79, 0.38);
+  --t-fish-gold-ink: #E7C66A;
+  --t-fish-gold-strong: #F1DFA4;
+  --t-fish-rose-soft: rgba(224, 68, 92, 0.12);
+  --t-fish-rose-line: rgba(240, 130, 148, 0.38);
+  --t-fish-rose-ink: #F0A3B0;
+}
+
+/* Hero tetap biru laut pekat di tema gelap. */
+html[data-theme="forest"] #game-fishing-view .fishing-hero,
+html[data-theme="dark"] #game-fishing-view .fishing-hero,
+html[data-theme="dark-forest"] #game-fishing-view .fishing-hero {
+  background:
+    radial-gradient(120% 140% at 90% -10%, rgba(63, 193, 201, 0.35), transparent 55%),
+    radial-gradient(90% 120% at 0% 110%, rgba(17, 138, 140, 0.45), transparent 60%),
+    linear-gradient(135deg, #07262E 0%, #0A3A42 55%, #0B555C 100%);
+}
+
+/* Kartu & baris. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-item,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-coll-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-inv-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-profile-stats div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-modal,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-rod-pick,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-modal-x,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-count,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot.is-filled,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-loading {
+  background: var(--t-fish-card);
+}
+
+/* Chip, baris kecil, input, dan tombol netral. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ann-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-mini-stats div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-inv-summary,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-profile-head,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-board-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ach,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-grid div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-detail-stats div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-rod,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-strip,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-input,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-top,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field input,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field select,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-empty-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-subtabs,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-quick-links button,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-look-btn,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-filter,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-status.is-off,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-art,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-area-tips,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-luck {
+  background: var(--t-fish-tile);
+}
+
+/* Garis tepi. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-nav,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-item,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-coll-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-inv-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-profile-stats div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-modal,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-rod-pick,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-modal-x,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ann-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ach,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-board-row,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-grid div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-detail-stats div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-rod,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-strip,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-input,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-top,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field input,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field select,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-subtabs,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-filter,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-empty-card,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-art,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-gear-art,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-art,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-area-tips,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-repair-note {
+  border-color: var(--t-fish-tile-line);
+}
+
+/* Navigasi & tab. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-nav {
+  background: rgba(19, 41, 31, 0.94);
+}
+
+html[data-theme="sage"]:not([data-theme="light"]) #game-fishing-view .fishing-nav {
+  background: rgba(248, 252, 249, 0.94);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-nav-btn.is-active {
+  background: linear-gradient(180deg, var(--t-fish-hover) 0%, var(--t-fish-tile) 100%);
+  color: var(--fish-deep);
+  box-shadow: inset 0 0 0 1px var(--t-fish-accent-line), 0 2px 0 var(--t-fish-tile);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-subtab.is-active {
+  background: var(--t-fish-card);
+  color: var(--fish-deep);
+  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--t-fish-tile-line);
+}
+
+/* Hover. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-quick-links button:hover,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-modal-x:hover,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-filter:hover,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-look-btn:hover {
+  background: var(--t-fish-hover);
+  border-color: var(--t-fish-accent-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-item:hover,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-coll-card:hover,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-card:hover {
+  border-color: var(--t-fish-accent-line);
+}
+
+/* Sorotan hijau (aktif/dipakai/selesai). */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-shop-item.is-equipped,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row.is-equipped,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ach.is-open,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell.is-on,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-strip.is-on,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-rod-pick.is-active,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-look-btn.is-active,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-status.is-on,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag.is-on {
+  background: var(--t-fish-accent-soft);
+  border-color: var(--t-fish-accent-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ach em,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-look-btn.is-active,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-status.is-on,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-compare span,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-luck small,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-luck strong {
+  color: var(--t-fish-accent-ink);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-compare span,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-cast-luck {
+  background: var(--t-fish-accent-soft);
+  border-color: var(--t-fish-accent-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-board-me {
+  background: var(--t-fish-tile);
+  border-color: var(--t-fish-accent-line);
+}
+
+/* Sorotan emas (legenda, hadiah, terkunci). */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-next-ach,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-slot,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ann-row.rarity-legend,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-board-me.is-outside,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-board-row.is-top,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-inv-card.is-locked,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row.is-worker-rod,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-ach,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-fail-note,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag.is-worker,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-alert.is-warn {
+  background: var(--t-fish-gold-soft);
+  border-color: var(--t-fish-gold-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-next-ach small,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-next-ach em,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ann-text em,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-head p,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-count,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot-no,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot-id em,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot.is-empty div,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot.is-empty small,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-ach,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-fail-note,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag.is-worker,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-status.is-off {
+  color: var(--t-fish-gold-ink);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-next-ach strong,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-head h3 {
+  color: var(--t-fish-gold-strong);
+}
+
+/* Sorotan merah muda (secret). */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-ann-row.rarity-secret,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-slot.secret,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-alert.is-error {
+  background: var(--t-fish-rose-soft);
+  border-color: var(--t-fish-rose-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-head h3,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-head p,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-count,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-slot-no,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-slot-id em {
+  color: var(--t-fish-rose-ink);
+}
+
+/* Filter aktif, input fokus, slider, dan track progress. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-filter.is-active {
+  background: var(--fish-teal);
+  border-color: var(--fish-teal);
+  color: var(--t-fish-on-accent);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-you {
+  background: var(--fish-teal);
+  color: var(--t-fish-on-accent);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field input:focus,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-field select:focus {
+  background: var(--t-fish-card);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-switch > span,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-worker-bar,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-collection-progress,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-durability,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-loading-bar,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-rarity-bar .track {
+  background: var(--t-fish-track);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-coll-card.is-unknown {
+  background: var(--t-fish-card-2);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-coll-card.is-unknown .fishing-coll-art {
+  background: var(--t-fish-tile);
+}
+
+/* Siluet ikan dibuat terang di tema gelap biar tetap kelihatan. */
+html[data-theme="forest"] #game-fishing-view .fish-art.fishing-silhouette,
+html[data-theme="dark"] #game-fishing-view .fish-art.fishing-silhouette,
+html[data-theme="dark-forest"] #game-fishing-view .fish-art.fishing-silhouette {
+  filter: brightness(0) invert(1) opacity(0.2);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell-icon {
+  background: var(--t-fish-tile);
+  border-color: var(--t-fish-tile-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-autosell.is-on .fishing-autosell-icon {
+  background: var(--t-fish-accent-soft);
+  border-color: var(--t-fish-accent-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="sage"]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot {
+  background: rgba(255, 255, 255, 0.65);
 }
 
 /* ---------- tombol tema ---------- */

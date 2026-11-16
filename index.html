@@ -11,9 +11,10 @@
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="timer.css?v=1">
 <link rel="stylesheet" href="guess-color.css?v=3">
+<link rel="stylesheet" href="blockblast.css?v=1">
 <link rel="stylesheet" href="fishing.css?v=2">
 <link rel="stylesheet" href="tableverse.css?v=6">
-<link rel="stylesheet" href="theme.css?v=1">
+<link rel="stylesheet" href="theme.css?v=5">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -490,14 +491,73 @@
           </div>
           <div id="tv-app" class="tv-app"></div>
         </div>
+
+        <div id="game-blockblast-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-blockblast-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span id="bb-badge" class="game-coin" aria-live="polite">&#129513; Block Blast</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Block Blast</h2>
+            <p class="section-sub">Susun blok di papan 8x8. Baris atau kolom penuh bakal hilang. Main tanpa login, skor terbaik tersimpan di perangkatmu.</p>
+          </div>
+
+          <div id="bb-app" class="bb-app">
+            <div class="bb-hud">
+              <div class="bb-stat bb-stat-score">
+                <span>Skor</span>
+                <strong id="bb-score">0</strong>
+              </div>
+              <div class="bb-stat">
+                <span>Terbaik</span>
+                <strong id="bb-best">0</strong>
+              </div>
+              <div class="bb-stat">
+                <span>Garis</span>
+                <strong id="bb-lines">0</strong>
+              </div>
+              <span id="bb-combo" class="bb-combo" hidden>Combo x2</span>
+            </div>
+
+            <div class="bb-arena">
+              <div class="bb-board-wrap">
+                <div id="bb-board" class="bb-board" role="grid" aria-label="Papan Block Blast 8 kali 8"></div>
+                <div id="bb-over" class="bb-over" hidden>
+                  <div class="bb-over-card">
+                    <span class="bb-over-icon" aria-hidden="true">&#129513;</span>
+                    <h3>Gak ada blok yang muat</h3>
+                    <p class="bb-over-sub">Skor akhir</p>
+                    <strong id="bb-final" class="bb-over-score">0</strong>
+                    <p class="bb-over-note">Terbaik <strong id="bb-final-best">0</strong></p>
+                    <div class="bb-over-actions">
+                      <button class="btn-primary" type="button" data-bb-action="restart">Main Lagi</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bb-side">
+                <div class="bb-tray-card">
+                  <p class="bb-tray-label">Tarik blok ke papan, atau tap blok lalu tap papan.</p>
+                  <div id="bb-tray" class="bb-tray"></div>
+                  <button class="btn-secondary bb-restart" type="button" data-bb-action="restart">Mulai Ulang</button>
+                </div>
+                <div id="bb-rank" class="bb-rank"></div>
+              </div>
+            </div>
+
+            <p id="bb-notice" class="bb-notice" aria-live="polite"></p>
+          </div>
+        </div>
       </section>
     </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.5.5</button>
-    <button class="footer-link" type="button" data-open-updates>Last Update (15/11/26)</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.6.0</button>
+    <button class="footer-link" type="button" data-open-updates>Last Update (16/11/26)</button>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -898,7 +958,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=41"></script>
+<script src="script.js?v=45"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=3"></script>
 <script src="fishing-local.js?v=4"></script>
@@ -908,6 +968,7 @@
 <script src="tableverse-boards.js?v=7"></script>
 <script src="tableverse-local.js?v=2"></script>
 <script src="tableverse.js?v=6"></script>
+<script src="blockblast.js?v=2"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>
