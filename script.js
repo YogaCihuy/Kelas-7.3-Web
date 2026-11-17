@@ -2251,20 +2251,32 @@ function renderCeklisPiket(jadwal, selesai) {
   const wrap = document.getElementById("piket-list");
   if (!wrap) return;
   const terpilih = new Set((selesai || []).map(Number));
-  const dijadwal = new Set(
-    (jadwal && Array.isArray(jadwal.piket) ? jadwal.piket : []).map((nama) => String(nama).trim().toLowerCase())
-  );
-  const daftar = getLiveSiswaList().sort((a, b) => Number(a.absen) - Number(b.absen));
-  wrap.innerHTML = daftar
-    .map((s) => {
+  const namaJadwal = [];
+  (jadwal && Array.isArray(jadwal.piket) ? jadwal.piket : []).forEach((nama) => {
+    const teks = String(nama).trim();
+    if (teks && !namaJadwal.some((x) => x.toLowerCase() === teks.toLowerCase())) namaJadwal.push(teks);
+  });
+  if (!namaJadwal.length) {
+    wrap.innerHTML = `<p class="piket-kosong">Belum ada jadwal piket untuk tanggal ini.</p>`;
+    perbaruiRingkasPiket();
+    return;
+  }
+  const siswa = getLiveSiswaList();
+  wrap.innerHTML = namaJadwal
+    .map((nama) => {
+      const target = nama.toLowerCase();
+      const s = siswa.find((x) =>
+        [x.namaPanggilan, x.namaLengkap].some((v) => String(v || "").trim().toLowerCase() === target)
+      );
+      if (!s) {
+        return `<div class="piket-cek is-mati"><span class="piket-cek-nama">${gameAmanTeks(nama)}</span><span class="piket-cek-chip">tanpa akun</span></div>`;
+      }
       const absen = Number(s.absen);
-      const nama = s.namaPanggilan || s.namaLengkap || `Absen ${absen}`;
-      const chip = dijadwal.has(nama.trim().toLowerCase()) ? `<span class="piket-cek-chip">jadwal</span>` : "";
+      const tampil = s.namaPanggilan || s.namaLengkap || nama;
       return `
         <label class="piket-cek">
           <input type="checkbox" value="${absen}" data-piket-absen ${terpilih.has(absen) ? "checked" : ""}>
-          <span class="piket-cek-nama">${String(absen).padStart(2, "0")}. ${gameAmanTeks(nama)}</span>
-          ${chip}
+          <span class="piket-cek-nama">${String(absen).padStart(2, "0")}. ${gameAmanTeks(tampil)}</span>
         </label>`;
     })
     .join("");
@@ -4097,6 +4109,7 @@ const UPDATE_LOG = [
       "Version 2.8.0 Streak: Pohon dan Kucing Bisa Dikasih Nama Sendiri",
       "Version 2.8.0 Info Bisa Dibuka Hari-Hari Sebelumnya, Lengkap dengan Riwayat",
       "Version 2.8.2 Piket Sekarang Ceklis: Tandai Siapa yang Sudah Piket",
+      "Version 2.8.3 Ceklis Piket Cuma Nampilin Siswa yang Dapat Jadwal di Tanggal Itu",
       "Version 2.8.2 Info Nampilin Daftar yang Sudah Piket, Dicek Siapa",
       "Version 2.8.2 Notifikasi Chat: Ada Bunyi, Toast, dan Pemberitahuan Pas Pesan Masuk",
     ],
@@ -7251,7 +7264,4 @@ function setupAlbum() {
     }
   });
   input.addEventListener("change", () => {
-    const file = input.files && input.files[0];
-    if (file && albumSlotAktif) uploadFotoAlbum(albumSlotAktif, file);
-  });
-}
+    const file = input.files && input.fil

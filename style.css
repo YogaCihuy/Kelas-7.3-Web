@@ -830,6 +830,24 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 
 .piket-cek input:checked + .piket-cek-nama { color: var(--emerald); font-weight: 700; }
 
+.piket-cek.is-mati {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+
+.piket-cek.is-mati .piket-cek-nama { color: var(--muted); }
+
+.piket-kosong {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .piket-cek-chip {
   flex: 0 0 auto;
   font-size: 0.65rem;
