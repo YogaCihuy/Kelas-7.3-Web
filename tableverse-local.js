@@ -72,6 +72,12 @@
 
   function namaSaya(absen) {
     try {
+      const kustom = typeof window.gameProfilNama === "function" ? window.gameProfilNama(absen) : "";
+      if (kustom) return kustom;
+    } catch (e) {
+      /* profil game belum siap */
+    }
+    try {
       if (currentUser && Number(currentUser.absen) === Number(absen)) {
         return currentUser.namaPanggilan || currentUser.namaLengkap || namaSiswa(absen);
       }

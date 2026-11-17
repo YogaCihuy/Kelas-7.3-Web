@@ -735,6 +735,9 @@
 .tv-profile-head > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .tv-profile-head h2 { margin: 0; font-size: 1.45rem; }
 .tv-profile-head p { margin: 0; color: var(--tv-ink-soft); font-size: 0.84rem; }
+.tv-profile-motto { font-style: italic; color: var(--tv-ink) !important; }
+.tv-profile-actions { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+.tv-avatar-emoji { font-size: 1.05em; line-height: 1; }
 .tv-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tv-stat-card {
   display: flex;
@@ -1882,6 +1885,7 @@
   .tv-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tv-profile-head { flex-wrap: wrap; }
   .tv-profile-head .tv-btn { width: 100%; }
+  .tv-profile-actions { width: 100%; flex-direction: row; }
   .tv-active-card { grid-template-columns: 1fr; text-align: center; }
   .tv-active-art { width: 88px; height: 88px; margin: 0 auto; }
   .tv-active-actions { flex-direction: row; justify-content: center; }

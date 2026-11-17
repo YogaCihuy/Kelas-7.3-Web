@@ -97,6 +97,10 @@
   function namaSiswa(absen, cadangan) {
     const key = String(absen);
     try {
+      const kustom = typeof window.gameProfilNama === "function" ? window.gameProfilNama(absen) : "";
+      if (kustom) return kustom;
+    } catch (err) { /* profil game belum ada */ }
+    try {
       if (typeof accountsData !== "undefined" && accountsData[key]) {
         const akun = accountsData[key];
         const nama = akun.namaPanggilan || akun.namaLengkap;
@@ -199,7 +203,7 @@
     const absen = Number(S.user.absen);
     const ref = fs.collection("sudoku").doc(String(absen));
     const now = Date.now();
-    const nama = String(S.user.namaPanggilan || S.user.namaLengkap || "Siswa").slice(0, 60);
+    const nama = String(namaSiswa(absen, S.user.namaPanggilan || S.user.namaLengkap || "Siswa")).slice(0, 60);
 
     if (typeof fs.runTransaction !== "function") {
       ref.set({

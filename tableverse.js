@@ -784,6 +784,7 @@
 
   function renderProfileTab(stats) {
     const player = st.profileFresh || st.profile || {};
+    const motto = typeof window.gameProfilMotto === "function" ? window.gameProfilMotto(st.absen) : "";
     let mostPlayed = "-";
     let most = 0;
     Object.keys(stats.perGame).forEach((id) => {
@@ -808,10 +809,14 @@
           <div>
             <span class="tv-kicker">Player Profile</span>
             <h2>${esc(player.nama || st.nama || "Siswa")}</h2>
+            ${motto ? `<p class="tv-profile-motto">“${esc(motto)}”</p>` : ""}
             <p>@${esc(player.username || st.nama || "")} · absen ${esc(st.absen)}</p>
             <span class="tv-status ${st.online ? "is-online" : "is-offline"}"><i></i>${st.online ? "Online" : "Offline"}</span>
           </div>
-          <button type="button" class="tv-btn tv-btn-ghost tv-btn-sm" data-tv-reload-profile>Refresh</button>
+          <div class="tv-profile-actions">
+            <button type="button" class="tv-btn tv-btn-primary tv-btn-sm" data-tv-edit-profile>Ubah Profil</button>
+            <button type="button" class="tv-btn tv-btn-ghost tv-btn-sm" data-tv-reload-profile>Refresh</button>
+          </div>
         </div>
 
         <div class="tv-stat-grid">
@@ -2070,7 +2075,7 @@
   /* ---------------- event handler ---------------- */
 
   function onAppClick(e) {
-    const el = e.target.closest("[data-tv-tab], [data-tv-play], [data-tv-open-invites], [data-tv-open-room], [data-tv-hub], [data-tv-ready], [data-tv-start], [data-tv-kick], [data-tv-leave], [data-tv-visibility], [data-tv-invite-room], [data-tv-rematch], [data-tv-back-hub], [data-tv-copy-code], [data-tv-refresh-players], [data-tv-challenge], [data-tv-challenge-game], [data-tv-reload-history], [data-tv-reload-profile], [data-tv-login], [data-tv-retry-hand], [data-tv-act]");
+    const el = e.target.closest("[data-tv-tab], [data-tv-play], [data-tv-open-invites], [data-tv-open-room], [data-tv-hub], [data-tv-ready], [data-tv-start], [data-tv-kick], [data-tv-leave], [data-tv-visibility], [data-tv-invite-room], [data-tv-rematch], [data-tv-back-hub], [data-tv-copy-code], [data-tv-refresh-players], [data-tv-challenge], [data-tv-challenge-game], [data-tv-reload-history], [data-tv-reload-profile], [data-tv-edit-profile], [data-tv-login], [data-tv-retry-hand], [data-tv-act]");
     if (!el) return;
 
     const actSuara = el.getAttribute("data-tv-act") || "";
@@ -2144,6 +2149,10 @@
     }
     if (el.hasAttribute("data-tv-reload-history")) { muatRiwayat(true); return; }
     if (el.hasAttribute("data-tv-reload-profile")) { muatProfil(true); return; }
+    if (el.hasAttribute("data-tv-edit-profile")) {
+      if (typeof window.bukaGameProfilModal === "function") window.bukaGameProfilModal();
+      return;
+    }
     if (el.hasAttribute("data-tv-retry-hand")) { muatState(); return; }
     if (el.hasAttribute("data-tv-act")) {
       if (el.disabled || st.busy) return;
@@ -2500,6 +2509,19 @@
       return;
     }
     verifikasi(password);
+  };
+
+  window.tableverseProfilBerubah = function (nama) {
+    const teks = String(nama || "").trim().slice(0, 20);
+    if (!teks || !st.absen) return;
+    st.nama = teks;
+    if (st.profile) st.profile.nama = teks;
+    if (st.profileFresh) st.profileFresh.nama = teks;
+    renderJikaBoleh();
+  };
+
+  window.tableverseProfilCacheBerubah = function () {
+    if (st.visible) renderJikaBoleh();
   };
 
   window.tableverseRingkas = function (login) {

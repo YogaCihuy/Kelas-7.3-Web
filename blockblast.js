@@ -112,6 +112,10 @@
   function namaSiswa(absen, cadangan) {
     const key = String(absen);
     try {
+      const kustom = typeof window.gameProfilNama === "function" ? window.gameProfilNama(absen) : "";
+      if (kustom) return kustom;
+    } catch (err) { /* profil game belum ada */ }
+    try {
       if (typeof accountsData !== "undefined" && accountsData[key]) {
         const akun = accountsData[key];
         const nama = akun.namaPanggilan || akun.namaLengkap;
@@ -213,7 +217,7 @@
     const now = Date.now();
     const data = {
       absen,
-      name: String(S.user.namaPanggilan || S.user.namaLengkap || "Siswa").slice(0, 60),
+      name: String(namaSiswa(absen, S.user.namaPanggilan || S.user.namaLengkap || "Siswa")).slice(0, 60),
       bestScore: S.best,
       bestCombo: S.bestCombo,
       lines: S.lines,

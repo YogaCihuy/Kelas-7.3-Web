@@ -141,7 +141,14 @@
   }
 
   function avatar(nama, absen, ekstra) {
-    return `<span class="tv-avatar ${ekstra || ""}" style="--tv-h:${hue(absen)}" aria-hidden="true">${esc(inisial(nama))}</span>`;
+    let isi = "";
+    try {
+      isi = typeof window.gameProfilAvatar === "function" ? window.gameProfilAvatar(absen) : "";
+    } catch (err) {
+      isi = "";
+    }
+    const dalam = isi ? `<span class="tv-avatar-emoji">${esc(isi)}</span>` : esc(inisial(nama));
+    return `<span class="tv-avatar ${ekstra || ""}" style="--tv-h:${hue(absen)}" aria-hidden="true">${dalam}</span>`;
   }
 
   function namaPemain(room, slot) {

@@ -200,7 +200,16 @@ let detailAbsenAktif = null; // absen siswa yang lagi dibuka di modal detail
 let currentUser = null;      // objek akun (merged) yang lagi login, atau null kalau Guest
 let accountsData = {};       // cache dari koleksi Firestore "accounts", key = absen (string)
 let infoBesok = null;        // hasil getInfoBesok() dari schedule.js
-let infoOverrideData = {};   // override PR / eskul libur / catatan dari Firestore utk besok
+let infoViewJadwal = null;   // jadwal yang lagi dilihat di Tab Info (bisa hari sebelumnya)
+let infoViewOverride = {};   // override Firestore untuk tanggal yang lagi dilihat
+let infoViewDefault = true;  // true = lagi lihat Info Besok / Hari Ini otomatis
+const PIKET_EDITOR_ABSEN = [29, 13];
+const PIKET_MAKS = 12;
+
+const GAME_PROFIL_KEY = "kelas73_game_profile_";
+const GAME_PROFIL_AVATARS = ["🐯","🐼","🦊","🐸","🦁","🐨","🐵","🐧","🦄","🐙","🐳","🦖","🌻","🍀","⭐","🔥","🌙","⚡","🍉","🎮"];
+let gameProfilCache = {};
+let streakNamaJenis = "pohon";
 let pollingCache = [];       // cache data polling terbaru buat referensi klik vote/setting
 const sosialState = {        // like & komentar biodata siswa
   likes: {},
@@ -230,6 +239,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupMedsosTab();
   setupPollingTab();
   setupGamesTab();
+  setupStreakNamaModal();
+  setupGameProfil();
   setupTimer();
   setupUpdatesModal();
   setupThemeSettings();
@@ -1873,6 +1884,9 @@ let unsubscribeInfoOverrides = null;
 
 function setupInfoTab() {
   infoBesok = getInfoBesok();
+  infoViewDefault = true;
+  infoViewJadwal = infoBesok;
+  infoViewOverride = {};
   renderJadwalOtomatis();
   updateInfoHeading();
   subscribeInfoOverrides();
@@ -1880,34 +1894,110 @@ function setupInfoTab() {
   setInterval(refreshInfoBesok, 5 * 60 * 1000); // jaga-jaga kalau web dibiarin kebuka lewat jam 12 siang / tengah malam
 
   document.getElementById("btn-edit-info").addEventListener("click", openEditInfoModal);
+  document.getElementById("btn-edit-piket").addEventListener("click", bukaModalPiket);
+  document.getElementById("btn-info-prev").addEventListener("click", () => geserInfoHari(-1));
+  document.getElementById("btn-info-next").addEventListener("click", () => geserInfoHari(1));
+  document.getElementById("btn-info-reset").addEventListener("click", kembaliKeInfoTerbaru);
   document.getElementById("btn-salin-info").addEventListener("click", salinInfo);
   document.getElementById("form-edit-info").addEventListener("submit", handleEditInfoSubmit);
   document.getElementById("edit-info-tanggal").addEventListener("change", handleEditInfoTanggalChange);
   setupModalDismiss(document.getElementById("modal-edit-info"));
+  setupPiketModal();
+}
+
+function infoJadwalAktif() {
+  return infoViewJadwal || infoBesok;
 }
 
 function renderJadwalOtomatis() {
-  document.getElementById("info-hari-label").textContent = infoBesok.tanggalFormatted;
-  document.getElementById("info-mapel").textContent = infoBesok.mapel.join(", ") || "-";
-  document.getElementById("info-seragam").textContent = infoBesok.seragam;
-  document.getElementById("info-piket").textContent = infoBesok.piket.join(", ") || "-";
-  document.getElementById("info-eskul").textContent = infoBesok.eskul.join(", ") || "Gak ada eskul";
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+  document.getElementById("info-hari-label").textContent = jadwal.tanggalFormatted;
+  document.getElementById("info-mapel").textContent = jadwal.mapel.join(", ") || "-";
+  document.getElementById("info-seragam").textContent = jadwal.seragam;
+  renderInfoPiket();
+  document.getElementById("info-eskul").textContent = jadwal.eskul.join(", ") || "Gak ada eskul";
+}
+
+function renderInfoPiket() {
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+  const o = infoViewOverride || {};
+  const list = Array.isArray(o.piketOverride)
+    ? o.piketOverride.filter((nama) => typeof nama === "string" && nama.trim())
+    : [];
+  const piket = list.length ? list : jadwal.piket;
+  const el = document.getElementById("info-piket");
+  if (el) el.textContent = piket.join(", ") || "-";
+
+  const note = document.getElementById("info-piket-note");
+  if (note) {
+    note.textContent = list.length && o.piketEditedBy ? `Diatur oleh ${o.piketEditedBy}` : "";
+    note.hidden = !note.textContent;
+  }
 }
 
 function updateInfoHeading() {
   const heading = document.getElementById("info-tanggal");
-  if (!heading) return;
-  heading.textContent = infoBesok.key === dateKey(new Date()) ? "Info Hari Ini" : "Info Besok";
+  const jadwal = infoJadwalAktif();
+  if (!heading || !jadwal) return;
+  const hariIni = dateKey(new Date());
+  if (jadwal.key === hariIni) heading.textContent = "Info Hari Ini";
+  else if (infoBesok && jadwal.key === infoBesok.key) heading.textContent = "Info Besok";
+  else heading.textContent = `Info ${jadwal.namaHari}`;
+  updateInfoButtons();
+}
+
+function setInfoView(jadwal, isDefault) {
+  if (!jadwal) return;
+  infoViewDefault = !!isDefault;
+  infoViewJadwal = jadwal;
+  infoViewOverride = {};
+  renderJadwalOtomatis();
+  updateInfoHeading();
+  subscribeInfoOverrides();
+}
+
+function geserInfoHari(arah) {
+  const base = infoJadwalAktif();
+  if (!base) return;
+  const tgl = new Date(base.tanggal);
+  let langkah = 0;
+  do {
+    tgl.setDate(tgl.getDate() + arah);
+    langkah += 1;
+  } while ((tgl.getDay() === 0 || tgl.getDay() === 6) && langkah < 10);
+
+  const hariIni = new Date();
+  hariIni.setHours(0, 0, 0, 0);
+  const selisih = Math.round((tgl.getTime() - hariIni.getTime()) / 86400000);
+  if (selisih < -60 || selisih > 60) {
+    SoundFX.lockedPick();
+    return;
+  }
+  SoundFX.buttonClick();
+  setInfoView(getJadwalUntukTanggal(tgl), false);
+}
+
+function kembaliKeInfoTerbaru() {
+  infoBesok = getInfoBesok();
+  SoundFX.buttonClick();
+  setInfoView(infoBesok, true);
 }
 
 function subscribeInfoOverrides() {
   if (unsubscribeInfoOverrides) unsubscribeInfoOverrides();
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+  infoViewOverride = {};
+  renderInfoOverrides();
   unsubscribeInfoOverrides = db
     .collection("infoOverrides")
-    .doc(infoBesok.key)
+    .doc(jadwal.key)
     .onSnapshot(
       (doc) => {
-        infoOverrideData = doc.exists ? doc.data() : {};
+        if (!infoViewJadwal || infoViewJadwal.key !== jadwal.key) return;
+        infoViewOverride = doc.exists ? doc.data() : {};
         renderInfoOverrides();
       },
       (err) => console.error("Gagal ambil info:", err)
@@ -1916,71 +2006,102 @@ function subscribeInfoOverrides() {
 
 function refreshInfoBesok() {
   applyBirthdayTheme();
-  const keySebelumnya = infoBesok.key;
+  const keyLama = infoBesok ? infoBesok.key : null;
+  const keyViewLama = infoViewJadwal ? infoViewJadwal.key : null;
   infoBesok = getInfoBesok();
-  updateInfoHeading();
-  if (infoBesok.key !== keySebelumnya) {
+  if (infoViewDefault || !infoViewJadwal) {
+    if (!infoViewJadwal || infoViewJadwal.key !== infoBesok.key) {
+      infoViewJadwal = infoBesok;
+      renderJadwalOtomatis();
+      subscribeInfoOverrides();
+    }
+  } else if (infoBesok.key !== keyLama && keyViewLama === keyLama) {
+    infoViewJadwal = infoBesok;
     renderJadwalOtomatis();
     subscribeInfoOverrides();
   }
+  updateInfoHeading();
 }
 
 function renderInfoOverrides() {
+  const o = infoViewOverride || {};
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+
   document.getElementById("info-mapel").textContent =
-    infoOverrideData.mapelOverride && infoOverrideData.mapelOverride.trim()
-      ? infoOverrideData.mapelOverride
-      : infoBesok.mapel.join(", ") || "-";
+    o.mapelOverride && o.mapelOverride.trim() ? o.mapelOverride : jadwal.mapel.join(", ") || "-";
 
   document.getElementById("info-seragam").textContent =
-    infoOverrideData.seragamOverride && infoOverrideData.seragamOverride.trim()
-      ? infoOverrideData.seragamOverride
-      : infoBesok.seragam;
+    o.seragamOverride && o.seragamOverride.trim() ? o.seragamOverride : jadwal.seragam;
 
   document.getElementById("info-pr").textContent =
-    infoOverrideData.pr && infoOverrideData.pr.trim() ? infoOverrideData.pr : "Belum ada info PR";
+    o.pr && o.pr.trim() ? o.pr : "Belum ada info PR";
 
-  const eskulLiburList = infoOverrideData.eskulLiburList || [];
-  if (infoBesok.eskul.length === 0) {
+  renderInfoPiket();
+
+  const eskulLiburList = o.eskulLiburList || [];
+  if (jadwal.eskul.length === 0) {
     document.getElementById("info-eskul").textContent = "Gak ada eskul";
   } else {
-    document.getElementById("info-eskul").textContent = infoBesok.eskul
+    document.getElementById("info-eskul").textContent = jadwal.eskul
       .map((entry) => (eskulLiburList.includes(entry.split(" (")[0]) ? `${entry} — Diliburkan` : entry))
       .join(", ");
   }
 
   const catatanCard = document.getElementById("info-catatan-card");
-  if (infoOverrideData.catatan && infoOverrideData.catatan.trim()) {
-    document.getElementById("info-catatan").textContent = infoOverrideData.catatan;
+  if (o.catatan && o.catatan.trim()) {
+    document.getElementById("info-catatan").textContent = o.catatan;
     catatanCard.hidden = false;
   } else {
     catatanCard.hidden = true;
   }
 
   document.getElementById("info-kegiatan").textContent =
-    infoOverrideData.kegiatan && infoOverrideData.kegiatan.trim() ? infoOverrideData.kegiatan : "Belum ada kegiatan";
+    o.kegiatan && o.kegiatan.trim() ? o.kegiatan : "Belum ada kegiatan";
 
   const editedEl = document.getElementById("info-edited-by");
-  if (infoOverrideData.editedBy) {
-    const ts = infoOverrideData.editedAt && infoOverrideData.editedAt.toDate ? infoOverrideData.editedAt.toDate() : null;
+  if (o.editedBy) {
+    const ts = o.editedAt && o.editedAt.toDate ? o.editedAt.toDate() : null;
     const waktu = ts
       ? ` · ${ts.toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
       : "";
-    editedEl.textContent = `Terakhir diedit oleh ${infoOverrideData.editedBy}${waktu}`;
+    editedEl.textContent = `Terakhir diedit oleh ${o.editedBy}${waktu}`;
   } else {
     editedEl.textContent = "Terakhir diedit oleh: belum ada yang edit";
   }
 }
 
 function updateInfoEditButtonVisibility() {
-  const btn = document.getElementById("btn-edit-info");
-  if (!btn) return;
-  btn.hidden = !(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
+  updateInfoButtons();
+}
+
+function updateInfoButtons() {
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+  const hariIni = dateKey(new Date());
+  const bisaDiubah = jadwal.key >= hariIni;
+  const isAdmin = !!(currentUser && (currentUser.role === "admin" || currentUser.role === "owner"));
+  const isPiketEditor = !!(currentUser && PIKET_EDITOR_ABSEN.includes(Number(currentUser.absen)));
+
+  const btnEdit = document.getElementById("btn-edit-info");
+  if (btnEdit) {
+    btnEdit.hidden = !(isAdmin && bisaDiubah);
+    btnEdit.textContent = jadwal.key === hariIni ? "Edit Info Hari Ini" : "Edit Info Tanggal Ini";
+  }
+
+  const btnPiket = document.getElementById("btn-edit-piket");
+  if (btnPiket) btnPiket.hidden = !(isPiketEditor && bisaDiubah);
+
+  const btnReset = document.getElementById("btn-info-reset");
+  if (btnReset) btnReset.hidden = !infoBesok || jadwal.key === infoBesok.key;
 }
 
 function openEditInfoModal() {
-  document.getElementById("edit-info-tanggal").value = infoBesok.key;
+  const jadwal = infoJadwalAktif();
+  if (!jadwal) return;
+  document.getElementById("edit-info-tanggal").value = jadwal.key;
   document.getElementById("edit-info-tanggal").min = dateKey(new Date());
-  isiFormEditInfo(infoBesok, infoOverrideData);
+  isiFormEditInfo(jadwal, infoViewOverride || {});
   document.getElementById("edit-info-error").hidden = true;
   openModal(document.getElementById("modal-edit-info"));
 }
@@ -2016,7 +2137,7 @@ async function handleEditInfoTanggalChange(e) {
   if (hari === 0 || hari === 6) {
     errorEl.textContent = "Sabtu/Minggu libur, pilih hari sekolah (Senin-Jumat).";
     errorEl.hidden = false;
-    e.target.value = infoBesok.key;
+    e.target.value = infoJadwalAktif().key;
     return;
   }
   errorEl.hidden = true;
@@ -2034,7 +2155,7 @@ async function handleEditInfoSubmit(e) {
   e.preventDefault();
   if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
   const errorEl = document.getElementById("edit-info-error");
-  const targetKey = document.getElementById("edit-info-tanggal").value || infoBesok.key;
+  const targetKey = document.getElementById("edit-info-tanggal").value || infoJadwalAktif().key;
   const payload = {
     mapelOverride: document.getElementById("edit-mapel").value.trim(),
     seragamOverride: document.getElementById("edit-seragam").value.trim(),
@@ -2049,8 +2170,131 @@ async function handleEditInfoSubmit(e) {
     await db.collection("infoOverrides").doc(targetKey).set(payload, { merge: true });
     closeModal(document.getElementById("modal-edit-info"));
     SoundFX.resultReveal();
+    infoBesok = getInfoBesok();
+    setInfoView(getJadwalUntukTanggal(new Date(`${targetKey}T00:00:00`)), targetKey === infoBesok.key);
   } catch (err) {
     errorEl.textContent = "Gagal simpan, cek koneksi internet.";
+    errorEl.hidden = false;
+    SoundFX.errorSound();
+  }
+}
+
+/* ---------- ATUR PIKET (absen 29 & 13) ---------- */
+function setupPiketModal() {
+  const modal = document.getElementById("modal-piket");
+  if (!modal) return;
+  setupModalDismiss(modal);
+  document.getElementById("btn-tambah-piket").addEventListener("click", () => tambahBarisPiket(""));
+  document.getElementById("piket-tanggal").addEventListener("change", muatPiketTanggal);
+  document.getElementById("form-piket").addEventListener("submit", simpanPiket);
+  document.getElementById("piket-list").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-hapus-piket]");
+    if (btn) btn.closest(".piket-row").remove();
+  });
+}
+
+function bukaModalPiket() {
+  const jadwal = infoJadwalAktif();
+  if (!jadwal || !currentUser) return;
+  const input = document.getElementById("piket-tanggal");
+  input.value = jadwal.key;
+  input.min = dateKey(new Date());
+  document.getElementById("piket-error").hidden = true;
+  const listEl = document.getElementById("piket-list");
+  listEl.innerHTML = "";
+  const list = Array.isArray(infoViewOverride.piketOverride) && infoViewOverride.piketOverride.length
+    ? infoViewOverride.piketOverride
+    : jadwal.piket;
+  list.forEach((nama) => tambahBarisPiket(nama));
+  if (!list.length) tambahBarisPiket("");
+  openModal(document.getElementById("modal-piket"));
+  SoundFX.buttonClick();
+}
+
+async function muatPiketTanggal(e) {
+  const val = e.target.value;
+  const listEl = document.getElementById("piket-list");
+  const errorEl = document.getElementById("piket-error");
+  listEl.innerHTML = "";
+  if (!val) return;
+  const tgl = new Date(`${val}T00:00:00`);
+  if (tgl.getDay() === 0 || tgl.getDay() === 6) {
+    errorEl.textContent = "Pilih hari sekolah (Senin-Jumat).";
+    errorEl.hidden = false;
+    e.target.value = infoJadwalAktif().key;
+    return;
+  }
+  errorEl.hidden = true;
+
+  let override = {};
+  try {
+    const doc = await db.collection("infoOverrides").doc(dateKey(tgl)).get();
+    if (doc.exists) override = doc.data();
+  } catch (err) {
+    override = {};
+  }
+  const jadwal = getJadwalUntukTanggal(tgl);
+  const list = Array.isArray(override.piketOverride) && override.piketOverride.length
+    ? override.piketOverride
+    : jadwal.piket;
+  list.forEach((nama) => tambahBarisPiket(nama));
+  if (!list.length) tambahBarisPiket("");
+}
+
+function tambahBarisPiket(nama) {
+  const wrap = document.getElementById("piket-list");
+  if (!wrap || wrap.children.length >= PIKET_MAKS) return;
+  const siswa = getLiveSiswaList();
+  const row = document.createElement("div");
+  row.className = "piket-row";
+  const select = document.createElement("select");
+  select.className = "piket-select";
+  select.innerHTML =
+    `<option value="">— pilih nama —</option>` +
+    siswa.map((s) => `<option value="${gameAmanTeks(s.namaPanggilan)}">${s.absen}. ${gameAmanTeks(s.namaPanggilan)}</option>`).join("");
+  if (nama && !siswa.some((s) => s.namaPanggilan === nama)) {
+    select.insertAdjacentHTML("beforeend", `<option value="${gameAmanTeks(nama)}">${gameAmanTeks(nama)}</option>`);
+  }
+  select.value = nama || "";
+  const hapus = document.createElement("button");
+  hapus.type = "button";
+  hapus.className = "piket-hapus";
+  hapus.dataset.hapusPiket = "1";
+  hapus.setAttribute("aria-label", "Hapus baris piket");
+  hapus.textContent = "✕";
+  row.append(select, hapus);
+  wrap.appendChild(row);
+}
+
+async function simpanPiket(e) {
+  e.preventDefault();
+  if (!currentUser || !PIKET_EDITOR_ABSEN.includes(Number(currentUser.absen))) return;
+  const errorEl = document.getElementById("piket-error");
+  const targetKey = document.getElementById("piket-tanggal").value;
+  if (!targetKey) {
+    errorEl.textContent = "Pilih tanggal dulu.";
+    errorEl.hidden = false;
+    return;
+  }
+  const list = Array.from(document.querySelectorAll("#piket-list .piket-select"))
+    .map((sel) => sel.value.trim())
+    .filter(Boolean);
+  const unik = [...new Set(list)];
+  try {
+    await db.collection("infoOverrides").doc(targetKey).set(
+      {
+        piketOverride: unik,
+        piketEditedBy: currentUser.namaPanggilan,
+        piketEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    closeModal(document.getElementById("modal-piket"));
+    SoundFX.resultReveal();
+    infoBesok = getInfoBesok();
+    setInfoView(getJadwalUntukTanggal(new Date(`${targetKey}T00:00:00`)), targetKey === infoBesok.key);
+  } catch (err) {
+    errorEl.textContent = "Gagal simpan piket, cek koneksi internet.";
     errorEl.hidden = false;
     SoundFX.errorSound();
   }
@@ -2091,10 +2335,11 @@ function angkaBold(n) {
 }
 
 function buatTeksSalinInfo() {
-  const o = infoOverrideData || {};
-  const tgl = infoBesok.tanggal;
+  const jadwal = infoJadwalAktif();
+  const o = infoViewOverride || {};
+  const tgl = jadwal.tanggal;
   const tanggalStyled = [
-    gayaLingkaran(infoBesok.namaHari),
+    gayaLingkaran(jadwal.namaHari),
     gayaLingkaran(String(tgl.getDate())),
     gayaLingkaran(BULAN_ID[tgl.getMonth()]),
     gayaLingkaran(String(tgl.getFullYear())),
@@ -2102,19 +2347,25 @@ function buatTeksSalinInfo() {
 
   const baris = (t) => (t || "").split("\n").map((x) => x.trim()).filter(Boolean);
 
-  const mapelMentah = o.mapelOverride && o.mapelOverride.trim() ? o.mapelOverride.split(",") : infoBesok.mapel;
+  const mapelMentah = o.mapelOverride && o.mapelOverride.trim() ? o.mapelOverride.split(",") : jadwal.mapel;
   const mapel = mapelMentah.map((m) => m.trim()).filter(Boolean)
     .map((m) => NAMA_MAPEL_PANJANG[m.toUpperCase()] || m);
 
-  const piket = infoBesok.piket;
+  const piket = Array.isArray(o.piketOverride) && o.piketOverride.length ? o.piketOverride : jadwal.piket;
   const pr = baris(o.pr);
   const kegiatan = baris(o.kegiatan);
   const catatan = baris(o.catatan);
 
+  const judulTanggal = jadwal.key === dateKey(new Date())
+    ? "𝐓oday`s 𝐃ate:"
+    : infoBesok && jadwal.key === infoBesok.key
+      ? "𝐓omorrow`s 𝐃ate:"
+      : "◆🗓 𝐃ate:";
+
   const out = [
     "ᯓ𝗔𝗦𝗦𝗔𝗟𝗔𝗠𝗨𝗔𝗟𝗔𝗜𝗞𝗨𝗠 𝗪𝗥.𝗪𝗕ᯓ",
     "꒷𝓗aloo 𝓦arga 𝟕.𝟑 𝓘zin 𝓜engigatkan꒷",
-    "◆🗓 𝐓omorrow`s 𝐃ate:",
+    `◆🗓 ${judulTanggal}`,
     ` ${tanggalStyled}`,
     "",
     "✦📚 𝐌𝐴𝑃𝐸𝐿:",
@@ -2361,6 +2612,7 @@ function updateAccountUI() {
   updateMedsosEditVisibility();
   updatePollingCreateVisibility();
   updateGamesAccount();
+  if (typeof window.chatAkunBerubah === "function") window.chatAkunBerubah(currentUser || null);
 }
 
 async function handleLoginSubmit(e) {
@@ -2994,6 +3246,7 @@ function gameStateAwal() {
   return {
     koin: 0,
     pohon: {
+      nama: "",
       streak: 0,
       kesempatan: GAME_MAKS_KESEMPATAN,
       bulan: gameBulan(),
@@ -3003,6 +3256,7 @@ function gameStateAwal() {
       bersih: "",
     },
     hewan: {
+      nama: "",
       jenis: "",
       streak: 0,
       kesempatan: GAME_MAKS_KESEMPATAN,
@@ -3060,6 +3314,7 @@ function gameNormalisasiTrack(raw, jenis) {
   const track = { ...dasar, ...(raw && typeof raw === "object" ? raw : {}) };
   track.streak = gameAngka(track.streak);
   track.kesempatan = gameAngka(track.kesempatan, 0, GAME_MAKS_KESEMPATAN);
+  track.nama = typeof track.nama === "string" ? track.nama.trim().slice(0, 20) : "";
   track.bulan = typeof track.bulan === "string" && /^\d{4}-\d{2}$/.test(track.bulan) ? track.bulan : gameBulan();
 
   ["terakhir", "dicek", "siram", "bersih", "makan", "minum"].forEach((kunci) => {
@@ -3247,9 +3502,10 @@ function gameEntriPeringkat() {
     if (total <= 0) return;
     const akun = getMergedAccount(absen);
     if (!akun) return;
+    const namaKustom = typeof window.gameProfilNama === "function" ? window.gameProfilNama(absen) : "";
     entri.push({
       absen,
-      nama: akun.namaPanggilan || `Absen ${absen}`,
+      nama: namaKustom || akun.namaPanggilan || `Absen ${absen}`,
       total,
       pohon,
       hewan,
@@ -3513,8 +3769,177 @@ function gameSvgPohon() {
     </svg>`;
 }
 
+/* ===== Profil Game: nama tampilan & avatar custom ===== */
+function gameProfilCacheKey(absen) {
+  return `${GAME_PROFIL_KEY}${absen}`;
+}
+
+function gameProfilNormalisasi(raw, absen) {
+  if (!raw || typeof raw !== "object") return null;
+  const nama = typeof raw.nama === "string" ? raw.nama.trim().slice(0, 20) : "";
+  if (!nama) return null;
+  return {
+    absen: Number(absen),
+    nama,
+    avatar: GAME_PROFIL_AVATARS.includes(raw.avatar) ? raw.avatar : "",
+    motto: typeof raw.motto === "string" ? raw.motto.trim().slice(0, 40) : "",
+  };
+}
+
+function gameProfilLokal(absen) {
+  try {
+    return gameProfilNormalisasi(JSON.parse(localStorage.getItem(gameProfilCacheKey(absen)) || "null"), absen);
+  } catch (e) {
+    return null;
+  }
+}
+
+function gameProfilSetCache(absen, profil) {
+  if (!absen || !profil) return;
+  gameProfilCache[String(absen)] = profil;
+  try {
+    localStorage.setItem(gameProfilCacheKey(absen), JSON.stringify(profil));
+  } catch (e) {}
+}
+
+function gameProfilAmbil(absen) {
+  if (!absen) return null;
+  return gameProfilCache[String(absen)] || gameProfilLokal(absen);
+}
+
+window.gameProfilNama = function (absen) {
+  const profil = gameProfilAmbil(Number(absen));
+  return profil && profil.nama ? profil.nama : "";
+};
+
+window.gameProfilAvatar = function (absen) {
+  const profil = gameProfilAmbil(Number(absen));
+  return profil && profil.avatar ? profil.avatar : "";
+};
+
+window.gameProfilMotto = function (absen) {
+  const profil = gameProfilAmbil(Number(absen));
+  return profil && profil.motto ? profil.motto : "";
+};
+
+window.gameProfilSaya = function () {
+  return currentUser ? gameProfilAmbil(currentUser.absen) : null;
+};
+
+function renderGameProfilAvatarOptions() {
+  const wrap = document.getElementById("game-profil-avatar-list");
+  if (!wrap || wrap.dataset.siap === "1") return;
+  const opsi = [{ value: "", label: "Aa" }].concat(GAME_PROFIL_AVATARS.map((emoji) => ({ value: emoji, label: emoji })));
+  wrap.innerHTML = opsi
+    .map(
+      (o) => `
+      <label class="game-prof-avatar" title="${o.value ? `Avatar ${o.value}` : "Pakai inisial nama"}">
+        <input type="radio" name="game-profil-avatar" value="${o.value}">
+        <span class="game-prof-avatar-dot">${o.label}</span>
+      </label>`
+    )
+    .join("");
+  wrap.dataset.siap = "1";
+}
+
+function setupGameProfil() {
+  renderGameProfilAvatarOptions();
+  const btn = document.getElementById("btn-game-profile");
+  if (btn) btn.addEventListener("click", bukaModalGameProfil);
+  const form = document.getElementById("form-game-profil");
+  if (form) form.addEventListener("submit", simpanGameProfil);
+  setupModalDismiss(document.getElementById("modal-game-profil"));
+
+  if (typeof dataSiswa !== "undefined") {
+    dataSiswa.forEach((s) => {
+      const lokal = gameProfilLokal(s.absen);
+      if (lokal) gameProfilCache[String(s.absen)] = lokal;
+    });
+  }
+
+  try {
+    db.collection("gameProfiles").onSnapshot(
+      (snap) => {
+        snap.forEach((doc) => {
+          const profil = gameProfilNormalisasi(doc.data(), doc.id);
+          if (profil) gameProfilCache[String(doc.id)] = profil;
+        });
+        gameProfilRenderUlang();
+      },
+      (err) => console.warn("Profil game pakai cache perangkat:", err.code || err.message)
+    );
+  } catch (e) {}
+}
+
+function gameProfilRenderUlang() {
+  if (typeof window.tableverseProfilCacheBerubah === "function") window.tableverseProfilCacheBerubah();
+  if (currentUser && gameState) renderGames();
+}
+
+function bukaModalGameProfil() {
+  if (!currentUser) {
+    document.getElementById("btn-show-login").click();
+    return;
+  }
+  const profil = window.gameProfilSaya() || {};
+  document.getElementById("game-profil-nama").value = profil.nama || currentUser.namaPanggilan || "";
+  document.getElementById("game-profil-motto").value = profil.motto || "";
+  document.querySelectorAll('input[name="game-profil-avatar"]').forEach((el) => {
+    el.checked = el.value === (profil.avatar || "");
+  });
+  document.getElementById("game-profil-error").hidden = true;
+  openModal(document.getElementById("modal-game-profil"));
+  SoundFX.buttonClick();
+}
+
+async function simpanGameProfil(e) {
+  e.preventDefault();
+  if (!currentUser) return;
+  const errorEl = document.getElementById("game-profil-error");
+  const nama = document.getElementById("game-profil-nama").value.trim().slice(0, 20);
+  if (!nama) {
+    errorEl.textContent = "Nama tampilan wajib diisi.";
+    errorEl.hidden = false;
+    return;
+  }
+  const motto = document.getElementById("game-profil-motto").value.trim().slice(0, 40);
+  const avatarEl = document.querySelector('input[name="game-profil-avatar"]:checked');
+  const avatar = avatarEl && GAME_PROFIL_AVATARS.includes(avatarEl.value) ? avatarEl.value : "";
+  const absen = Number(currentUser.absen);
+  const profil = { absen, nama, avatar, motto };
+  gameProfilSetCache(absen, profil);
+
+  try {
+    await db
+      .collection("gameProfiles")
+      .doc(String(absen))
+      .set({ ...profil, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  } catch (err) {
+    console.warn("Profil game disimpan di perangkat dulu:", err.code || err.message);
+  }
+  try {
+    await db.collection("tvPlayers").doc(String(absen)).set({ absen, nama }, { merge: true });
+  } catch (err) {}
+
+  closeModal(document.getElementById("modal-game-profil"));
+  SoundFX.resultReveal();
+  if (typeof window.tableverseProfilBerubah === "function") window.tableverseProfilBerubah(nama);
+  gameProfilRenderUlang();
+}
+
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
+  {
+    tanggal: "17/11/26",
+    items: [
+      "Version 2.8.0 Chat Privat gaya WA: Ngobrol Berdua, Pesan Tersimpan, Ada Badge Belum Dibaca",
+      "Version 2.8.0 Profil Game Custom: Atur Nama, Avatar Emoji, dan Motto di Semua Game",
+      "Version 2.8.0 TableVerse Nampilin Avatar Emoji dan Motto di Profil Pemain",
+      "Version 2.8.0 Streak: Pohon dan Kucing Bisa Dikasih Nama Sendiri",
+      "Version 2.8.0 Info Bisa Dibuka Hari-Hari Sebelumnya, Lengkap dengan Riwayat",
+      "Version 2.8.0 Piket Bisa Diatur Langsung dari Info dengan Daftar Nama",
+    ],
+  },
   {
     tanggal: "16/11/26",
     items: [
@@ -4051,6 +4476,10 @@ function renderStreakPohon() {
       <div>
         <span class="streak-kind">🌳 Tipe Streak 1</span>
         <h3>Rawat Pohon</h3>
+        <p class="streak-name-line">
+          <span class="streak-name">${gameAmanTeks(track.nama || "Belum punya nama")}</span>
+          <button class="streak-name-edit" type="button" data-game-action="ganti-nama" data-jenis="pohon" aria-label="Kasih nama pohon">✏️</button>
+        </p>
       </div>
       <span class="streak-fire">🔥 ${track.streak} hari</span>
     </div>
@@ -4142,6 +4571,10 @@ function renderStreakHewan() {
       <div>
         <span class="streak-kind">🐾 Tipe Streak 2</span>
         <h3>Rawat Hewan</h3>
+        <p class="streak-name-line">
+          <span class="streak-name">${gameAmanTeks(track.nama || `Belum punya nama`)}</span>
+          <button class="streak-name-edit" type="button" data-game-action="ganti-nama" data-jenis="hewan" aria-label="Kasih nama hewan">✏️</button>
+        </p>
       </div>
       <span class="streak-fire">🔥 ${track.streak} hari</span>
     </div>
@@ -4170,7 +4603,7 @@ function renderStreakHewan() {
       </span>
       ${lengkap ? `<span class="pet-sparkle pet-sparkle-1" aria-hidden="true">✨</span><span class="pet-sparkle pet-sparkle-2" aria-hidden="true">✨</span><span class="pet-sparkle pet-sparkle-3" aria-hidden="true">✨</span>` : ""}
     </div>
-    <p class="pet-name">${info.emoji} ${info.nama} Kamu</p>
+    <p class="pet-name">${info.emoji} ${gameAmanTeks(track.nama || `${info.nama} Kamu`)}</p>
     <div class="pet-checklist">
       <span class="pet-task ${sudahMakan ? "done" : ""}">${sudahMakan ? "✅" : "🍖"} Makan</span>
       <span class="pet-task ${sudahMinum ? "done" : ""}">${sudahMinum ? "✅" : "💧"} Minum</span>
@@ -4182,6 +4615,43 @@ function renderStreakHewan() {
         ${sudahMinum ? "✅ Sudah Minum" : "💧 Air Minum · Gratis"}
       </button>
     </div>`;
+}
+
+function setupStreakNamaModal() {
+  const modal = document.getElementById("modal-streak-nama");
+  if (!modal) return;
+  setupModalDismiss(modal);
+  document.getElementById("form-streak-nama").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!gameState) return;
+    const input = document.getElementById("streak-nama-input");
+    const nama = input.value.trim().slice(0, 20);
+    if (!nama) return;
+    const jenis = streakNamaJenis === "hewan" ? "hewan" : "pohon";
+    gameState[jenis].nama = nama;
+    gameState.diperbarui = Date.now();
+    gameSimpanCache();
+    gameSimpanCloud();
+    renderGames();
+    closeModal(modal);
+    gameTampilNotice(`Nama ${jenis === "hewan" ? "hewan" : "pohon"} kamu sekarang ${nama}.`);
+    SoundFX.resultReveal();
+  });
+}
+
+function bukaModalStreakNama(jenis) {
+  if (!gameState) return;
+  streakNamaJenis = jenis === "hewan" ? "hewan" : "pohon";
+  const track = gameState[streakNamaJenis];
+  const info = streakNamaJenis === "hewan" ? STREAK_HEWAN[track.jenis] : null;
+  document.getElementById("streak-nama-title").textContent =
+    streakNamaJenis === "hewan" ? `Kasih Nama ${info ? info.nama : "Hewan"}` : "Kasih Nama Pohon";
+  const input = document.getElementById("streak-nama-input");
+  input.value = track.nama || "";
+  input.placeholder = streakNamaJenis === "hewan" ? `Contoh: ${info ? info.nama : "Kucing"} Kesayangan` : "Contoh: Si Hijau";
+  openModal(document.getElementById("modal-streak-nama"));
+  SoundFX.buttonClick();
+  setTimeout(() => input.focus(), 60);
 }
 
 function gameKartuToko(item, jenis, track) {
@@ -4297,6 +4767,11 @@ function gameTanganiAksi(aksi, btn) {
   gameProsesHari(gameState.hewan, hariIni);
   const pohon = gameState.pohon;
   const hewan = gameState.hewan;
+
+  if (aksi === "ganti-nama") {
+    bukaModalStreakNama(btn.dataset.jenis === "hewan" ? "hewan" : "pohon");
+    return;
+  }
 
   if (aksi === "siram") {
     if (pohon.siram === hariIni) return;
@@ -5358,9 +5833,10 @@ function quizEntriPeringkat(filter) {
       : { benar: 0, total: 0 };
     const akun = getMergedAccount(absen);
     if (!akun) return;
+    const namaKustom = typeof window.gameProfilNama === "function" ? window.gameProfilNama(absen) : "";
     entri.push({
       absen,
-      nama: akun.namaPanggilan || `Absen ${absen}`,
+      nama: namaKustom || akun.namaPanggilan || `Absen ${absen}`,
       poin,
       benar: gameAngka(quiz.benar),
       total: gameAngka(quiz.total),
