@@ -803,32 +803,64 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 
 .info-action-row .btn-edit-info { margin: 0; }
 
-.piket-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.35rem; }
+.piket-list { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem; }
 
-.piket-row { display: flex; gap: 0.5rem; align-items: center; }
+.piket-cek-list { max-height: 46vh; overflow-y: auto; padding-right: 0.2rem; }
 
-.piket-select {
-  flex: 1;
-  padding: 0.6rem 0.7rem;
-  border-radius: 10px;
+.piket-cek {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--white);
-  color: var(--ink);
-  font: inherit;
-}
-
-.piket-hapus {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--muted);
   cursor: pointer;
 }
 
-.piket-hapus:hover { color: #b3261e; border-color: #b3261e; }
+.piket-cek input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--emerald);
+  cursor: pointer;
+}
+
+.piket-cek-nama { flex: 1; min-width: 0; font-size: 0.9rem; color: var(--ink); }
+
+.piket-cek input:checked + .piket-cek-nama { color: var(--emerald); font-weight: 700; }
+
+.piket-cek-chip {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--forest);
+  background: var(--mint);
+  border: 1px solid var(--emerald);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.piket-ringkas {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px dashed var(--line);
+  background: var(--white);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.piket-ringkas.is-ada {
+  color: var(--emerald);
+  border-color: var(--emerald);
+  background: var(--mint);
+  font-weight: 600;
+}
+
+.info-piket-selesai { color: var(--emerald); font-weight: 600; }
 
 .streak-name-line { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem; }
 
@@ -874,6 +906,43 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
   background: var(--mint);
   transform: scale(1.03);
 }
+
+.game-profil-foto {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.game-profil-foto-preview {
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--mint);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--forest);
+}
+
+.game-profil-foto-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.game-profil-foto-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.game-profil-foto-aksi .btn-secondary { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 
 .info-card-pr { background: var(--mint); border-color: var(--emerald); }
 

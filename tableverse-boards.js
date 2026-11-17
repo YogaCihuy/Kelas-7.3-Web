@@ -142,12 +142,17 @@
 
   function avatar(nama, absen, ekstra) {
     let isi = "";
+    let foto = "";
     try {
+      foto = typeof window.gameProfilFoto === "function" ? window.gameProfilFoto(absen) : "";
       isi = typeof window.gameProfilAvatar === "function" ? window.gameProfilAvatar(absen) : "";
     } catch (err) {
+      foto = "";
       isi = "";
     }
-    const dalam = isi ? `<span class="tv-avatar-emoji">${esc(isi)}</span>` : esc(inisial(nama));
+    let dalam = esc(inisial(nama));
+    if (foto) dalam = `<img class="tv-avatar-foto" src="${esc(foto)}" alt="">`;
+    else if (isi) dalam = `<span class="tv-avatar-emoji">${esc(isi)}</span>`;
     return `<span class="tv-avatar ${ekstra || ""}" style="--tv-h:${hue(absen)}" aria-hidden="true">${dalam}</span>`;
   }
 

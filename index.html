@@ -7,15 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=15">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="timer.css?v=1">
 <link rel="stylesheet" href="guess-color.css?v=3">
 <link rel="stylesheet" href="blockblast.css?v=3">
 <link rel="stylesheet" href="sudoku.css?v=1">
-<link rel="stylesheet" href="chat.css?v=1">
+<link rel="stylesheet" href="chat.css?v=3">
 <link rel="stylesheet" href="fishing.css?v=2">
-<link rel="stylesheet" href="tableverse.css?v=7">
+<link rel="stylesheet" href="tableverse.css?v=8">
 <link rel="stylesheet" href="theme.css?v=5">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
@@ -251,7 +251,7 @@
 
         <div class="info-action-row">
           <button id="btn-edit-info" class="btn-secondary btn-edit-info" hidden>Edit Info Besok</button>
-          <button id="btn-edit-piket" class="btn-secondary btn-edit-info" type="button" hidden>Atur Piket</button>
+          <button id="btn-edit-piket" class="btn-secondary btn-edit-info" type="button" hidden>Ceklis Piket</button>
         </div>
 
         <div class="info-grid">
@@ -269,6 +269,7 @@
             <span class="info-icon">&#129529;</span>
             <h4>Piket</h4>
             <p id="info-piket">-</p>
+            <p id="info-piket-selesai" class="info-card-note info-piket-selesai" hidden></p>
             <p id="info-piket-note" class="info-card-note" hidden></p>
           </div>
           <div class="info-card">
@@ -309,6 +310,10 @@
 
         <div id="chat-app" hidden>
           <p id="chat-notice" class="chat-notice" hidden></p>
+          <div id="chat-notif-row" class="chat-notif-row" hidden>
+            <span>Nyalakan notifikasi biar langsung tahu kalau ada yang chat.</span>
+            <button type="button" id="btn-chat-notif" class="btn-secondary">Aktifkan</button>
+          </div>
           <div id="chat-list-view" class="chat-list-view">
             <label class="chat-search">
               <span aria-hidden="true">&#128269;</span>
@@ -691,7 +696,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.8.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.8.2</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (17/11/26)</button>
   </footer>
 
@@ -981,20 +986,20 @@
     </div>
   </div>
 
-  <!-- MODAL ATUR PIKET (khusus absen 29 & 13) -->
+  <!-- MODAL CEKLIS PIKET (khusus absen 29 & 13) -->
   <div id="modal-piket" class="modal-overlay" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="piket-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
-      <h3 id="piket-title">Atur Piket</h3>
+      <h3 id="piket-title">Ceklis Piket</h3>
       <form id="form-piket" class="account-form">
         <label for="piket-tanggal">Tanggal</label>
         <input id="piket-tanggal" type="date">
-        <p class="form-hint">Pilih nama dari daftar biar gampang. Kosongkan baris yang gak dipakai.</p>
-        <label>Daftar Piket</label>
-        <div id="piket-list" class="piket-list"></div>
-        <button type="button" id="btn-tambah-piket" class="btn-text-only">+ Tambah Baris</button>
+        <p class="form-hint">Ceklis siswa yang sudah piket hari itu. Jadwal piket tetap dari daftar kelas, tinggal tandai yang sudah beres.</p>
+        <div id="piket-ringkas" class="piket-ringkas">Belum ada yang dicek.</div>
+        <label>Siapa yang sudah piket?</label>
+        <div id="piket-list" class="piket-list piket-cek-list"></div>
         <p id="piket-error" class="form-error" hidden></p>
-        <button type="submit" class="btn-primary btn-block">Simpan Piket</button>
+        <button type="submit" class="btn-primary btn-block">Simpan Ceklis</button>
       </form>
     </div>
   </div>
@@ -1004,13 +1009,23 @@
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="game-profil-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
       <h3 id="game-profil-title">Profil Game</h3>
-      <p class="form-hint">Nama dan avatar ini dipakai di TableVerse dan daftar peringkat game. Boleh beda dari nama akun.</p>
+      <p class="form-hint">Nama, foto, dan avatar ini dipakai di TableVerse dan daftar peringkat game. Boleh beda dari nama akun.</p>
       <form id="form-game-profil" class="account-form">
+        <label>Foto Profil dari Galeri (opsional)</label>
+        <div class="game-profil-foto">
+          <div id="game-profil-foto-preview" class="game-profil-foto-preview" aria-hidden="true"></div>
+          <div class="game-profil-foto-aksi">
+            <input id="game-profil-foto-input" type="file" accept="image/*" hidden>
+            <button type="button" id="btn-game-profil-pilih-foto" class="btn-secondary">Pilih Foto</button>
+            <button type="button" id="btn-game-profil-hapus-foto" class="btn-secondary" hidden>Hapus Foto</button>
+          </div>
+        </div>
+        <p class="form-hint">Foto otomatis dikecilkan supaya ringan. Kalau kosong, dipakai avatar emoji di bawah.</p>
         <label for="game-profil-nama">Nama Tampilan</label>
         <input id="game-profil-nama" type="text" maxlength="20" required placeholder="Contoh: Yoga">
         <label for="game-profil-motto">Motto Singkat (opsional)</label>
         <input id="game-profil-motto" type="text" maxlength="40" placeholder="Contoh: Siap menang">
-        <label>Avatar</label>
+        <label>Avatar Emoji</label>
         <div id="game-profil-avatar-list" class="game-profil-avatar-list" role="radiogroup" aria-label="Pilih avatar"></div>
         <p id="game-profil-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Simpan Profil Game</button>
@@ -1138,25 +1153,27 @@
 <div id="gtc-invite-root"></div>
 <div id="gtc-toast-root" class="gtc-toast-root" aria-live="polite"></div>
 
+<div id="chat-toast-root" class="chat-toast-root" aria-live="polite"></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-functions-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=4"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=49"></script>
+<script src="script.js?v=51"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=3"></script>
 <script src="fishing-local.js?v=4"></script>
 <script src="fishing.js?v=6"></script>
 <script src="tableverse-config.js?v=2"></script>
 <script src="tableverse-chess.js?v=1"></script>
-<script src="tableverse-boards.js?v=9"></script>
+<script src="tableverse-boards.js?v=10"></script>
 <script src="tableverse-local.js?v=4"></script>
 <script src="tableverse.js?v=8"></script>
 <script src="blockblast.js?v=5"></script>
 <script src="sudoku.js?v=1"></script>
-<script src="chat.js?v=1"></script>
+<script src="chat.js?v=3"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>

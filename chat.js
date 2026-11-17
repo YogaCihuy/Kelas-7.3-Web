@@ -13,6 +13,9 @@
   let chatUnsubPesan = null;
   let chatTerpasang = false;
   let chatNoticeTimer = null;
+  let chatTahu = new Map();
+  let chatTahuSiap = false;
+  let chatToastTimer = null;
 
   function el(id) {
     return document.getElementById(id);
@@ -147,6 +150,158 @@
   function sembunyikanNotice() {
     const n = el("chat-notice");
     if (n) n.hidden = true;
+  }
+
+  function halamanChatTerbuka() {
+    const panel = document.querySelector('[data-page-panel="chat"]');
+    return !!panel && !panel.hidden;
+  }
+
+  function sedangLihatThread(lawan) {
+    if (document.visibilityState !== "visible") return false;
+    if (!chatAktif || Number(chatAktif.absen) !== Number(lawan)) return false;
+    return halamanChatTerbuka();
+  }
+
+  function notifBrowserAda() {
+    return typeof Notification !== "undefined" && typeof Notification.requestPermission === "function";
+  }
+
+  function perbaruiBarisNotif() {
+    const baris = el("chat-notif-row");
+    if (!baris) return;
+    const cap = window.Capacitor;
+    const native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+    if (!chatUser || native || !notifBrowserAda()) {
+      baris.hidden = true;
+      return;
+    }
+    baris.hidden = Notification.permission === "granted";
+  }
+
+  function mintaIzinNotifChat() {
+    if (!notifBrowserAda() || Notification.permission !== "default") return;
+    try {
+      Notification.requestPermission()
+        .then(() => perbaruiBarisNotif())
+        .catch(() => {});
+    } catch (err) {}
+  }
+
+  function sembunyikanToastChat() {
+    const root = el("chat-toast-root");
+    if (root) root.innerHTML = "";
+    clearTimeout(chatToastTimer);
+  }
+
+  function bukaChatDariNotif(lawan) {
+    const tab = document.querySelector('[data-page-tab="chat"]');
+    if (tab) tab.click();
+    setTimeout(() => {
+      if (!chatUser || !lawan) return;
+      chatBuka();
+      bukaRuang(lawan);
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (err) {}
+    }, 60);
+  }
+
+  function tampilToastChat(lawan, teks) {
+    const root = el("chat-toast-root");
+    if (!root) return;
+    const nama = namaSiswa(lawan);
+    const tombol = document.createElement("button");
+    tombol.type = "button";
+    tombol.className = "chat-toast";
+    tombol.innerHTML = `
+      ${avatarHtml(lawan, nama, "chat-avatar-sm")}
+      <span class="chat-toast-isi">
+        <strong>${esc(nama)}</strong>
+        <small>${esc(String(teks || "Pesan baru").slice(0, 90))}</small>
+      </span>`;
+    tombol.addEventListener("click", () => {
+      sembunyikanToastChat();
+      bukaChatDariNotif(lawan);
+    });
+    root.innerHTML = "";
+    root.appendChild(tombol);
+    clearTimeout(chatToastTimer);
+    chatToastTimer = setTimeout(sembunyikanToastChat, 6500);
+  }
+
+  function notifSistemChat(lawan, teks) {
+    const nama = namaSiswa(lawan);
+    const isi = String(teks || "Pesan baru").slice(0, 90);
+    const cap = window.Capacitor;
+    if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
+      const LN = cap.Plugins && cap.Plugins.LocalNotifications;
+      if (LN) {
+        try {
+          LN.checkPermissions()
+            .then((izin) => (izin.display === "granted" ? izin : LN.requestPermissions()))
+            .then((izin) => {
+              if (izin.display !== "granted") return;
+              return LN.schedule({
+                notifications: [
+                  {
+                    id: Math.floor(Date.now() % 2147483647),
+                    title: `Chat dari ${nama}`,
+                    body: isi,
+                    schedule: { at: new Date(Date.now() + 600), allowWhileIdle: true },
+                  },
+                ],
+              });
+            })
+            .catch(() => {});
+        } catch (err) {}
+        return;
+      }
+    }
+    try {
+      if (!notifBrowserAda() || Notification.permission !== "granted") return;
+      const foto = typeof window.gameProfilFoto === "function" ? window.gameProfilFoto(Number(lawan)) : "";
+      const notif = new Notification(`Chat dari ${nama}`, {
+        body: isi,
+        tag: `chat-${lawan}`,
+        icon: foto || undefined,
+      });
+      notif.onclick = () => {
+        try {
+          window.focus();
+        } catch (err) {}
+        bukaChatDariNotif(lawan);
+        notif.close();
+      };
+    } catch (err) {}
+  }
+
+  function cekPesanBaru(daftar) {
+    const hasil = [];
+    const aku = chatUser ? Number(chatUser.absen) : 0;
+    daftar.forEach((t) => {
+      const lawan = lawanDari(t);
+      const lastAt = Number(t.lastAt) || 0;
+      const sudah = chatTahu.get(t.id) || 0;
+      const dariLawan = Number(t.lastFrom) === lawan && lawan !== aku;
+      if (chatTahuSiap && dariLawan && unreadDari(t) > 0 && lastAt > sudah && !sedangLihatThread(lawan)) {
+        hasil.push({ lawan, teks: t.lastText || "" });
+      }
+      if (lastAt > sudah) chatTahu.set(t.id, lastAt);
+    });
+    chatTahuSiap = true;
+    return hasil;
+  }
+
+  function chatNotifMasuk(daftar) {
+    if (!daftar.length) return;
+    const terakhir = daftar[daftar.length - 1];
+    bunyi("notify");
+    try {
+      if (navigator.vibrate) navigator.vibrate(120);
+    } catch (err) {}
+    tampilToastChat(terakhir.lawan, terakhir.teks);
+    if (document.visibilityState !== "visible") notifSistemChat(terakhir.lawan, terakhir.teks);
   }
 
   function renderBadge() {
@@ -309,9 +464,11 @@
             snap.forEach((doc) => {
               chatThreads.push({ id: doc.id, ...(doc.data() || {}) });
             });
+            const baru = cekPesanBaru(chatThreads);
             renderThreads();
             renderBadge();
             if (chatAktif) renderRoomHead();
+            if (baru.length) chatNotifMasuk(baru);
           },
           (err) => {
             console.warn("Chat pakai mode terbatas:", err.code || err.message);
@@ -550,6 +707,9 @@
     renderThreads();
     renderOrang();
     renderBadge();
+    perbaruiBarisNotif();
+    mintaIzinNotifChat();
+    sembunyikanToastChat();
   }
 
   function chatAkunBerubah(user) {
@@ -562,6 +722,10 @@
       hentikanPesan();
       chatThreads = [];
       chatAktif = null;
+      chatTahu.clear();
+      chatTahuSiap = false;
+      sembunyikanToastChat();
+      perbaruiBarisNotif();
       const list = el("chat-list-view");
       const room = el("chat-room-view");
       if (list) list.hidden = false;
@@ -576,6 +740,9 @@
     if (absenLama !== absenBaru) {
       hentikanPesan();
       chatAktif = null;
+      chatTahu.clear();
+      chatTahuSiap = false;
+      sembunyikanToastChat();
       const list = el("chat-list-view");
       const room = el("chat-room-view");
       if (list) list.hidden = false;
@@ -584,6 +751,7 @@
 
     tampilkanChat();
     renderOrang();
+    perbaruiBarisNotif();
     if (absenLama !== absenBaru || !chatUnsubThreads) mulaiThreads();
     else renderThreads();
     renderBadge();
@@ -621,6 +789,27 @@
 
     const form = el("form-chat");
     if (form) form.addEventListener("submit", kirimPesan);
+
+    const notifBtn = el("btn-chat-notif");
+    if (notifBtn) {
+      notifBtn.addEventListener("click", async () => {
+        if (!notifBrowserAda()) {
+          tampilNotice("Browser ini belum mendukung notifikasi.", true);
+          return;
+        }
+        let izin = "denied";
+        try {
+          izin = await Notification.requestPermission();
+        } catch (err) {}
+        perbaruiBarisNotif();
+        if (izin === "granted") {
+          tampilNotice("Notifikasi chat aktif. Kalau ada pesan masuk, langsung muncul pemberitahuan.", false);
+          bunyi("resultReveal");
+        } else {
+          tampilNotice("Izin notifikasi belum aktif. Cek pengaturan browser ya.", true);
+        }
+      });
+    }
 
     const input = el("chat-input");
     if (input) {

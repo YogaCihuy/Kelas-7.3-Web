@@ -204,11 +204,13 @@ let infoViewJadwal = null;   // jadwal yang lagi dilihat di Tab Info (bisa hari 
 let infoViewOverride = {};   // override Firestore untuk tanggal yang lagi dilihat
 let infoViewDefault = true;  // true = lagi lihat Info Besok / Hari Ini otomatis
 const PIKET_EDITOR_ABSEN = [29, 13];
-const PIKET_MAKS = 12;
 
 const GAME_PROFIL_KEY = "kelas73_game_profile_";
 const GAME_PROFIL_AVATARS = ["🐯","🐼","🦊","🐸","🦁","🐨","🐵","🐧","🦄","🐙","🐳","🦖","🌻","🍀","⭐","🔥","🌙","⚡","🍉","🎮"];
+const GAME_PROFIL_FOTO_MAKS = 80000;
+const GAME_PROFIL_FOTO_SISI = 160;
 let gameProfilCache = {};
+let gameProfilFotoDraft = null; // null = ikut tersimpan, "" = hapus foto, string = foto baru
 let streakNamaJenis = "pohon";
 let pollingCache = [];       // cache data polling terbaru buat referensi klik vote/setting
 const sosialState = {        // like & komentar biodata siswa
@@ -1919,20 +1921,41 @@ function renderJadwalOtomatis() {
   document.getElementById("info-eskul").textContent = jadwal.eskul.join(", ") || "Gak ada eskul";
 }
 
+function piketSelesaiDari(override) {
+  const raw = override && Array.isArray(override.piketSelesai) ? override.piketSelesai : [];
+  const unik = [];
+  raw.forEach((angka) => {
+    const absen = Number(angka);
+    if (Number.isInteger(absen) && absen >= 1 && absen <= 64 && !unik.includes(absen)) unik.push(absen);
+  });
+  return unik.sort((a, b) => a - b);
+}
+
+function piketNamaSiswa(absen) {
+  const n = Number(absen);
+  const akun = getMergedAccount(n);
+  return akun ? akun.namaPanggilan || akun.namaLengkap || `Absen ${n}` : `Absen ${n}`;
+}
+
 function renderInfoPiket() {
   const jadwal = infoJadwalAktif();
   if (!jadwal) return;
   const o = infoViewOverride || {};
-  const list = Array.isArray(o.piketOverride)
-    ? o.piketOverride.filter((nama) => typeof nama === "string" && nama.trim())
-    : [];
-  const piket = list.length ? list : jadwal.piket;
   const el = document.getElementById("info-piket");
-  if (el) el.textContent = piket.join(", ") || "-";
+  if (el) el.textContent = jadwal.piket.join(", ") || "-";
+
+  const selesai = piketSelesaiDari(o);
+  const selesaiEl = document.getElementById("info-piket-selesai");
+  if (selesaiEl) {
+    selesaiEl.textContent = selesai.length
+      ? `Sudah piket: ${selesai.map(piketNamaSiswa).join(", ")} (${selesai.length} orang)`
+      : "Belum ada yang ceklis sudah piket.";
+    selesaiEl.hidden = false;
+  }
 
   const note = document.getElementById("info-piket-note");
   if (note) {
-    note.textContent = list.length && o.piketEditedBy ? `Diatur oleh ${o.piketEditedBy}` : "";
+    note.textContent = o.piketEditedBy ? `Dicek oleh ${o.piketEditedBy}` : "";
     note.hidden = !note.textContent;
   }
 }
@@ -2179,18 +2202,14 @@ async function handleEditInfoSubmit(e) {
   }
 }
 
-/* ---------- ATUR PIKET (absen 29 & 13) ---------- */
+/* ---------- CEKLIS PIKET (absen 29 & 13) ---------- */
 function setupPiketModal() {
   const modal = document.getElementById("modal-piket");
   if (!modal) return;
   setupModalDismiss(modal);
-  document.getElementById("btn-tambah-piket").addEventListener("click", () => tambahBarisPiket(""));
   document.getElementById("piket-tanggal").addEventListener("change", muatPiketTanggal);
   document.getElementById("form-piket").addEventListener("submit", simpanPiket);
-  document.getElementById("piket-list").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-hapus-piket]");
-    if (btn) btn.closest(".piket-row").remove();
-  });
+  document.getElementById("piket-list").addEventListener("change", perbaruiRingkasPiket);
 }
 
 function bukaModalPiket() {
@@ -2200,22 +2219,14 @@ function bukaModalPiket() {
   input.value = jadwal.key;
   input.min = dateKey(new Date());
   document.getElementById("piket-error").hidden = true;
-  const listEl = document.getElementById("piket-list");
-  listEl.innerHTML = "";
-  const list = Array.isArray(infoViewOverride.piketOverride) && infoViewOverride.piketOverride.length
-    ? infoViewOverride.piketOverride
-    : jadwal.piket;
-  list.forEach((nama) => tambahBarisPiket(nama));
-  if (!list.length) tambahBarisPiket("");
+  renderCeklisPiket(jadwal, piketSelesaiDari(infoViewOverride));
   openModal(document.getElementById("modal-piket"));
   SoundFX.buttonClick();
 }
 
 async function muatPiketTanggal(e) {
   const val = e.target.value;
-  const listEl = document.getElementById("piket-list");
   const errorEl = document.getElementById("piket-error");
-  listEl.innerHTML = "";
   if (!val) return;
   const tgl = new Date(`${val}T00:00:00`);
   if (tgl.getDay() === 0 || tgl.getDay() === 6) {
@@ -2233,37 +2244,44 @@ async function muatPiketTanggal(e) {
   } catch (err) {
     override = {};
   }
-  const jadwal = getJadwalUntukTanggal(tgl);
-  const list = Array.isArray(override.piketOverride) && override.piketOverride.length
-    ? override.piketOverride
-    : jadwal.piket;
-  list.forEach((nama) => tambahBarisPiket(nama));
-  if (!list.length) tambahBarisPiket("");
+  renderCeklisPiket(getJadwalUntukTanggal(tgl), piketSelesaiDari(override));
 }
 
-function tambahBarisPiket(nama) {
+function renderCeklisPiket(jadwal, selesai) {
   const wrap = document.getElementById("piket-list");
-  if (!wrap || wrap.children.length >= PIKET_MAKS) return;
-  const siswa = getLiveSiswaList();
-  const row = document.createElement("div");
-  row.className = "piket-row";
-  const select = document.createElement("select");
-  select.className = "piket-select";
-  select.innerHTML =
-    `<option value="">— pilih nama —</option>` +
-    siswa.map((s) => `<option value="${gameAmanTeks(s.namaPanggilan)}">${s.absen}. ${gameAmanTeks(s.namaPanggilan)}</option>`).join("");
-  if (nama && !siswa.some((s) => s.namaPanggilan === nama)) {
-    select.insertAdjacentHTML("beforeend", `<option value="${gameAmanTeks(nama)}">${gameAmanTeks(nama)}</option>`);
-  }
-  select.value = nama || "";
-  const hapus = document.createElement("button");
-  hapus.type = "button";
-  hapus.className = "piket-hapus";
-  hapus.dataset.hapusPiket = "1";
-  hapus.setAttribute("aria-label", "Hapus baris piket");
-  hapus.textContent = "✕";
-  row.append(select, hapus);
-  wrap.appendChild(row);
+  if (!wrap) return;
+  const terpilih = new Set((selesai || []).map(Number));
+  const dijadwal = new Set(
+    (jadwal && Array.isArray(jadwal.piket) ? jadwal.piket : []).map((nama) => String(nama).trim().toLowerCase())
+  );
+  const daftar = getLiveSiswaList().sort((a, b) => Number(a.absen) - Number(b.absen));
+  wrap.innerHTML = daftar
+    .map((s) => {
+      const absen = Number(s.absen);
+      const nama = s.namaPanggilan || s.namaLengkap || `Absen ${absen}`;
+      const chip = dijadwal.has(nama.trim().toLowerCase()) ? `<span class="piket-cek-chip">jadwal</span>` : "";
+      return `
+        <label class="piket-cek">
+          <input type="checkbox" value="${absen}" data-piket-absen ${terpilih.has(absen) ? "checked" : ""}>
+          <span class="piket-cek-nama">${String(absen).padStart(2, "0")}. ${gameAmanTeks(nama)}</span>
+          ${chip}
+        </label>`;
+    })
+    .join("");
+  perbaruiRingkasPiket();
+}
+
+function perbaruiRingkasPiket() {
+  const wrap = document.getElementById("piket-list");
+  const ringkas = document.getElementById("piket-ringkas");
+  if (!wrap || !ringkas) return;
+  const dicek = Array.from(wrap.querySelectorAll("input[data-piket-absen]:checked")).map((el) =>
+    piketNamaSiswa(el.value)
+  );
+  ringkas.textContent = dicek.length
+    ? `${dicek.length} siswa sudah piket: ${dicek.join(", ")}`
+    : "Belum ada yang dicek.";
+  ringkas.classList.toggle("is-ada", dicek.length > 0);
 }
 
 async function simpanPiket(e) {
@@ -2276,14 +2294,14 @@ async function simpanPiket(e) {
     errorEl.hidden = false;
     return;
   }
-  const list = Array.from(document.querySelectorAll("#piket-list .piket-select"))
-    .map((sel) => sel.value.trim())
-    .filter(Boolean);
-  const unik = [...new Set(list)];
+  const selesai = Array.from(document.querySelectorAll("#piket-list input[data-piket-absen]:checked"))
+    .map((el) => Number(el.value))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 64)
+    .sort((a, b) => a - b);
   try {
     await db.collection("infoOverrides").doc(targetKey).set(
       {
-        piketOverride: unik,
+        piketSelesai: selesai,
         piketEditedBy: currentUser.namaPanggilan,
         piketEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
       },
@@ -2294,7 +2312,7 @@ async function simpanPiket(e) {
     infoBesok = getInfoBesok();
     setInfoView(getJadwalUntukTanggal(new Date(`${targetKey}T00:00:00`)), targetKey === infoBesok.key);
   } catch (err) {
-    errorEl.textContent = "Gagal simpan piket, cek koneksi internet.";
+    errorEl.textContent = "Gagal simpan ceklis piket, cek koneksi internet.";
     errorEl.hidden = false;
     SoundFX.errorSound();
   }
@@ -2351,7 +2369,8 @@ function buatTeksSalinInfo() {
   const mapel = mapelMentah.map((m) => m.trim()).filter(Boolean)
     .map((m) => NAMA_MAPEL_PANJANG[m.toUpperCase()] || m);
 
-  const piket = Array.isArray(o.piketOverride) && o.piketOverride.length ? o.piketOverride : jadwal.piket;
+  const piket = jadwal.piket;
+  const piketSelesai = piketSelesaiDari(o).map(piketNamaSiswa);
   const pr = baris(o.pr);
   const kegiatan = baris(o.kegiatan);
   const catatan = baris(o.catatan);
@@ -2373,6 +2392,7 @@ function buatTeksSalinInfo() {
     "",
     "★🧹 𝐏𝐼𝐾𝐸𝑇:",
     ...(piket.length ? piket.map((n) => `⚊ ${n.toUpperCase()}`) : ["⚊ -"]),
+    ...(piketSelesai.length ? ["✅ 𝐒𝐮𝐝𝐚𝐡 𝐏𝐢𝐤𝐞𝐭:", ...piketSelesai.map((n) => `⚊ ${gayaBold(n)}`)] : []),
     "",
     "✿✍️📖𝐏ᥱrkᥱrȷᥲᥲᥒ 𝐑ᥙmᥲһ:",
     ...(pr.length ? [...pr.map((l) => `╸${l}`), "ᴅsᴛ."] : ["╸Tidak ada PR"]),
@@ -3774,6 +3794,15 @@ function gameProfilCacheKey(absen) {
   return `${GAME_PROFIL_KEY}${absen}`;
 }
 
+function gameProfilFotoValid(foto) {
+  return (
+    typeof foto === "string" &&
+    /^data:image\/(jpeg|png|webp);base64,/.test(foto) &&
+    foto.length > 40 &&
+    foto.length <= GAME_PROFIL_FOTO_MAKS
+  );
+}
+
 function gameProfilNormalisasi(raw, absen) {
   if (!raw || typeof raw !== "object") return null;
   const nama = typeof raw.nama === "string" ? raw.nama.trim().slice(0, 20) : "";
@@ -3783,6 +3812,7 @@ function gameProfilNormalisasi(raw, absen) {
     nama,
     avatar: GAME_PROFIL_AVATARS.includes(raw.avatar) ? raw.avatar : "",
     motto: typeof raw.motto === "string" ? raw.motto.trim().slice(0, 40) : "",
+    foto: gameProfilFotoValid(raw.foto) ? raw.foto : "",
   };
 }
 
@@ -3817,6 +3847,11 @@ window.gameProfilAvatar = function (absen) {
   return profil && profil.avatar ? profil.avatar : "";
 };
 
+window.gameProfilFoto = function (absen) {
+  const profil = gameProfilAmbil(Number(absen));
+  return profil && gameProfilFotoValid(profil.foto) ? profil.foto : "";
+};
+
 window.gameProfilMotto = function (absen) {
   const profil = gameProfilAmbil(Number(absen));
   return profil && profil.motto ? profil.motto : "";
@@ -3842,6 +3877,98 @@ function renderGameProfilAvatarOptions() {
   wrap.dataset.siap = "1";
 }
 
+function gameProfilInisial(nama) {
+  const teks = String(nama || "").trim();
+  if (!teks) return "?";
+  const kata = teks.split(/\s+/).filter(Boolean);
+  if (kata.length >= 2) return (kata[0][0] + kata[1][0]).toUpperCase();
+  return teks.slice(0, 2).toUpperCase();
+}
+
+function renderGameProfilFotoPreview() {
+  const box = document.getElementById("game-profil-foto-preview");
+  if (!box) return;
+  const lama = window.gameProfilSaya() || {};
+  let foto = gameProfilFotoValid(lama.foto) ? lama.foto : "";
+  if (gameProfilFotoDraft !== null) foto = gameProfilFotoDraft;
+  const hapusBtn = document.getElementById("btn-game-profil-hapus-foto");
+  if (foto) {
+    box.innerHTML = `<img alt="Foto profil" src="${foto}">`;
+    if (hapusBtn) hapusBtn.hidden = false;
+    return;
+  }
+  const emojiEl = document.querySelector('input[name="game-profil-avatar"]:checked');
+  const emoji = emojiEl && GAME_PROFIL_AVATARS.includes(emojiEl.value) ? emojiEl.value : "";
+  const nama = gameProfilAvatarNama() || (currentUser ? currentUser.namaPanggilan : "");
+  box.textContent = emoji || gameProfilInisial(nama);
+  if (hapusBtn) hapusBtn.hidden = true;
+}
+
+function gameProfilAvatarNama() {
+  const el = document.getElementById("game-profil-nama");
+  return el ? el.value.trim().slice(0, 20) : "";
+}
+
+function gameProfilBacaGambar(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error("File foto kosong."));
+      return;
+    }
+    if (!/^image\//.test(file.type || "")) {
+      reject(new Error("Pilih file gambar ya."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Foto gagal dibaca."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Foto tidak bisa dibuka."));
+      img.onload = () => {
+        try {
+          const sisi = GAME_PROFIL_FOTO_SISI;
+          const kanvas = document.createElement("canvas");
+          kanvas.width = sisi;
+          kanvas.height = sisi;
+          const ctx = kanvas.getContext("2d");
+          const skala = Math.max(sisi / img.width, sisi / img.height);
+          const w = img.width * skala;
+          const h = img.height * skala;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, sisi, sisi);
+          ctx.drawImage(img, (sisi - w) / 2, (sisi - h) / 2, w, h);
+          let data = kanvas.toDataURL("image/jpeg", 0.72);
+          if (data.length > GAME_PROFIL_FOTO_MAKS) data = kanvas.toDataURL("image/jpeg", 0.55);
+          if (!gameProfilFotoValid(data)) {
+            reject(new Error("Fotonya masih kebesaran. Coba foto lain."));
+            return;
+          }
+          resolve(data);
+        } catch (err) {
+          reject(new Error("Foto gagal diproses."));
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function pilihFotoGameProfil(file) {
+  const errorEl = document.getElementById("game-profil-error");
+  try {
+    const foto = await gameProfilBacaGambar(file);
+    gameProfilFotoDraft = foto;
+    if (errorEl) errorEl.hidden = true;
+    renderGameProfilFotoPreview();
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = err.message || "Foto gagal dipakai.";
+      errorEl.hidden = false;
+    }
+  }
+}
+
 function setupGameProfil() {
   renderGameProfilAvatarOptions();
   const btn = document.getElementById("btn-game-profile");
@@ -3849,6 +3976,28 @@ function setupGameProfil() {
   const form = document.getElementById("form-game-profil");
   if (form) form.addEventListener("submit", simpanGameProfil);
   setupModalDismiss(document.getElementById("modal-game-profil"));
+
+  const fileInput = document.getElementById("game-profil-foto-input");
+  const pilihBtn = document.getElementById("btn-game-profil-pilih-foto");
+  if (pilihBtn && fileInput) pilihBtn.addEventListener("click", () => fileInput.click());
+  if (fileInput) {
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (file) pilihFotoGameProfil(file);
+      fileInput.value = "";
+    });
+  }
+  const hapusFotoBtn = document.getElementById("btn-game-profil-hapus-foto");
+  if (hapusFotoBtn) {
+    hapusFotoBtn.addEventListener("click", () => {
+      gameProfilFotoDraft = "";
+      renderGameProfilFotoPreview();
+    });
+  }
+  const namaInput = document.getElementById("game-profil-nama");
+  if (namaInput) namaInput.addEventListener("input", renderGameProfilFotoPreview);
+  const avatarList = document.getElementById("game-profil-avatar-list");
+  if (avatarList) avatarList.addEventListener("change", renderGameProfilFotoPreview);
 
   if (typeof dataSiswa !== "undefined") {
     dataSiswa.forEach((s) => {
@@ -3873,6 +4022,7 @@ function setupGameProfil() {
 
 function gameProfilRenderUlang() {
   if (typeof window.tableverseProfilCacheBerubah === "function") window.tableverseProfilCacheBerubah();
+  if (typeof window.chatProfilBerubah === "function") window.chatProfilBerubah();
   if (currentUser && gameState) renderGames();
 }
 
@@ -3887,10 +4037,14 @@ function bukaModalGameProfil() {
   document.querySelectorAll('input[name="game-profil-avatar"]').forEach((el) => {
     el.checked = el.value === (profil.avatar || "");
   });
+  gameProfilFotoDraft = null;
+  renderGameProfilFotoPreview();
   document.getElementById("game-profil-error").hidden = true;
   openModal(document.getElementById("modal-game-profil"));
   SoundFX.buttonClick();
 }
+
+window.bukaGameProfilModal = bukaModalGameProfil;
 
 async function simpanGameProfil(e) {
   e.preventDefault();
@@ -3906,7 +4060,10 @@ async function simpanGameProfil(e) {
   const avatarEl = document.querySelector('input[name="game-profil-avatar"]:checked');
   const avatar = avatarEl && GAME_PROFIL_AVATARS.includes(avatarEl.value) ? avatarEl.value : "";
   const absen = Number(currentUser.absen);
-  const profil = { absen, nama, avatar, motto };
+  const lama = window.gameProfilSaya() || {};
+  let foto = gameProfilFotoValid(lama.foto) ? lama.foto : "";
+  if (gameProfilFotoDraft !== null) foto = gameProfilFotoDraft;
+  const profil = { absen, nama, avatar, motto, foto };
   gameProfilSetCache(absen, profil);
 
   try {
@@ -3922,6 +4079,7 @@ async function simpanGameProfil(e) {
   } catch (err) {}
 
   closeModal(document.getElementById("modal-game-profil"));
+  gameProfilFotoDraft = null;
   SoundFX.resultReveal();
   if (typeof window.tableverseProfilBerubah === "function") window.tableverseProfilBerubah(nama);
   gameProfilRenderUlang();
@@ -3934,10 +4092,13 @@ const UPDATE_LOG = [
     items: [
       "Version 2.8.0 Chat Privat gaya WA: Ngobrol Berdua, Pesan Tersimpan, Ada Badge Belum Dibaca",
       "Version 2.8.0 Profil Game Custom: Atur Nama, Avatar Emoji, dan Motto di Semua Game",
+      "Version 2.8.1 Profil Game Bisa Pakai Foto Sendiri dari Galeri, Otomatis Dikecilin",
       "Version 2.8.0 TableVerse Nampilin Avatar Emoji dan Motto di Profil Pemain",
       "Version 2.8.0 Streak: Pohon dan Kucing Bisa Dikasih Nama Sendiri",
       "Version 2.8.0 Info Bisa Dibuka Hari-Hari Sebelumnya, Lengkap dengan Riwayat",
-      "Version 2.8.0 Piket Bisa Diatur Langsung dari Info dengan Daftar Nama",
+      "Version 2.8.2 Piket Sekarang Ceklis: Tandai Siapa yang Sudah Piket",
+      "Version 2.8.2 Info Nampilin Daftar yang Sudah Piket, Dicek Siapa",
+      "Version 2.8.2 Notifikasi Chat: Ada Bunyi, Toast, dan Pemberitahuan Pas Pesan Masuk",
     ],
   },
   {
