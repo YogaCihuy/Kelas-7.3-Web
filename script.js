@@ -7264,4 +7264,7 @@ function setupAlbum() {
     }
   });
   input.addEventListener("change", () => {
-    const file = input.files && input.fil
+    const file = input.files && input.files[0];
+    if (file && albumSlotAktif) uploadFotoAlbum(albumSlotAktif, file);
+  });
+}
