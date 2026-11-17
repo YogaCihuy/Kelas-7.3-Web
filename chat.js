@@ -70,11 +70,15 @@
 
   function avatarInner(absen, nama) {
     let emoji = "";
+    let foto = "";
     try {
+      foto = typeof window.gameProfilFoto === "function" ? window.gameProfilFoto(Number(absen)) : "";
       emoji = typeof window.gameProfilAvatar === "function" ? window.gameProfilAvatar(Number(absen)) : "";
     } catch (err) {
+      foto = "";
       emoji = "";
     }
+    if (foto) return `<img class="chat-avatar-foto" src="${esc(foto)}" alt="">`;
     return emoji ? esc(emoji) : esc(inisial(nama));
   }
 
@@ -641,6 +645,12 @@
 
   window.chatAkunBerubah = chatAkunBerubah;
   window.chatBuka = chatBuka;
+  window.chatProfilBerubah = function () {
+    if (!chatUser) return;
+    renderThreads();
+    renderOrang();
+    renderRoomHead();
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initChat);
   else initChat();
