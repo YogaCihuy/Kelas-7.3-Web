@@ -1937,12 +1937,19 @@ function piketNamaSiswa(absen) {
   return akun ? akun.namaPanggilan || akun.namaLengkap || `Absen ${n}` : `Absen ${n}`;
 }
 
+function piketNamaDaftar(daftar) {
+  return (Array.isArray(daftar) ? daftar : [])
+    .map((absen) => Number(absen))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 64)
+    .map(piketNamaSiswa);
+}
+
 function renderInfoPiket() {
   const jadwal = infoJadwalAktif();
   if (!jadwal) return;
   const o = infoViewOverride || {};
   const el = document.getElementById("info-piket");
-  if (el) el.textContent = jadwal.piket.join(", ") || "-";
+  if (el) el.textContent = piketNamaDaftar(jadwal.piket).join(", ") || "-";
 
   const selesai = piketSelesaiDari(o);
   const selesaiEl = document.getElementById("info-piket-selesai");
@@ -2251,28 +2258,24 @@ function renderCeklisPiket(jadwal, selesai) {
   const wrap = document.getElementById("piket-list");
   if (!wrap) return;
   const terpilih = new Set((selesai || []).map(Number));
-  const namaJadwal = [];
-  (jadwal && Array.isArray(jadwal.piket) ? jadwal.piket : []).forEach((nama) => {
-    const teks = String(nama).trim();
-    if (teks && !namaJadwal.some((x) => x.toLowerCase() === teks.toLowerCase())) namaJadwal.push(teks);
+  const daftar = [];
+  (jadwal && Array.isArray(jadwal.piket) ? jadwal.piket : []).forEach((angka) => {
+    const absen = Number(angka);
+    if (Number.isInteger(absen) && absen >= 1 && absen <= 64 && !daftar.includes(absen)) daftar.push(absen);
   });
-  if (!namaJadwal.length) {
+  if (!daftar.length) {
     wrap.innerHTML = `<p class="piket-kosong">Belum ada jadwal piket untuk tanggal ini.</p>`;
     perbaruiRingkasPiket();
     return;
   }
-  const siswa = getLiveSiswaList();
-  wrap.innerHTML = namaJadwal
-    .map((nama) => {
-      const target = nama.toLowerCase();
-      const s = siswa.find((x) =>
-        [x.namaPanggilan, x.namaLengkap].some((v) => String(v || "").trim().toLowerCase() === target)
-      );
-      if (!s) {
-        return `<div class="piket-cek is-mati"><span class="piket-cek-nama">${gameAmanTeks(nama)}</span><span class="piket-cek-chip">tanpa akun</span></div>`;
+  daftar.sort((a, b) => a - b);
+  wrap.innerHTML = daftar
+    .map((absen) => {
+      const akun = getMergedAccount(absen);
+      if (!akun) {
+        return `<div class="piket-cek is-mati"><span class="piket-cek-nama">Absen ${String(absen).padStart(2, "0")}</span><span class="piket-cek-chip">tanpa akun</span></div>`;
       }
-      const absen = Number(s.absen);
-      const tampil = s.namaPanggilan || s.namaLengkap || nama;
+      const tampil = akun.namaPanggilan || akun.namaLengkap || `Absen ${absen}`;
       return `
         <label class="piket-cek">
           <input type="checkbox" value="${absen}" data-piket-absen ${terpilih.has(absen) ? "checked" : ""}>
@@ -2381,7 +2384,7 @@ function buatTeksSalinInfo() {
   const mapel = mapelMentah.map((m) => m.trim()).filter(Boolean)
     .map((m) => NAMA_MAPEL_PANJANG[m.toUpperCase()] || m);
 
-  const piket = jadwal.piket;
+  const piket = piketNamaDaftar(jadwal.piket);
   const piketSelesai = piketSelesaiDari(o).map(piketNamaSiswa);
   const pr = baris(o.pr);
   const kegiatan = baris(o.kegiatan);
@@ -4110,6 +4113,8 @@ const UPDATE_LOG = [
       "Version 2.8.0 Info Bisa Dibuka Hari-Hari Sebelumnya, Lengkap dengan Riwayat",
       "Version 2.8.2 Piket Sekarang Ceklis: Tandai Siapa yang Sudah Piket",
       "Version 2.8.3 Ceklis Piket Cuma Nampilin Siswa yang Dapat Jadwal di Tanggal Itu",
+      "Version 2.8.4 Ceklis Piket: Semua Nama di Jadwal Bisa Dicentang Lagi",
+      "Version 2.8.5 Piket Pakai Nomor Absen, Gak Ada Lagi Nama yang Gak Ketemu",
       "Version 2.8.2 Info Nampilin Daftar yang Sudah Piket, Dicek Siapa",
       "Version 2.8.2 Notifikasi Chat: Ada Bunyi, Toast, dan Pemberitahuan Pas Pesan Masuk",
     ],

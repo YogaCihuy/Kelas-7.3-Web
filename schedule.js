@@ -20,13 +20,13 @@ const jadwalSeragam = {
   Jumat: "Batik Biru",
 };
 
-// Piket per hari, nama sesuai nama panggilan di data.js
+// Piket per hari, pakai nomor absen (sesuai data.js)
 const jadwalPiket = {
-  Senin: ["Alexa", "Amar", "Bayu", "Bianca", "Keenan", "Abi", "Ben"],
-  Selasa: ["Icha", "Akmal", "Eza", "Nisa", "Kenzie", "Fahri", "Yoga"],
-  Rabu: ["Ayla", "Bian", "Fayyad", "Rindu", "Keyvan", "Sofia"],
-  Kamis: ["Ria", "Al", "Reja", "Aira", "Naufal", "Rafa"],
-  Jumat: ["Inaya", "Apple", "Natan", "Raisa", "Mecca", "Saif"],
+  Senin: [1, 4, 10, 16, 17, 24, 28],
+  Selasa: [2, 5, 11, 18, 20, 25, 29],
+  Rabu: [3, 8, 12, 19, 21, 32],
+  Kamis: [6, 9, 13, 22, 26, 30],
+  Jumat: [7, 14, 15, 23, 27, 31],
 };
 
 // Eskul: satu hari bisa lebih dari satu eskul jalan bareng
