@@ -24,8 +24,8 @@ function lagiDiAplikasi() {
 // ===== Pola pembagian kelompok =====
 const ANCHOR = 29;
 const GRP_A = [1, 15, 18];
-// Grup B = 29 (anchor) + 26, 25, 16, 09, 04, 20.
-const GRP_B = [26, 25, 16, 9, 4, 20];
+// Grup B = 29 (anchor) + 25, 16, 09, 04, 20.
+const GRP_B = [25, 16, 9, 4, 20];
 
 // Pola grup asli 01, 15, 18 — dibikin mirip pola 29/26/25/16 biar terasa natural.
 // "semua" = bertiga satu tim, "dua" = berdua + satu pisah, "pisah" = semua terpisah.
