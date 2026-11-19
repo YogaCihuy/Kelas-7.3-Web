@@ -2061,7 +2061,7 @@
 
 .quiz-mini-bar-wide { width: 100%; margin: 0.65rem 0 0.2rem; }
 
-.quiz-mapel-go { flex: 0 0 auto; font-size: 1.7rem; line-height: 1; color: #a7c2b3; }
+.quiz-mapel-go { flex: 0 0 auto; font-size: 1.7rem; line-height: 1; color: var(--emerald); }
 
 .quiz-empty {
   padding: 1.3rem;
@@ -3011,7 +3011,7 @@
 .like-heart {
   font-size: 1.05rem;
   line-height: 1;
-  color: #b9c9c1;
+  color: #7f948b;
   transition: color 0.15s ease, transform 0.2s ease;
 }
 

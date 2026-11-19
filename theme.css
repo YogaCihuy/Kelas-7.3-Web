@@ -12,7 +12,7 @@ html {
   --t-hero-a: #14392A;
   --t-hero-b: #1F4D37;
   --t-hero-c: #2F8F5B;
-  --t-hero-soft: #BFE3CC;
+  --t-hero-soft: #D8F0E1;
 
   --t-card-a: #FFFFFF;
   --t-card-b: #F8FCF9;
@@ -64,7 +64,7 @@ html[data-theme="sage"] {
   --t-hero-a: #1F4D37;
   --t-hero-b: #2A6347;
   --t-hero-c: #3C9C68;
-  --t-hero-soft: #C6E6D3;
+  --t-hero-soft: #EAF8F0;
 
   --t-card-a: #F8FCF9;
   --t-card-b: #EFF7F2;
@@ -110,7 +110,7 @@ html[data-theme="forest"] {
   --t-hero-a: #0A2A1B;
   --t-hero-b: #145135;
   --t-hero-c: #2F8F5B;
-  --t-hero-soft: #A9D9BE;
+  --t-hero-soft: #CDEED9;
 
   --t-card-a: #17492F;
   --t-card-b: #143F2A;
@@ -156,7 +156,7 @@ html[data-theme="dark"] {
   --t-hero-a: #0A2418;
   --t-hero-b: #10301F;
   --t-hero-c: #2F8F5B;
-  --t-hero-soft: #9CCBAF;
+  --t-hero-soft: #C3E7D2;
 
   --t-card-a: #16241B;
   --t-card-b: #122019;
@@ -400,6 +400,64 @@ html[data-theme]:not([data-theme="light"]) #tv-toast-root {
   --forest: #17392A;
   --emerald: #2F8F5B;
   --shadow: 0 14px 30px -18px rgba(23, 57, 42, 0.35);
+}
+
+/* ---------- perbaikan kontras teks ---------- */
+
+/* Tombol like di kartu siswa (sage terlalu pucat). */
+html[data-theme="sage"] .siswa-like { color: #1F6D52; }
+
+/* Chip progres game (sage). */
+html[data-theme="sage"]:not([data-theme="light"]) .game-progress { color: #1F6D52; }
+html[data-theme="sage"] .detail-absen,
+html[data-theme="sage"] .like-count { color: #1F6D52; }
+
+/* Blok "Disukai oleh" semi-transparan dibuat solid di tema gelap. */
+html[data-theme]:not([data-theme="light"]) .like-siapa {
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+}
+
+/* Tombol urutan game memakai permukaan terang tetap. */
+html[data-theme]:not([data-theme="light"]) .games-order-btn {
+  background: #F4FBF6;
+  border-color: #CFE6D8;
+  color: #1F6D52;
+}
+
+html[data-theme]:not([data-theme="light"]) .games-order-btn:hover:not(:disabled) {
+  background: #E3F4EA;
+}
+
+/* Teks toolbar Quiz berada langsung di atas latar halaman gelap. */
+html[data-theme="forest"] #quiz-content .quiz-toolbar { --ink: #EAF6EE; --muted: #B3CDBD; }
+html[data-theme="dark"] #quiz-content .quiz-toolbar { --ink: #E7F2EA; --muted: #9DB8A8; }
+html[data-theme="dark-forest"] #quiz-content .quiz-toolbar { --ink: #DDEBE2; --muted: #8FA99A; }
+
+/* Panel semi-transparan Guess the Color dibuat solid di tema gelap. */
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-rules,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-reveal {
+  background: #F4FBF7;
+}
+
+/* TableVerse: judul di atas permukaan terang tetap, teks section ikut tema. */
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-hero-copy h1,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-game-top h3,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-active-info h2,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-profile-head h2,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-gate-card h2,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-lobby-main h3,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-result h3 {
+  color: #17352C;
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-section-head .tv-kicker {
+  color: var(--emerald);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-section-head p,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-foot {
+  color: var(--muted);
 }
 
 /* ---------- Fishing ikut tema ---------- */
@@ -660,6 +718,8 @@ html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-sl
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot-id em,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot.is-empty div,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-slot.is-empty small,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-empty,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-empty small,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-ach,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-fail-note,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-tag.is-worker,
@@ -685,7 +745,9 @@ html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-bl
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-head p,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-count,
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-slot-no,
-html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-slot-id em {
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-legend-block.rarity-secret .fishing-legend-slot-id em,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-slot.secret .fishing-first-empty,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-first-slot.secret .fishing-first-empty small {
   color: var(--t-fish-rose-ink);
 }
 
