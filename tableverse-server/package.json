@@ -1,0 +1,18 @@
+{
+  "name": "kelas73-tableverse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend serverless TableVerse untuk Web Kelas 7.3 (tanpa Firebase Blaze)",
+  "main": "api/tableverse.js",
+  "scripts": {
+    "dev": "node dev/dev-server.js",
+    "test": "node dev/test-flow.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "chess.js": "0.13.4",
+    "firebase-admin": "^12.7.0"
+  }
+}

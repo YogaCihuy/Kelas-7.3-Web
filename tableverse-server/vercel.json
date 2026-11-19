@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/tableverse.js": {
+      "maxDuration": 10,
+      "memory": 512
+    }
+  }
+}
