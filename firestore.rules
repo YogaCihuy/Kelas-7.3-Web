@@ -291,6 +291,148 @@ service cloud.firestore {
         && (!('partial' in d) || d.partial == null || (d.partial is number && d.partial >= 0 && d.partial <= 4));
     }
 
+    // ── BLOCK BLAST (puzzle tanpa server) ────────────────────
+    // Ditulis langsung dari browser. Skor & combo dihitung di
+    // blockblast.js; rules cuma menjaga bentuk dokumennya.
+    match /blockblast/{absen} {
+      allow read: if true;
+      allow create, update: if isValidBlockBlast(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidBlockBlast(d) {
+      return d.keys().hasOnly(['absen','name','bestScore','bestCombo','lines','games','createdAt','updatedAt'])
+        && d.keys().hasAll(['absen','name','bestScore','bestCombo','lines','games','createdAt','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() <= 60
+        && d.bestScore is number
+        && d.bestScore >= 0
+        && d.bestScore <= 1000000000
+        && d.bestCombo is number
+        && d.bestCombo >= 0
+        && d.bestCombo <= 10000
+        && d.lines is number
+        && d.lines >= 0
+        && d.lines <= 1000000000
+        && d.games is number
+        && d.games >= 0
+        && d.games <= 1000000000
+        && d.createdAt is number
+        && d.updatedAt is number;
+    }
+
+    // ── SUDOKU (puzzle tanpa server) ─────────────────────────
+    // Poin menumpuk tiap soal selesai. Soal & pengecekan jawaban
+    // di browser; rules cuma menjaga bentuk dokumennya.
+    match /sudoku/{absen} {
+      allow read: if true;
+      allow create, update: if isValidSudoku(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidSudoku(d) {
+      return d.keys().hasOnly(['absen','name','points','wins','games','createdAt','updatedAt'])
+        && d.keys().hasAll(['absen','name','points','wins','games','createdAt','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() <= 60
+        && d.points is number
+        && d.points >= 0
+        && d.points <= 1000000000
+        && d.wins is number
+        && d.wins >= 0
+        && d.wins <= 1000000
+        && d.games is number
+        && d.games >= 0
+        && d.games <= 1000000
+        && d.createdAt is number
+        && d.updatedAt is number;
+    }
+
+    // ── PROFIL GAME (nama, avatar, motto) ────────────────────
+    // Satu dokumen per akun, dipakai TableVerse, Streak, Quiz,
+    // Block Blast, dan Sudoku sebagai nama tampilan.
+    match /gameProfiles/{absen} {
+      allow read: if true;
+      allow create, update: if isValidGameProfile(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidGameProfile(d) {
+      return d.keys().hasOnly(['absen','nama','avatar','motto','foto','updatedAt'])
+        && d.keys().hasAll(['absen','nama','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.nama is string
+        && d.nama.size() >= 1
+        && d.nama.size() <= 20
+        && (!('avatar' in d) || (d.avatar is string && d.avatar.size() <= 8))
+        && (!('motto' in d) || (d.motto is string && d.motto.size() <= 40))
+        && (!('foto' in d) || (d.foto is string && d.foto.size() <= 80000
+            && (d.foto.size() == 0 || d.foto.matches('^data:image/(jpeg|png|webp);base64,.*'))))
+        && d.updatedAt is timestamp;
+    }
+
+    // ── CHAT PRIVAT 1-ON-1 ───────────────────────────────────
+    // Tanpa Firebase Auth, privasi dijaga di level UI (chat cuma
+    // dibuka buat dua peserta) dan rules cuma menjaga bentuk dokumen.
+    match /chatThreads/{threadId} {
+      allow read: if true;
+      allow create, update: if isValidChatThread(request.resource.data, threadId);
+      allow delete: if false;
+    }
+
+    match /chatMessages/{pesanId} {
+      allow read: if true;
+      allow create: if isValidChatMessage(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    function isValidChatThread(d, threadId) {
+      return d.keys().hasOnly(['id','peserta','lastText','lastAt','lastFrom','unread','updatedAt'])
+        && d.keys().hasAll(['id','peserta','unread'])
+        && d.id is string
+        && d.id == threadId
+        && d.peserta is list
+        && d.peserta.size() == 2
+        && d.peserta[0] is number
+        && d.peserta[1] is number
+        && d.peserta[0] >= 1
+        && d.peserta[1] <= 64
+        && d.peserta[0] < d.peserta[1]
+        && d.unread is map
+        && (!('lastText' in d) || (d.lastText is string && d.lastText.size() <= 120))
+        && (!('lastAt' in d) || d.lastAt is number)
+        && (!('lastFrom' in d) || (d.lastFrom is number && d.lastFrom >= 1 && d.lastFrom <= 64))
+        && (!('updatedAt' in d) || d.updatedAt is number);
+    }
+
+    function isValidChatMessage(d) {
+      return d.keys().hasOnly(['threadId','from','to','nama','teks','at'])
+        && d.keys().hasAll(['threadId','from','to','teks','at'])
+        && d.threadId is string
+        && d.threadId.size() >= 5
+        && d.threadId.size() <= 12
+        && d.from is number
+        && d.from >= 1
+        && d.from <= 64
+        && d.to is number
+        && d.to >= 1
+        && d.to <= 64
+        && d.from != d.to
+        && (!('nama' in d) || (d.nama is string && d.nama.size() <= 60))
+        && d.teks is string
+        && d.teks.size() >= 1
+        && d.teks.size() <= 500
+        && d.at is number;
+    }
+
     function isValidProfilLike(d) {
       return d.keys().hasOnly(['users','count','updatedAt'])
         && (!('users' in d) || d.users is map)
@@ -340,7 +482,7 @@ service cloud.firestore {
         && d.keys().hasAll(['id','gameId','hostAbsen','players','status','seq'])
         && d.id is string
         && d.id.size() <= 24
-        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes','stick']
         && d.hostAbsen is number
         && d.players is list
         && d.players.size() >= 1
@@ -378,7 +520,7 @@ service cloud.firestore {
         && d.roomId.size() <= 24
         && d.fromAbsen is number
         && d.toAbsen is number
-        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes','stick']
         && d.status in ['pending','accepted','declined','expired']
         && (!('fromNama' in d) || (d.fromNama is string && d.fromNama.size() <= 60))
         && (!('toNama' in d) || (d.toNama is string && d.toNama.size() <= 60))
@@ -393,7 +535,7 @@ service cloud.firestore {
                                 'winnerNama','draw','durationMs','startedAt','finishedAt'])
         && d.keys().hasAll(['roomId','gameId','playerAbsens','finishedAt'])
         && d.roomId is string
-        && d.gameId in ['ttt','checkers','chess','ludo','snakes']
+        && d.gameId in ['ttt','checkers','chess','ludo','snakes','stick']
         && d.playerAbsens is list
         && d.playerAbsens.size() >= 1
         && d.playerAbsens.size() <= 4
@@ -423,12 +565,17 @@ service cloud.firestore {
 
     function isValidInfoOverride(d) {
       let allowedKeys = ['mapelOverride','seragamOverride','pr','eskulLiburList','catatan',
-                          'kegiatan','editedBy','editedAt'];
+                          'kegiatan','editedBy','editedAt',
+                          'piketOverride','piketSelesai','piketEditedBy','piketEditedAt'];
       return d.keys().hasOnly(allowedKeys)
         && (!('eskulLiburList' in d) || d.eskulLiburList is list)
         && (!('kegiatan' in d) || d.kegiatan is string)
         && (!('editedBy' in d) || d.editedBy is string)
-        && (!('editedAt' in d) || d.editedAt is timestamp);
+        && (!('editedAt' in d) || d.editedAt is timestamp)
+        && (!('piketOverride' in d) || (d.piketOverride is list && d.piketOverride.size() <= 12))
+        && (!('piketSelesai' in d) || (d.piketSelesai is list && d.piketSelesai.size() <= 64))
+        && (!('piketEditedBy' in d) || (d.piketEditedBy is string && d.piketEditedBy.size() <= 60))
+        && (!('piketEditedAt' in d) || d.piketEditedAt is timestamp);
     }
 
     function isValidAlbum(d) {

@@ -2,7 +2,7 @@
    Backend TableVerse versi tanpa server (langsung Firestore).
    Semua validasi gerakan, giliran, room, dan statistik dijalankan di browser
    lewat transaksi Firestore. Dipakai oleh tableverse.js sebagai pengganti API
-   Vercel. Tidak ada UNO: hanya 5 game meja yang state-nya publik. */
+   Vercel. Tidak ada UNO: hanya game meja yang state-nya publik. */
 (function () {
   "use strict";
 
@@ -785,7 +785,289 @@
     return { id: "snakes", mode: "party", minPlayers: 2, maxPlayers: 4, judul: "Ular Tangga", create, move };
   })();
 
-  const GAMES = { ttt, checkers, chess, ludo, snakes };
+  /* ---------------- engine: StickEskrim ---------------- */
+
+  const stick = (function () {
+    const ARENA = 100;     // ruang koordinat 0..100 (persegi)
+    const PANJANG = 16;    // panjang stick
+    const LEBAR = 4.4;     // lebar stick
+    const SETENGAH = PANJANG / 2;
+    const MAKS_MOVE = 2;
+    const POWER_MIN = 20;
+    const POWER_MAX = 100;
+    const TEMPAT_MIN = 8;  // batas penempatan Move
+    const TEMPAT_MAX = 92;
+
+    // Posisi awal simetris. 3 pemain: segitiga seimbang; 4 pemain: 4 sisi.
+    function posisiAwal(jumlah) {
+      if (jumlah <= 2) {
+        return [
+          { x: 50, y: 16, rot: 0 },
+          { x: 50, y: 84, rot: 0 },
+        ];
+      }
+      if (jumlah === 3) {
+        return [
+          { x: 50, y: 15, rot: 0 },
+          { x: 79, y: 70, rot: 90 },
+          { x: 21, y: 70, rot: 90 },
+        ];
+      }
+      return [
+        { x: 50, y: 14, rot: 0 },
+        { x: 86, y: 50, rot: 90 },
+        { x: 50, y: 86, rot: 0 },
+        { x: 14, y: 50, rot: 90 },
+      ];
+    }
+
+    function bulatkan(n) {
+      return Math.round(Number(n) * 100) / 100;
+    }
+
+    function ringkas(sticks) {
+      return sticks.map((s) => ({ slot: s.slot, x: s.x, y: s.y, rot: s.rot, alive: !!s.alive }));
+    }
+
+    function ujung(s) {
+      const rad = ((Number(s.rot) || 0) * Math.PI) / 180;
+      const dx = Math.cos(rad) * SETENGAH;
+      const dy = Math.sin(rad) * SETENGAH;
+      return [
+        { x: s.x - dx, y: s.y - dy },
+        { x: s.x + dx, y: s.y + dy },
+      ];
+    }
+
+    function arah(ax, ay, bx, by, cx, cy) {
+      return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    }
+
+    function segmenSilang(a1, a2, b1, b2) {
+      const d1 = arah(b1.x, b1.y, b2.x, b2.y, a1.x, a1.y);
+      const d2 = arah(b1.x, b1.y, b2.x, b2.y, a2.x, a2.y);
+      const d3 = arah(a1.x, a1.y, a2.x, a2.y, b1.x, b1.y);
+      const d4 = arah(a1.x, a1.y, a2.x, a2.y, b2.x, b2.y);
+      return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))
+        && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    }
+
+    function jarakTitikSegmen(p, a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const panjang2 = dx * dx + dy * dy;
+      let t = panjang2 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / panjang2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    }
+
+    // Dua stick = dua kapsul. Tumpang tindih kalau jarak garis tengahnya
+    // kurang dari jumlah setengah lebarnya (LEBAR/2 + LEBAR/2).
+    function tumpang(a, b) {
+      const A = ujung(a);
+      const B = ujung(b);
+      if (segmenSilang(A[0], A[1], B[0], B[1])) return true;
+      const jarak = Math.min(
+        jarakTitikSegmen(A[0], B[0], B[1]),
+        jarakTitikSegmen(A[1], B[0], B[1]),
+        jarakTitikSegmen(B[0], A[0], A[1]),
+        jarakTitikSegmen(B[1], A[0], A[1])
+      );
+      return jarak < LEBAR;
+    }
+
+    function berikut(sticks, slot) {
+      const jumlah = sticks.length;
+      for (let i = 1; i <= jumlah; i += 1) {
+        const s = sticks[(slot + i) % jumlah];
+        if (s && s.alive) return s.slot;
+      }
+      return -1;
+    }
+
+    function hitungSelesai(sticks) {
+      const hidup = sticks.filter((s) => s.alive);
+      if (hidup.length > 1) return null;
+      if (hidup.length === 1) return { winners: [hidup[0].slot], draw: false };
+      return { winners: [], draw: true };
+    }
+
+    function create(players) {
+      const jumlah = Math.max(2, Math.min(4, (players || []).length || 2));
+      const sticks = posisiAwal(jumlah).map((p, i) => ({
+        slot: i,
+        x: p.x,
+        y: p.y,
+        rot: p.rot,
+        startX: p.x,
+        startY: p.y,
+        startRot: p.rot,
+        movesLeft: MAKS_MOVE,
+        alive: true,
+      }));
+      return {
+        state: {
+          turn: 0,
+          sticks,
+          lastAction: null,
+          lastPower: null,
+          lastEvent: "StickEskrim dimulai. Tepok stick lawan, jangan sampai keluar arena.",
+        },
+      };
+    }
+
+    function move(state, slot, payload) {
+      const next = clone(state);
+      const sticks = Array.isArray(next.sticks) ? next.sticks : [];
+      const saya = sticks[slot];
+      if (!saya) throw err(400, "Pemain tidak dikenal.", "invalid-move");
+      if (next.turn !== slot) throw err(400, "Bukan giliranmu.", "not-your-turn");
+      if (!saya.alive) throw err(400, "Kamu sudah tereliminasi.", "eliminated");
+
+      const aksi = payload && typeof payload === "object" ? payload : {};
+      const sebelum = ringkas(sticks);
+      let event = "";
+
+      if (aksi.type === "slap") {
+        const angle = Number(aksi.angle);
+        const power = Number(aksi.power);
+        if (!Number.isFinite(angle)) throw err(400, "Arah tepokan tidak valid.", "invalid-argument");
+        if (!Number.isFinite(power) || power < POWER_MIN || power > POWER_MAX) {
+          throw err(400, "Kekuatan tepokan tidak valid.", "invalid-argument");
+        }
+        const sudut = ((Math.round(angle) % 360) + 360) % 360;
+        const tenaga = Math.round(power);
+        const jarak = 10 + (tenaga - POWER_MIN) * 1.1;
+        const rad = (sudut * Math.PI) / 180;
+        const dari = { x: saya.x, y: saya.y, rot: saya.rot };
+        const mendarat = {
+          x: bulatkan(saya.x + Math.cos(rad) * jarak),
+          y: bulatkan(saya.y + Math.sin(rad) * jarak),
+          rot: sudut,
+        };
+        const keluar = mendarat.x < 0 || mendarat.x > ARENA || mendarat.y < 0 || mendarat.y > ARENA;
+        const hits = [];
+        if (!keluar) {
+          saya.x = mendarat.x;
+          saya.y = mendarat.y;
+          saya.rot = mendarat.rot;
+          sticks.forEach((lain) => {
+            if (lain.slot === slot || !lain.alive) return;
+            if (tumpang(saya, lain)) {
+              lain.alive = false;
+              hits.push(lain.slot);
+            }
+          });
+        }
+        if (keluar) {
+          saya.x = saya.startX;
+          saya.y = saya.startY;
+          saya.rot = saya.startRot;
+        }
+        next.lastPower = tenaga;
+        next.lastAction = {
+          type: "slap",
+          by: slot,
+          angle: sudut,
+          power: tenaga,
+          oob: keluar,
+          spin: tenaga >= 60 ? 2 : 1,
+          from: dari,
+          land: mendarat,
+          to: { x: saya.x, y: saya.y, rot: saya.rot },
+          hits,
+          durFly: 700 + tenaga * 4,
+          durReturn: 700,
+          before: sebelum,
+        };
+        event = `Pemain ${slot + 1} menepok dengan power ${tenaga}.`;
+        if (hits.length) event += ` Stick pemain ${hits.map((h) => h + 1).join(", ")} tereliminasi.`;
+        if (keluar) event += " Stick keluar arena dan dikembalikan ke posisi awal.";
+      } else if (aksi.type === "move") {
+        if (saya.movesLeft <= 0) throw err(409, "Kesempatan Move sudah habis.", "no-moves");
+        const x = Number(aksi.x);
+        const y = Number(aksi.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          throw err(400, "Posisi tujuan tidak valid.", "invalid-argument");
+        }
+        if (x < TEMPAT_MIN || x > TEMPAT_MAX || y < TEMPAT_MIN || y > TEMPAT_MAX) {
+          throw err(400, "Posisi harus di dalam arena.", "out-of-bounds");
+        }
+        const dari = { x: saya.x, y: saya.y, rot: saya.rot };
+        saya.x = bulatkan(x);
+        saya.y = bulatkan(y);
+        saya.movesLeft -= 1;
+        next.lastAction = {
+          type: "move",
+          by: slot,
+          from: dari,
+          to: { x: saya.x, y: saya.y, rot: saya.rot },
+          dur: 460,
+          movesLeft: saya.movesLeft,
+          before: sebelum,
+        };
+        event = `Pemain ${slot + 1} memindahkan stick. Sisa Move ${saya.movesLeft}/${MAKS_MOVE}.`;
+      } else {
+        throw err(400, "Aksi tidak dikenal.", "invalid-move");
+      }
+
+      const selesai = hitungSelesai(sticks);
+      if (selesai) {
+        next.turn = selesai.winners.length ? selesai.winners[0] : slot;
+        const akhir = selesai.draw ? "Semua stick habis." : `Pemain ${selesai.winners[0] + 1} menang!`;
+        next.lastEvent = `${event} ${akhir}`;
+        return { state: next, finished: true, winners: selesai.winners, draw: selesai.draw, event: next.lastEvent };
+      }
+      next.turn = berikut(sticks, slot);
+      next.lastEvent = `${event} Giliran pemain ${next.turn + 1}.`;
+      return { state: next, finished: false, event: next.lastEvent };
+    }
+
+    // Kalau pemain keluar/menyerah saat main: stick-nya tereliminasi dengan
+    // animasi, pertandingan lain tetap jalan. Dipakai leaveRoom.
+    function forfeit(state, slot) {
+      const next = clone(state);
+      const sticks = Array.isArray(next.sticks) ? next.sticks : [];
+      const saya = sticks[slot];
+      if (!saya || !saya.alive) {
+        return { state: next, finished: false, winners: [], draw: false, event: "" };
+      }
+      const sebelum = ringkas(sticks);
+      saya.alive = false;
+      next.lastAction = {
+        type: "forfeit",
+        by: slot,
+        from: { x: saya.x, y: saya.y, rot: saya.rot },
+        to: { x: saya.x, y: saya.y, rot: saya.rot },
+        hits: [slot],
+        dur: 650,
+        before: sebelum,
+      };
+      const selesai = hitungSelesai(sticks);
+      if (selesai) {
+        next.turn = selesai.winners.length ? selesai.winners[0] : slot;
+        const akhir = selesai.draw ? "Semua stick habis." : `Pemain ${selesai.winners[0] + 1} menang!`;
+        next.lastEvent = `Pemain ${slot + 1} menyerah. ${akhir}`;
+        return { state: next, finished: true, winners: selesai.winners, draw: selesai.draw, event: next.lastEvent };
+      }
+      if (next.turn === slot) next.turn = berikut(sticks, slot);
+      next.lastEvent = `Pemain ${slot + 1} menyerah. Pertandingan lanjut, giliran pemain ${next.turn + 1}.`;
+      return { state: next, finished: false, winners: [], draw: false, event: next.lastEvent };
+    }
+
+    return {
+      id: "stick",
+      mode: "party",
+      minPlayers: 2,
+      maxPlayers: 4,
+      judul: "StickEskrim",
+      create,
+      move,
+      forfeit,
+    };
+  })();
+
+  const GAMES = { ttt, checkers, chess, ludo, snakes, stick };
 
   /* ---------------- room ---------------- */
 
@@ -1020,6 +1302,43 @@
       if (idx < 0) {
         tx.set(playerRef(absen), { absen: Number(absen), roomId: null, roomStatus: null }, { merge: true });
         return { ok: true, left: true, serverNow: now() };
+      }
+
+      if (room.status === "playing" && room.gameId === "stick") {
+        const leaver = room.players[idx];
+        const slot = Number(leaver.slot);
+        const stickSaya = room.state && Array.isArray(room.state.sticks) ? room.state.sticks[slot] : null;
+        room.players[idx].left = true;
+        let selesai = false;
+        if (stickSaya && stickSaya.alive) {
+          const out = stick.forfeit(room.state, slot);
+          room.state = out.state;
+          room.seq = (Number(room.seq) || 0) + 1;
+          room.lastEvent = out.event || room.lastEvent;
+          room.turnSlot = Number.isInteger(out.state.turn) ? out.state.turn : room.turnSlot;
+          selesai = !!out.finished;
+          if (selesai) {
+            const info = await catatHasil(tx, room, { winners: out.winners, draw: out.draw });
+            room.status = "finished";
+            room.finishedAt = now();
+            room.winnerSlots = out.winners || [];
+            room.draw = !!out.draw;
+            room.result = info.result;
+            room.historyId = info.historyId;
+          }
+        }
+        room.lastActivity = now();
+        tx.set(rRef, room);
+        tx.set(playerRef(absen), { absen: Number(absen), roomId: null, roomStatus: null }, { merge: true });
+        room.players.forEach((x) => {
+          if (Number(x.absen) === Number(absen)) return;
+          tx.set(playerRef(x.absen), {
+            absen: Number(x.absen),
+            roomStatus: selesai ? "finished" : "playing",
+            lastSeen: now(),
+          }, { merge: true });
+        });
+        return { ok: true, room: publik(room), finished: selesai, serverNow: now() };
       }
 
       if (room.status === "playing") {

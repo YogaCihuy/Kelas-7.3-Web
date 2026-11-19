@@ -387,6 +387,9 @@
     if (st.screen === "room" && st.room) {
       app.innerHTML = renderRoom();
       if (st.visible) jalankanAnimasiPapan();
+      if (st.room.gameId === "stick" && st.room.status === "playing" && window.TVStick) {
+        window.TVStick.mount(app, st.room, mySlot(st.room), { kirim: kirimGerakan, busy: () => st.busy });
+      }
     } else {
       app.innerHTML = renderHub();
     }
@@ -929,6 +932,7 @@
       chess: ["Putih jalan duluan, lalu bergantian.", "Skakmat menang; remis kalau tidak ada langkah legal.", "Promosi otomatis menjadi Ratu."],
       ludo: ["Butuh angka 6 untuk keluar dari base.", "Bidak yang bertemu lawan di kotak biasa akan ditangkap.", "Dapat 6 atau menangkap bidak = lempar lagi.", "Semua 4 bidak harus masuk rumah untuk menang."],
       snakes: ["Lempar dadu dan jalan otomatis.", "Naik tangga kalau berhenti di kaki tangga.", "Kena ular kalau berhenti di kepala ular.", "Dapat 6 = lempar lagi. Kotak 100 menang."],
+      stick: ["Tiap giliran pilih satu aksi: Slap atau Move.", "Slap: tentukan arah 360°, lalu hentikan meteran power.", "Stick lawan kena = tereliminasi. Lewat di atas tidak kena.", "Move cuma 2 kali per pertandingan dan langsung habis giliran.", "Stick terakhir yang bertahan menang."],
     }[gameId] || ["Main sportif, ya!"];
     return aturan.map((t) => `<li>${esc(t)}</li>`).join("");
   }

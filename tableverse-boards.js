@@ -44,9 +44,17 @@
       tag: "Party",
       accent: "teal",
     },
+    stick: {
+      id: "stick",
+      judul: "StickEskrim",
+      mode: "party",
+      desc: "Tepok stick es krim lawan pakai arah dan power. Stick terakhir yang bertahan menang.",
+      tag: "Party",
+      accent: "amber",
+    },
   };
 
-  const GAME_ORDER = ["ttt", "checkers", "chess", "ludo", "snakes"];
+  const GAME_ORDER = ["ttt", "checkers", "chess", "ludo", "snakes", "stick"];
 
   const LUDO_PATH = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
@@ -173,6 +181,8 @@
         return `<span class="tv-thumb-art tv-thumb-ludo"><i></i><i></i><i></i><i></i><b>●</b></span>`;
       case "snakes":
         return `<span class="tv-thumb-art tv-thumb-snakes"><b>🐍</b><i></i><i></i><i></i><i></i><em>100</em></span>`;
+      case "stick":
+        return `<span class="tv-thumb-art tv-thumb-stick"><i></i><i></i><b>👋</b></span>`;
       case "uno":
         return `<span class="tv-thumb-art tv-thumb-uno"><i class="u-r">7</i><i class="u-y">+2</i><i class="u-g">★</i></span>`;
       default:
@@ -812,6 +822,7 @@
       case "chess": return papanChess(room, mySlot, ui);
       case "ludo": return papanLudo(room, mySlot, ui);
       case "snakes": return papanSnakes(room, mySlot, ui);
+      case "stick": return window.TVStick ? window.TVStick.papan(room, mySlot, ui) : `<p>StickEskrim belum siap.</p>`;
       case "uno": return papanUno(room, mySlot, ui);
       default: return `<p>Game belum tersedia.</p>`;
     }

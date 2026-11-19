@@ -4103,6 +4103,18 @@ async function simpanGameProfil(e) {
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
   {
+    tanggal: "18/11/26",
+    items: [
+      "Version 2.9.0 Game Baru StickEskrim di TableVerse: Tepok Stick Lawan Sampai Cuma Satu yang Sisa",
+      "Version 2.9.0 Slap Pakai Joystick Arah 360° dan Meteran Power yang Jalan Naik Turun",
+      "Version 2.9.0 Stick Lawan Kena = Tereliminasi, Lewat di Atas Doang Aman",
+      "Version 2.9.0 Aksi Move Cuma 2 Kali per Pertandingan, Langsung Habis Giliran",
+      "Version 2.9.0 Stick Keluar Arena Balik Sendiri ke Posisi Awal",
+      "Version 2.9.0 Yang Kalah Jadi Penonton, Match Terus Jalan Sampai Ada Juara",
+      "Version 2.9.0 StickEskrim Punya Suara Sendiri, Bisa Diatur Volume dan Dimatikan",
+    ],
+  },
+  {
     tanggal: "17/11/26",
     items: [
       "Version 2.8.0 Chat Privat gaya WA: Ngobrol Berdua, Pesan Tersimpan, Ada Badge Belum Dibaca",
