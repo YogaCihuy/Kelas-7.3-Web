@@ -4105,6 +4105,9 @@ const UPDATE_LOG = [
   {
     tanggal: "19/11/26",
     items: [
+      "Version 2.9.2 StickEskrim Kasih Animasi Kemenangan Dulu Sebelum Layar Hasil",
+      "Version 2.9.2 Stick Juara Melompat dan Confetti Sebelum Pemenang Diumumkan",
+      "Version 2.9.2 Tombol Lewati Animasi Buat Langsung ke Hasil Pertandingan",
       "Version 2.9.1 Perbaikan Kontras Semua Tema: Teks Gak Nyatu Lagi Sama Background",
       "Version 2.9.1 Label Hero, Chip Progres Game, dan Tombol Urutan Game Lebih Jelas di Semua Tema",
       "Version 2.9.1 Toolbar Quiz Tetap Kebaca di Tema Forest, Dark, dan Dark Forest",

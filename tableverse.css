@@ -2094,6 +2094,47 @@
 .tv-stick-chip.is-out { opacity: 0.48; }
 .tv-stick-chip.is-out i { color: var(--tv-red); }
 
+/* Pesta kemenangan sebelum layar hasil */
+.tv-stick-pesta-board { position: relative; }
+.tv-stick-pesta .tv-stick-panel { display: none; }
+.tv-stick-pesta .tv-stick-legend { justify-content: center; }
+.tv-stick-pesta-banner {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  transform: translate(-50%, -50%) scale(0.55);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 0.9rem 1.4rem 1rem;
+  border-radius: 22px;
+  background: rgba(255, 253, 246, 0.95);
+  border: 2px solid #e7c76e;
+  box-shadow: 0 24px 54px rgba(46, 28, 6, 0.32), 0 0 0 9px rgba(240, 185, 74, 0.16);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  animation: tvStickPestaPop 0.62s cubic-bezier(0.22, 1.2, 0.36, 1) 1.15s forwards;
+}
+.tv-stick-pesta-banner strong { font-size: clamp(1rem, 2.6vw, 1.45rem); color: #1c3a2b; line-height: 1.2; }
+.tv-stick-pesta-banner small { color: #4a6a5e; font-size: 0.76rem; font-weight: 600; }
+.tv-stick-pesta-banner.is-draw { border-color: #a9c7b9; box-shadow: 0 24px 54px rgba(30, 50, 40, 0.28), 0 0 0 9px rgba(120, 170, 145, 0.14); }
+.tv-stick-pesta-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  animation: tvStickPestaTrophy 0.9s ease 1.15s both;
+}
+@keyframes tvStickPestaPop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+  62% { opacity: 1; transform: translate(-50%, -50%) scale(1.07); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes tvStickPestaTrophy {
+  0% { transform: rotate(-16deg) scale(0.7); }
+  55% { transform: rotate(9deg) scale(1.18); }
+  100% { transform: rotate(0) scale(1); }
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {
@@ -2171,4 +2212,5 @@
     animation: none !important;
     transition: none !important;
   }
+  .tv-stick-pesta-banner { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }

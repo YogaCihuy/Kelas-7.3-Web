@@ -73,6 +73,8 @@
     raf: 0,
     lastFrame: 0,
     lastAimSfx: -999,
+    pestaAt: 0,
+    confettiAt: 0,
     sfxOn: loadFlag("stickeskrim-sfx", true),
     sfxVolume: clamp(loadNum("stickeskrim-vol", 65) / 100, 0, 1),
   };
@@ -569,6 +571,17 @@
 
     bind(wrap);
     syncPanelExtras();
+    const pesta = !!(hooks && hooks.pesta) && room.status === "finished";
+    if (pesta) {
+      if (!state.pestaAt) {
+        state.pestaAt = performance.now();
+        state.confettiAt = 0;
+        spawnConfetti();
+      }
+    } else if (state.pestaAt) {
+      state.pestaAt = 0;
+      state.confettiAt = 0;
+    }
     ensureLoop();
   }
 
@@ -616,6 +629,10 @@
     state.lastFrame = now;
     updatePower(dt);
     updateParticles(dt);
+    if (state.pestaAt && now - state.pestaAt < 2800 && now - state.confettiAt > 330) {
+      state.confettiAt = now;
+      spawnConfetti();
+    }
     draw(now);
     if (state.anim && now - state.anim.start > state.anim.total) {
       const anim = state.anim;
@@ -787,6 +804,19 @@
 
     /* stick */
     const frame = computeFrame(now, px, unit);
+    if (state.pestaAt && room.status === "finished") {
+      const winners = room.result && Array.isArray(room.result.winners) ? room.result.winners : [];
+      const juara = winners.length
+        ? (room.players || []).find((p) => Number(p.absen) === Number(winners[0].absen))
+        : null;
+      const slotJuara = juara ? Number(juara.slot) : -1;
+      const item = frame.items.find((i) => i.slot === slotJuara && i.alpha > 0.1);
+      if (item && !state.anim) {
+        const t = now - state.pestaAt;
+        item.lift += Math.abs(Math.sin(t / 230)) * 3.6;
+        item.scale += Math.abs(Math.sin(t / 230)) * 0.05;
+      }
+    }
     frame.items.forEach((item) => {
       if (item.alpha <= 0.01) return;
       const isTurn = !state.anim && room.status === "playing" && Number((room.state || {}).turn) === item.slot;
@@ -1210,6 +1240,22 @@
         max: 0.95,
         color: Math.random() > 0.45 ? color : "#f0b94a",
         size: 1.6 + Math.random() * 1.4,
+      });
+    }
+  }
+
+  function spawnConfetti() {
+    const colors = ["#f0b94a", "#e25b52", "#3d86c6", "#3fae7a", "#e58ac1", "#8a6ad1", "#f4d35e"];
+    for (let i = 0; i < 22; i += 1) {
+      state.particles.push({
+        x: 8 + Math.random() * 84,
+        y: 2 + Math.random() * 26,
+        vx: (Math.random() - 0.5) * 16,
+        vy: 5 + Math.random() * 13,
+        life: 1.2 + Math.random() * 0.9,
+        max: 2.1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 1.1 + Math.random() * 1.1,
       });
     }
   }

@@ -83,6 +83,8 @@
     setupError: "",
     toastCount: 0,
     lastTap: 0,
+    stickReveal: null,
+    stickRevealTimer: null,
   };
 
   function $(id) {
@@ -385,10 +387,15 @@
       return;
     }
     if (st.screen === "room" && st.room) {
-      app.innerHTML = renderRoom();
-      if (st.visible) jalankanAnimasiPapan();
-      if (st.room.gameId === "stick" && st.room.status === "playing" && window.TVStick) {
-        window.TVStick.mount(app, st.room, mySlot(st.room), { kirim: kirimGerakan, busy: () => st.busy });
+      const pesta = stickFinis(st.room);
+      // Selama pesta masih jalan, jangan tulis ulang DOM supaya animasi
+      // banner dan confetti tidak ikut mulai dari awal tiap render.
+      if (!(pesta && app.querySelector(".tv-stick-pesta"))) {
+        app.innerHTML = renderRoom(pesta);
+        if (st.visible) jalankanAnimasiPapan();
+        if (st.room.gameId === "stick" && window.TVStick && (st.room.status === "playing" || pesta)) {
+          window.TVStick.mount(app, st.room, mySlot(st.room), { kirim: kirimGerakan, busy: () => st.busy, pesta });
+        }
       }
     } else {
       app.innerHTML = renderHub();
@@ -840,7 +847,59 @@
 
   /* ---------------- render room ---------------- */
 
-  function renderRoom() {
+  // StickEskrim: tahan layar hasil sebentar supaya ada animasi kemenangan
+  // dulu (stick juara melompat + confetti), baru hasil lengkap muncul.
+  function stickFinis(room) {
+    if (!room || room.gameId !== "stick" || room.status !== "finished") return false;
+    const key = `${room.id}:${room.finishedAt || 0}:${room.seq}`;
+    const nowMs = Date.now();
+    if (st.stickReveal && st.stickReveal.key === key) return nowMs < st.stickReveal.until;
+    if (st.stickRevealTimer) clearTimeout(st.stickRevealTimer);
+    st.stickReveal = { key, until: nowMs + 3200 };
+    st.stickRevealTimer = setTimeout(() => {
+      st.stickRevealTimer = null;
+      if (st.stickReveal) st.stickReveal.until = 0;
+      if (st.screen === "room" && st.room && st.room.gameId === "stick") render();
+    }, 3200);
+    return true;
+  }
+
+  function lewatiPesta() {
+    if (st.stickRevealTimer) clearTimeout(st.stickRevealTimer);
+    st.stickRevealTimer = null;
+    if (st.stickReveal) st.stickReveal.until = 0;
+    render();
+  }
+
+  function renderStickPesta(room) {
+    const result = room.result || {};
+    const winners = Array.isArray(result.winners) ? result.winners : [];
+    const namaPemenang = winners.map((w) => w.nama).join(" & ");
+    const judul = room.draw ? "Seri!" : namaPemenang ? `${namaPemenang} menang!` : "Pertandingan selesai";
+    const papan = B.papan ? B.papan("stick", room, mySlot(room), {}) : "";
+    return `
+      <div class="tv-play-grid tv-stick-pesta">
+        <div class="tv-board-col tv-stick-pesta-board">
+          ${papan}
+          <div class="tv-stick-pesta-banner ${room.draw ? "is-draw" : ""}" role="status">
+            <span class="tv-stick-pesta-emoji" aria-hidden="true">${room.draw ? "🤝" : "🏆"}</span>
+            <strong>${esc(judul)}</strong>
+            <small>${room.draw ? "Semua stick habis." : "Stick terakhir yang bertahan."}</small>
+          </div>
+        </div>
+        <aside class="tv-play-side">
+          <div class="tv-turn-card is-finish">
+            <span class="tv-kicker">Pertandingan selesai</span>
+            <strong>${esc(room.draw ? "Seri" : namaPemenang || "Selesai")}</strong>
+            <small>Hasil lengkap muncul sebentar lagi.</small>
+          </div>
+          <button type="button" class="tv-btn tv-btn-ghost tv-btn-block" data-tv-skip-finish>Lewati Animasi</button>
+          <button type="button" class="tv-btn tv-btn-danger tv-btn-block" data-tv-leave>Keluar Room</button>
+        </aside>
+      </div>`;
+  }
+
+  function renderRoom(pesta) {
     const room = st.room;
     const m = meta(room.gameId);
     const host = isHost(room);
@@ -857,7 +916,7 @@
           <span class="tv-room-status is-${room.status}">${statusLabel}</span>
         </div>
         ${renderSeats(room)}
-        ${room.status === "lobby" ? renderLobby(room, host) : room.status === "playing" ? renderPlaying(room, host) : renderResult(room, host)}
+        ${room.status === "lobby" ? renderLobby(room, host) : room.status === "playing" ? renderPlaying(room, host) : pesta ? renderStickPesta(room) : renderResult(room, host)}
       </div>`;
   }
 
@@ -1235,6 +1294,9 @@
 
   function kosongkanRoom() {
     lepasRoom();
+    if (st.stickRevealTimer) clearTimeout(st.stickRevealTimer);
+    st.stickRevealTimer = null;
+    st.stickReveal = null;
     st.room = null;
     st.roomId = null;
     st.hand = [];
@@ -2079,7 +2141,7 @@
   /* ---------------- event handler ---------------- */
 
   function onAppClick(e) {
-    const el = e.target.closest("[data-tv-tab], [data-tv-play], [data-tv-open-invites], [data-tv-open-room], [data-tv-hub], [data-tv-ready], [data-tv-start], [data-tv-kick], [data-tv-leave], [data-tv-visibility], [data-tv-invite-room], [data-tv-rematch], [data-tv-back-hub], [data-tv-copy-code], [data-tv-refresh-players], [data-tv-challenge], [data-tv-challenge-game], [data-tv-reload-history], [data-tv-reload-profile], [data-tv-edit-profile], [data-tv-login], [data-tv-retry-hand], [data-tv-act]");
+    const el = e.target.closest("[data-tv-tab], [data-tv-play], [data-tv-open-invites], [data-tv-open-room], [data-tv-hub], [data-tv-ready], [data-tv-start], [data-tv-kick], [data-tv-leave], [data-tv-visibility], [data-tv-invite-room], [data-tv-rematch], [data-tv-back-hub], [data-tv-copy-code], [data-tv-refresh-players], [data-tv-challenge], [data-tv-challenge-game], [data-tv-reload-history], [data-tv-reload-profile], [data-tv-edit-profile], [data-tv-login], [data-tv-retry-hand], [data-tv-act], [data-tv-skip-finish]");
     if (!el) return;
 
     const actSuara = el.getAttribute("data-tv-act") || "";
@@ -2123,6 +2185,7 @@
       return;
     }
     if (el.hasAttribute("data-tv-ready")) { aksiReady(); return; }
+    if (el.hasAttribute("data-tv-skip-finish")) { lewatiPesta(); return; }
     if (el.hasAttribute("data-tv-start")) { aksiMulai(); return; }
     if (el.hasAttribute("data-tv-kick")) { aksiKick(el.getAttribute("data-tv-kick")); return; }
     if (el.hasAttribute("data-tv-leave")) { aksiKeluar(false); return; }
