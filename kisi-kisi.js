@@ -10,7 +10,7 @@
   const MAX_BYTES = 6 * 1024 * 1024;
   const KEY_STORE = "kelas73-kisi-gemini-key";
   const MODEL_STORE = "kelas73-kisi-gemini-model";
-  const DEFAULT_MODEL = "gemini-2.5-flash";
+  const DEFAULT_MODEL = "gemini-flash-latest";
 
   const state = {
     panel: null,
@@ -102,7 +102,7 @@
   function pesanErr(err) {
     const pesan = String((err && err.message) || err || "Terjadi kesalahan.");
     if (/permission|insufficient/i.test(pesan)) return "Firestore menolak akses. Pastikan rules Kisi Kisi sudah dipublish.";
-    if (/network|offline|unavailable/i.test(pesan)) return "Koneksi bermasalah. Coba lagi.";
+    if (/network|offline|unavailable|failed to fetch|load failed/i.test(pesan)) return "Koneksi bermasalah. Coba lagi.";
     return pesan;
   }
 
@@ -764,8 +764,12 @@
 
   /* ---------------- AI ---------------- */
 
+  function bersihKey(teks) {
+    return String(teks == null ? "" : teks).replace(/\s+/g, "");
+  }
+
   function apiKey() {
-    try { return String(localStorage.getItem(KEY_STORE) || "").trim(); } catch (err) { return ""; }
+    try { return bersihKey(localStorage.getItem(KEY_STORE)); } catch (err) { return ""; }
   }
 
   function modelAI() {
@@ -774,19 +778,29 @@
 
   function pesanGemini(status, data) {
     const asli = data && data.error && data.error.message ? String(data.error.message) : "";
-    if (status === 400 && /api key/i.test(asli)) return "API key Gemini ditolak. Cek lagi di Pengaturan AI.";
+    if (status === 400 && /api key/i.test(asli)) return "API key Gemini ditolak Google. Paste ulang key-nya di Pengaturan AI.";
+    if (status === 401) return `Key ditolak Google (401). Pastikan key masih aktif.${asli ? ` (${asli})` : ""}`;
     if (status === 403) return "API key tidak punya akses. Pastikan Gemini API aktif di Google AI Studio.";
-    if (status === 404) return "Model AI tidak tersedia. Ganti model di Pengaturan AI.";
+    if (status === 404) return `Model AI sudah tidak tersedia (404).${asli ? ` (${asli})` : ""}`;
     if (status === 429) return "Kuota Gemini habis / terlalu sering. Tunggu sebentar lalu coba lagi.";
     if (status >= 500) return "Server Gemini sedang sibuk. Coba lagi nanti.";
     return asli || `Gemini error (${status}).`;
   }
 
+  async function kirimGemini(model, key, isi) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(isi),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  }
+
   async function panggilGemini(parts, opsi) {
     const key = apiKey();
     if (!key) throw new Error("API key Gemini belum diisi. Buka Pengaturan AI.");
-    const model = (opsi && opsi.model) || modelAI();
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
     const isi = {
       contents: [{ role: "user", parts }],
       generationConfig: Object.assign(
@@ -794,19 +808,35 @@
         opsi && opsi.json ? { responseMimeType: "application/json" } : {}
       ),
     };
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(isi),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(pesanGemini(res.status, data));
-    const teks = ((data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [])
+    let model = (opsi && opsi.model) || modelAI();
+    let hasil = await kirimGemini(model, key, isi);
+    if (!hasil.res.ok && hasil.res.status === 404 && model !== DEFAULT_MODEL) {
+      // Model lama bisa pensiun kapan saja; coba sekali pakai alias terbaru.
+      model = DEFAULT_MODEL;
+      hasil = await kirimGemini(model, key, isi);
+      if (hasil.res.ok) {
+        try { localStorage.setItem(MODEL_STORE, model); } catch (err) { /* abaikan */ }
+      }
+    }
+    if (!hasil.res.ok) throw new Error(pesanGemini(hasil.res.status, hasil.data));
+    const teks = ((hasil.data.candidates && hasil.data.candidates[0] && hasil.data.candidates[0].content && hasil.data.candidates[0].content.parts) || [])
       .map((p) => p.text || "")
       .join("")
       .trim();
     if (!teks) throw new Error("AI tidak mengembalikan jawaban. Coba lagi.");
+    state.modelTerakhir = model;
     return teks;
+  }
+
+  async function daftarModelAI(key) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`;
+    const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(pesanGemini(res.status, data));
+    return (data.models || [])
+      .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.indexOf("generateContent") >= 0)
+      .map((m) => String(m.name || "").replace(/^models\//, ""))
+      .filter(Boolean);
   }
 
   function bagianPdf(b64) {
@@ -956,25 +986,39 @@
     }
   }
 
+  function tampilHasilAI(hasil, jenis, teks) {
+    if (!hasil) return;
+    hasil.hidden = false;
+    hasil.className = jenis === "ok" ? "kisi-ok" : jenis === "warn" ? "kisi-warn" : "kisi-note";
+    hasil.textContent = teks;
+  }
+
   function formPengaturanAI() {
     const key = apiKey();
     const model = modelAI();
+    const modelDikenal = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash"];
     bukaModal(`
       <div class="kisi-form">
         <h3>Pengaturan AI</h3>
         <p class="kisi-note">Key Gemini cuma disimpan di browser ini (perangkatmu). Tidak dikirim ke Firestore dan tidak bisa dilihat siswa.</p>
         <label class="kisi-field">
-          <span>Gemini API key ${key ? "(sudah tersimpan)" : ""}</span>
-          <input name="ai-key" type="password" autocomplete="off" placeholder="${key ? "•••••••• (kosongkan = tetap pakai yang lama)" : "Tempel API key di sini"}">
+          <span>Gemini API key <span class="kisi-key-status" data-kisi-key-status>${key ? `${key.length} karakter tersimpan` : "belum ada"}</span></span>
+          <span class="kisi-key-wrap">
+            <input name="ai-key" type="password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${key ? "Kosongkan = tetap pakai key lama" : "Tempel API key di sini"}">
+            <button type="button" class="kisi-key-toggle" data-kisi-key-lihat>Lihat</button>
+          </span>
         </label>
         <label class="kisi-field">
           <span>Model</span>
           <select name="ai-model">
-            <option value="gemini-2.5-flash" ${model === "gemini-2.5-flash" ? "selected" : ""}>Gemini 2.5 Flash (disarankan)</option>
-            <option value="gemini-2.0-flash" ${model === "gemini-2.0-flash" ? "selected" : ""}>Gemini 2.0 Flash</option>
+            <option value="gemini-flash-latest" ${model === "gemini-flash-latest" ? "selected" : ""}>Gemini Flash terbaru (disarankan)</option>
+            <option value="gemini-flash-lite-latest" ${model === "gemini-flash-lite-latest" ? "selected" : ""}>Gemini Flash Lite terbaru</option>
+            <option value="gemini-2.5-flash" ${model === "gemini-2.5-flash" ? "selected" : ""}>Gemini 2.5 Flash (kalau masih tersedia)</option>
+            ${modelDikenal.indexOf(model) >= 0 ? "" : `<option value="${esc(model)}" selected>${esc(model)}</option>`}
           </select>
         </label>
-        <p class="kisi-note">Dapat key gratis di aistudio.google.com → Get API key.</p>
+        <p class="kisi-note">Key dari AI Studio sekarang bisa diawali <strong>AQ.</strong> atau <strong>AIza</strong> — dua-duanya bisa. Kalau angka di atas cuma beberapa karakter, paste-nya kepotong, ulangi paste.</p>
+        <p class="kisi-note">Buat key di aistudio.google.com/apikey.</p>
         <p class="kisi-warn" data-kisi-ai-test hidden></p>
         <div class="kisi-form-actions kisi-form-actions-3">
           <button type="button" class="btn-secondary" data-kisi-ai-tes>Tes koneksi</button>
@@ -988,15 +1032,21 @@
     const root = state.modalRoot;
     const input = root.querySelector("[name=ai-key]");
     const model = root.querySelector("[name=ai-model]").value || DEFAULT_MODEL;
+    const baru = input ? bersihKey(input.value) : "";
+    if (baru && baru.length < 30) {
+      toastK(`Key cuma ${baru.length} karakter, sepertinya kepotong. Paste ulang ya.`, "error");
+      return;
+    }
     try {
       localStorage.setItem(MODEL_STORE, model);
-      if (input && input.value.trim()) localStorage.setItem(KEY_STORE, input.value.trim());
+      if (baru) localStorage.setItem(KEY_STORE, baru);
     } catch (err) {
       toastK("Browser menolak menyimpan key.", "error");
       return;
     }
     tutupModal();
-    toastK(apiKey() ? "Pengaturan AI tersimpan." : "Model disimpan, tapi key masih kosong.", apiKey() ? "ok" : "warn");
+    const panjang = apiKey().length;
+    toastK(panjang ? `Pengaturan AI tersimpan (key ${panjang} karakter).` : "Model disimpan, tapi key masih kosong.", panjang ? "ok" : "warn");
     render();
   }
 
@@ -1004,27 +1054,61 @@
     const root = state.modalRoot;
     const hasil = root.querySelector("[data-kisi-ai-test]");
     const input = root.querySelector("[name=ai-key]");
-    const model = root.querySelector("[name=ai-model]").value || DEFAULT_MODEL;
-    if (input && input.value.trim()) {
-      // Pakai key yang baru diketik tanpa menyimpannya dulu.
-      const asli = apiKey();
-      try { localStorage.setItem(KEY_STORE, input.value.trim()); } catch (err) { /* abaikan */ }
-      try {
-        if (hasil) { hasil.hidden = false; hasil.textContent = "Mengetes…"; }
-        const teks = await panggilGemini([{ text: "Balas satu kata: siap" }], { model, json: false });
-        if (hasil) { hasil.hidden = false; hasil.className = "kisi-ok"; hasil.textContent = `Berhasil: ${potong(teks, 60)}`; }
-      } catch (err) {
-        if (hasil) { hasil.hidden = false; hasil.className = "kisi-warn"; hasil.textContent = pesanErr(err); }
-        if (asli) { try { localStorage.setItem(KEY_STORE, asli); } catch (e2) { /* abaikan */ } }
-      }
+    const pilih = root.querySelector("[name=ai-model]");
+    const status = root.querySelector("[data-kisi-key-status]");
+    let model = (pilih && pilih.value) || modelAI();
+    const baru = input ? bersihKey(input.value) : "";
+    if (baru && baru.length < 30) {
+      tampilHasilAI(hasil, "warn", `Key cuma ${baru.length} karakter, sepertinya kepotong. Paste ulang dulu.`);
       return;
     }
-    if (hasil) { hasil.hidden = false; hasil.textContent = "Mengetes…"; }
+    const asli = apiKey();
+    if (baru) {
+      try { localStorage.setItem(KEY_STORE, baru); } catch (err) { /* abaikan */ }
+    }
+    const key = baru || asli;
+    if (!key) {
+      tampilHasilAI(hasil, "warn", "API key masih kosong. Tempel key dulu.");
+      return;
+    }
+    tampilHasilAI(hasil, "", "Mengetes key dan model…");
     try {
-      const teks = await panggilGemini([{ text: "Balas satu kata: siap" }], { model, json: false });
-      if (hasil) { hasil.hidden = false; hasil.className = "kisi-ok"; hasil.textContent = `Berhasil: ${potong(teks, 60)}`; }
+      const daftar = await daftarModelAI(key);
+      if (!daftar.length) throw new Error("Key tidak mengembalikan model. Pastikan Gemini API aktif.");
+      if (daftar.indexOf(model) < 0) {
+        const cadangan = daftar.filter((m) => /flash-latest$/.test(m))[0]
+          || daftar.filter((m) => /flash/i.test(m))[0]
+          || daftar[0];
+        model = cadangan;
+        if (pilih) {
+          const opsi = document.createElement("option");
+          opsi.value = cadangan;
+          opsi.textContent = cadangan;
+          pilih.appendChild(opsi);
+          pilih.value = cadangan;
+        }
+        try { localStorage.setItem(MODEL_STORE, cadangan); } catch (err) { /* abaikan */ }
+      }
+      await panggilGemini([{ text: "Balas satu kata: siap" }], { model, json: false });
+      const dipakai = state.modelTerakhir || model;
+      model = dipakai;
+      if (pilih) {
+        if (!Array.from(pilih.options).some((o) => o.value === dipakai)) {
+          const opsi = document.createElement("option");
+          opsi.value = dipakai;
+          opsi.textContent = dipakai;
+          pilih.appendChild(opsi);
+        }
+        pilih.value = dipakai;
+      }
+      try { localStorage.setItem(MODEL_STORE, dipakai); } catch (err) { /* abaikan */ }
+      tampilHasilAI(hasil, "ok", `Berhasil (${dipakai}) · ${daftar.length} model tersedia`);
+      if (status) status.textContent = `${key.length} karakter tersimpan`;
     } catch (err) {
-      if (hasil) { hasil.hidden = false; hasil.className = "kisi-warn"; hasil.textContent = pesanErr(err); }
+      tampilHasilAI(hasil, "warn", pesanErr(err));
+      if (baru && asli) {
+        try { localStorage.setItem(KEY_STORE, asli); } catch (e2) { /* abaikan */ }
+      }
     }
   }
 
@@ -1076,7 +1160,25 @@
     }
   }
 
+  function onModalInput(e) {
+    const t = e.target;
+    if (!t || t.name !== "ai-key") return;
+    const status = state.modalRoot.querySelector("[data-kisi-key-status]");
+    if (!status) return;
+    const n = bersihKey(t.value).length;
+    status.textContent = n ? `${n} karakter diketik` : "belum ada";
+  }
+
   function onModalClick(e) {
+    if (e.target.closest("[data-kisi-key-lihat]")) {
+      const input = state.modalRoot.querySelector("[name=ai-key]");
+      if (input) {
+        const tampil = input.type === "password";
+        input.type = tampil ? "text" : "password";
+        e.target.closest("[data-kisi-key-lihat]").textContent = tampil ? "Sembunyikan" : "Lihat";
+      }
+      return;
+    }
     if (e.target.closest("[data-kisi-close]")) {
       if (state.busy) return;
       tutupModal();
@@ -1149,6 +1251,7 @@
     state.panel.addEventListener("click", onClick);
     state.modalRoot.addEventListener("click", onModalClick);
     state.modalRoot.addEventListener("submit", onModalSubmit);
+    state.modalRoot.addEventListener("input", onModalInput);
 
     document.getElementById("kisi-btn-kategori").addEventListener("click", () => formKategori(null));
     document.getElementById("kisi-btn-ai").addEventListener("click", formPengaturanAI);

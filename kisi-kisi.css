@@ -431,6 +431,40 @@
   font-size: 0.82rem;
 }
 
+.kisi-key-wrap {
+  position: relative;
+  display: flex;
+}
+
+.kisi-key-wrap input {
+  padding-right: 6.2rem;
+}
+
+.kisi-key-toggle {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.kisi-key-toggle:hover {
+  color: var(--forest);
+  border-color: var(--emerald);
+}
+
+.kisi-key-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--emerald);
+}
+
 .kisi-field-inline {
   flex-direction: row;
   align-items: center;

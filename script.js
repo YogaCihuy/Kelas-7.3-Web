@@ -4122,6 +4122,7 @@ const UPDATE_LOG = [
       "Version 2.10.0 Kuis AI Langsung Dinilai plus Pembahasan di Tiap Soal",
       "Version 2.10.0 Upload PDF Maksimal 6 MB dan Tersimpan untuk Semua Siswa",
       "Version 2.10.0 Deretan Tab Bisa Digeser di HP Biar Semua Tombol Kebaca",
+      "Version 2.10.0 Pengaturan AI Nunjukin Panjang Key dan Otomatis Ganti Model yang Udah Dipensiunkan",
     ],
   },
   {
