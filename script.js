@@ -23,11 +23,11 @@ function lagiDiAplikasi() {
 
 // ===== Pola pembagian kelompok =====
 const ANCHOR = 29;
-const GRP_A = [1, 15, 18];
+const GRP_A = [1, 15, 18, 2, 28];
 // Grup B = 29 (anchor) + 25, 16, 09, 04, 20.
 const GRP_B = [25, 16, 9, 4, 20];
 
-// Pola grup asli 01, 15, 18 — dibikin mirip pola 29/26/25/16 biar terasa natural.
+// Pola grup asli 01, 15, 18, 02, 28 — dibikin mirip pola 29/26/25/16 biar terasa natural.
 // "semua" = bertiga satu tim, "dua" = berdua + satu pisah, "pisah" = semua terpisah.
 // Peluang "semua" sengaja dikecilin biar Grup A jarang numpuk di satu tim.
 const POLA_A = [
@@ -1821,6 +1821,10 @@ function setupPageTabs() {
     if (!indicator) return;
     indicator.style.width = `${btn.offsetWidth}px`;
     indicator.style.transform = `translateX(${btn.offsetLeft - btns[0].offsetLeft}px)`;
+    const nav = btn.closest(".page-nav");
+    if (nav && nav.scrollWidth > nav.clientWidth + 1) {
+      nav.scrollTo({ left: btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2, behavior: "smooth" });
+    }
   }
 
   btns.forEach((btn, idx) => {
@@ -1829,6 +1833,11 @@ function setupPageTabs() {
       btn.classList.add("active");
       moveIndicator(btn);
       const target = btn.dataset.pageTab;
+      if (target === "kisi") {
+        if (typeof window.kisiKisiBuka === "function") window.kisiKisiBuka();
+      } else if (typeof window.kisiKisiTutup === "function") {
+        window.kisiKisiTutup();
+      }
       if (target !== "games") {
         const tvView = document.getElementById("game-tableverse-view");
         if (tvView && !tvView.hidden) {
@@ -2648,6 +2657,7 @@ function updateAccountUI() {
   updatePollingCreateVisibility();
   updateGamesAccount();
   if (typeof window.chatAkunBerubah === "function") window.chatAkunBerubah(currentUser || null);
+  if (typeof window.kisiKisiAkunBerubah === "function") window.kisiKisiAkunBerubah(currentUser || null);
 }
 
 async function handleLoginSubmit(e) {
@@ -4102,6 +4112,18 @@ async function simpanGameProfil(e) {
 
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
+  {
+    tanggal: "20/11/26",
+    items: [
+      "Version 2.10.0 Tab Baru Kisi Kisi: Materi Belajar Rapi per Kategori",
+      "Version 2.10.0 Tiap Kategori Bisa Diisi Banyak Materi PDF yang Langsung Bisa Dibuka",
+      "Version 2.10.0 Siswa Bisa Pilih Mau Baca PDF Asli, Rangkuman AI, atau Kuis Soal",
+      "Version 2.10.0 Rangkuman AI Urut dari Materi Paling Penting Sampai Paling Bawah",
+      "Version 2.10.0 Kuis AI Langsung Dinilai plus Pembahasan di Tiap Soal",
+      "Version 2.10.0 Upload PDF Maksimal 6 MB dan Tersimpan untuk Semua Siswa",
+      "Version 2.10.0 Deretan Tab Bisa Digeser di HP Biar Semua Tombol Kebaca",
+    ],
+  },
   {
     tanggal: "19/11/26",
     items: [

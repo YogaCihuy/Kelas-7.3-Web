@@ -66,6 +66,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── KISI KISI (kategori + materi PDF + hasil AI) ─────────
+    // PDF disimpan per potongan base64 di kisiBerkas supaya tidak
+    // kena batas 1 MB per dokumen, tanpa Storage/Blaze.
+    match /kisiKategori/{kategoriId} {
+      allow read: if true;
+      allow create, update: if isValidKisiKategori(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /kisiMateri/{materiId} {
+      allow read: if true;
+      allow create, update: if isValidKisiMateri(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /kisiBerkas/{berkasId} {
+      allow read: if true;
+      allow create, update: if isValidKisiBerkas(request.resource.data);
+      allow delete: if true;
+    }
+
     // ── FISHING GAME (tanpa Blaze) ────────────────────────────
     // Ditulis langsung dari browser lewat transaksi Firestore. RNG & aturan
     // main ada di fishing-local.js, bentuk dokumen dijaga rules di bawah.
@@ -625,6 +646,71 @@ service cloud.firestore {
           && (!('seen' in d.quiz) || d.quiz.seen is map)
           && (!('stat' in d.quiz) || d.quiz.stat is map)
         ));
+    }
+
+    function isValidKisiKategori(d) {
+      return d.keys().hasOnly(['nama','urutan','dibuatOleh','createdAt'])
+        && d.keys().hasAll(['nama','urutan','dibuatOleh','createdAt'])
+        && d.nama is string
+        && d.nama.size() >= 1
+        && d.nama.size() <= 80
+        && d.urutan is number
+        && d.urutan >= 0
+        && d.urutan <= 100000
+        && d.dibuatOleh == 29
+        && d.createdAt is number;
+    }
+
+    function isValidKisiMateri(d) {
+      return d.keys().hasOnly(['kategoriId','judul','catatan','namaFile','ukuran','bagian',
+                                'rangkuman','kuis','aiModel','aiAt','aiStatus','aiPesan',
+                                'dibuatOleh','createdAt'])
+        && d.keys().hasAll(['kategoriId','judul','catatan','namaFile','ukuran','bagian',
+                            'rangkuman','kuis','aiModel','aiAt','aiStatus','aiPesan',
+                            'dibuatOleh','createdAt'])
+        && d.kategoriId is string
+        && d.kategoriId.size() >= 1
+        && d.kategoriId.size() <= 80
+        && d.judul is string
+        && d.judul.size() >= 1
+        && d.judul.size() <= 120
+        && d.catatan is string
+        && d.catatan.size() <= 300
+        && d.namaFile is string
+        && d.namaFile.size() <= 120
+        && d.ukuran is number
+        && d.ukuran >= 0
+        && d.ukuran <= 7340032
+        && d.bagian is number
+        && d.bagian >= 0
+        && d.bagian <= 20
+        && d.rangkuman is string
+        && d.rangkuman.size() <= 40000
+        && d.kuis is list
+        && d.kuis.size() <= 30
+        && d.aiModel is string
+        && d.aiModel.size() <= 60
+        && d.aiAt is number
+        && d.aiStatus in ['none','ok','error']
+        && d.aiPesan is string
+        && d.aiPesan.size() <= 300
+        && d.dibuatOleh == 29
+        && d.createdAt is number;
+    }
+
+    function isValidKisiBerkas(d) {
+      return d.keys().hasOnly(['materiId','i','data','createdAt'])
+        && d.keys().hasAll(['materiId','i','data','createdAt'])
+        && d.materiId is string
+        && d.materiId.size() >= 1
+        && d.materiId.size() <= 80
+        && d.i is number
+        && d.i >= 0
+        && d.i <= 20
+        && d.data is string
+        && d.data.size() >= 1
+        && d.data.size() <= 750000
+        && d.createdAt is number;
     }
 
     function isValidQuizConfig(d) {

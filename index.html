@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="chat.css?v=3">
 <link rel="stylesheet" href="fishing.css?v=2">
 <link rel="stylesheet" href="tableverse.css?v=10">
+<link rel="stylesheet" href="kisi-kisi.css?v=3">
 <link rel="stylesheet" href="theme.css?v=5">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
@@ -210,6 +211,7 @@
     <button class="page-tab-btn" data-page-tab="medsos">Sosmed</button>
     <button class="page-tab-btn" data-page-tab="polling">Polling</button>
     <button class="page-tab-btn" data-page-tab="games">Games</button>
+    <button class="page-tab-btn" data-page-tab="kisi">Kisi Kisi</button>
   </nav>
 
   <main>
@@ -692,12 +694,43 @@
         </div>
       </section>
     </div>
+
+    <!-- HALAMAN KISI KISI -->
+    <div class="page-panel" data-page-panel="kisi" hidden>
+      <section class="kisi-section">
+        <div class="section-head">
+          <h2>Kisi Kisi</h2>
+          <p class="section-sub">Materi dari Absen 29. Buka PDF-nya, baca rangkuman, atau latihan kuis.</p>
+        </div>
+
+        <div id="kisi-admin-bar" class="kisi-admin-bar" hidden>
+          <button id="kisi-btn-kategori" class="btn-primary kisi-btn" type="button">+ Kategori</button>
+          <button id="kisi-btn-ai" class="btn-secondary kisi-btn" type="button">Pengaturan AI</button>
+        </div>
+
+        <div id="kisi-locked" class="kisi-locked" hidden></div>
+
+        <div id="kisi-kategori-view">
+          <div id="kisi-daftar-kategori" class="kisi-kategori-grid"></div>
+          <p id="kisi-kosong" class="kisi-kosong" hidden>Belum ada kisi-kisi.</p>
+        </div>
+
+        <div id="kisi-materi-view" hidden>
+          <button id="kisi-btn-kembali" class="btn-text-only kisi-back" type="button">&#8592; Semua Kategori</button>
+          <div id="kisi-materi-head" class="kisi-materi-head"></div>
+          <div id="kisi-daftar-materi" class="kisi-materi-list"></div>
+          <p id="kisi-materi-kosong" class="kisi-kosong" hidden>Belum ada materi di kategori ini.</p>
+        </div>
+
+        <p id="kisi-loading" class="kisi-loading" hidden>Memuat kisi-kisi…</p>
+      </section>
+    </div>
   </main>
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.9.2</button>
-    <button class="footer-link" type="button" data-open-updates>Last Update (19/11/26)</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.10.0</button>
+    <button class="footer-link" type="button" data-open-updates>Last Update (20/11/26)</button>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -1103,6 +1136,8 @@
   </div>
 
   <div id="tv-modal-root"></div>
+  <div id="kisi-modal-root"></div>
+  <div id="kisi-toast" class="kisi-toast" role="status" aria-live="polite" hidden></div>
   <div id="tv-toast-root" class="tv-toast-root" aria-live="polite"></div>
 
   <!-- MODAL UPDATE LIST -->
@@ -1161,7 +1196,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=5"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=55"></script>
+<script src="script.js?v=56"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=3"></script>
 <script src="fishing-local.js?v=4"></script>
@@ -1172,6 +1207,7 @@
 <script src="tableverse-local.js?v=5"></script>
 <script src="tableverse-stick.js?v=2"></script>
 <script src="tableverse.js?v=10"></script>
+<script src="kisi-kisi.js?v=3"></script>
 <script src="blockblast.js?v=5"></script>
 <script src="sudoku.js?v=1"></script>
 <script src="chat.js?v=3"></script>

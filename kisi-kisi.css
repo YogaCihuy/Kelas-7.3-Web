@@ -1,0 +1,830 @@
+/* ===================================================
+   KISI KISI — kategori + materi PDF + AI
+   Semua warna pakai token tema biar tetap hijau
+   dan kebaca di Light/Sage/Forest/Dark/Dark Forest.
+=================================================== */
+
+/* Nav sekarang 7 tab: kasih ruang lebih, sisanya digeser di HP */
+.page-nav {
+  max-width: 680px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-nav::-webkit-scrollbar { display: none; }
+
+.page-tab-btn {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
+.kisi-section {
+  padding-top: 2.5rem;
+  padding-bottom: 3rem;
+}
+
+.kisi-admin-bar {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.kisi-btn {
+  padding: 0.55rem 1rem;
+  font-size: 0.84rem;
+}
+
+.kisi-locked {
+  margin: 0 auto 1rem;
+  max-width: 520px;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-s);
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.kisi-kosong {
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-m);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.kisi-loading {
+  text-align: center;
+  margin-top: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- kategori ---------- */
+
+.kisi-kategori-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.kisi-kategori-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.kisi-kategori-card:hover {
+  border-color: var(--emerald);
+  box-shadow: var(--shadow);
+}
+
+.kisi-kategori-main {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1.1rem 1.1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+
+.kisi-kategori-icon {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--mint);
+  font-size: 1.4rem;
+}
+
+.kisi-kategori-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kisi-kategori-body strong {
+  font-size: 1.02rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.kisi-kategori-body small {
+  margin-top: 0.25rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.kisi-chevron {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.kisi-kategori-card:hover .kisi-chevron {
+  transform: translateX(3px);
+  color: var(--emerald);
+}
+
+.kisi-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.kisi-kategori-card .kisi-tools {
+  padding: 0 1.1rem 1rem;
+}
+
+.kisi-tool {
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.kisi-tool:hover {
+  color: var(--forest);
+  border-color: var(--emerald);
+  background: var(--mint);
+}
+
+.kisi-tool.is-danger {
+  color: var(--t-danger-ink);
+  border-color: var(--t-danger-line);
+  background: var(--t-danger-bg);
+}
+
+.kisi-tool.is-danger:hover {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-ink);
+  color: var(--t-danger-ink);
+}
+
+/* ---------- materi ---------- */
+
+.kisi-back {
+  margin-bottom: 0.8rem;
+}
+
+.kisi-materi-head {
+  margin-bottom: 1rem;
+}
+
+.kisi-materi-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.kisi-materi-head h3 {
+  margin: 0.15rem 0 0.2rem;
+  font-size: 1.45rem;
+}
+
+.kisi-materi-head small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.kisi-kicker {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--emerald);
+}
+
+.kisi-materi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.kisi-materi-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 1.05rem 1.15rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.kisi-materi-card:hover {
+  border-color: var(--emerald);
+  box-shadow: var(--shadow);
+}
+
+.kisi-materi-card .kisi-tools {
+  padding: 0.75rem 0 0;
+}
+
+.kisi-materi-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.kisi-pdf-badge {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.kisi-materi-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.kisi-materi-info strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.kisi-materi-info small {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.kisi-catatan {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--t-catatan-line);
+  background: var(--t-catatan-bg);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.kisi-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.kisi-badge {
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-soft-a);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.kisi-badge.is-ada {
+  border-color: var(--t-soft-line);
+  background: var(--mint);
+  color: var(--forest);
+}
+
+.kisi-badge.is-error {
+  border-color: var(--t-danger-line);
+  background: var(--t-danger-bg);
+  color: var(--t-danger-ink);
+}
+
+.kisi-materi-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.kisi-act {
+  flex: 1 1 auto;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--forest);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.kisi-act:not(.is-off):hover {
+  transform: translateY(-1px);
+  border-color: var(--emerald);
+  background: var(--mint);
+}
+
+.kisi-act.is-pdf {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--white);
+}
+
+.kisi-act.is-pdf:hover {
+  background: var(--emerald);
+  border-color: var(--emerald);
+  color: var(--white);
+}
+
+.kisi-act.is-off {
+  opacity: 0.55;
+  color: var(--muted);
+}
+
+/* ---------- form & modal ---------- */
+
+.kisi-overlay {
+  z-index: 420;
+}
+
+.kisi-modal {
+  max-width: 440px;
+}
+
+.kisi-modal.kisi-modal-wide {
+  max-width: 640px;
+}
+
+.kisi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.kisi-form h3 {
+  font-size: 1.35rem;
+}
+
+.kisi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.kisi-field input,
+.kisi-field select,
+.kisi-field textarea {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kisi-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.kisi-field input:focus,
+.kisi-field select:focus,
+.kisi-field textarea:focus {
+  outline: none;
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 3px rgba(47, 143, 91, 0.16);
+}
+
+.kisi-field input[type="file"] {
+  padding: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.kisi-field-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.kisi-field-inline select {
+  width: auto;
+  min-width: 120px;
+}
+
+.kisi-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.kisi-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--emerald);
+  cursor: pointer;
+}
+
+.kisi-note {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.kisi-warn,
+.kisi-ok {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.kisi-warn {
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+.kisi-ok {
+  background: var(--mint);
+  border: 1px solid var(--t-soft-line);
+  color: var(--forest);
+}
+
+.kisi-ai-opsi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-s);
+  border: 1px dashed var(--t-soft-line);
+  background: var(--t-soft-a);
+}
+
+.kisi-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+}
+
+.kisi-form-actions .btn-primary,
+.kisi-form-actions .btn-secondary {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.86rem;
+}
+
+.kisi-form-actions-3 {
+  justify-content: space-between;
+}
+
+.btn-secondary.is-danger {
+  color: var(--t-danger-ink);
+  border-color: var(--t-danger-line);
+}
+
+.btn-secondary.is-danger:hover {
+  background: var(--t-danger-bg);
+}
+
+/* ---------- progress ---------- */
+
+.kisi-progress {
+  text-align: center;
+  padding: 0.4rem 0 0.2rem;
+}
+
+.kisi-progress h3 {
+  font-size: 1.2rem;
+}
+
+.kisi-progress-bar {
+  height: 10px;
+  margin: 0.9rem 0 0.6rem;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.kisi-progress-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--emerald), var(--forest));
+  transition: width 0.3s ease;
+}
+
+.kisi-progress-text {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ---------- viewer PDF ---------- */
+
+.kisi-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.kisi-viewer h3 {
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.kisi-viewer-frame {
+  width: 100%;
+  height: min(62vh, 520px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+}
+
+.kisi-viewer-note {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------- rangkuman ---------- */
+
+.kisi-rangkuman {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kisi-rangkuman h3 {
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.kisi-ai-meta {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.kisi-rangkuman-body {
+  max-height: 58vh;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.kisi-rangkuman-body p {
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.kisi-rangkuman-body h4 {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.98rem;
+  color: var(--emerald);
+}
+
+.kisi-rangkuman-body ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.kisi-rangkuman-body li {
+  margin: 0.3rem 0;
+  overflow-wrap: anywhere;
+}
+
+.kisi-rangkuman-body strong {
+  color: var(--forest);
+}
+
+/* ---------- kuis ---------- */
+
+.kisi-kuis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kisi-kuis-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.kisi-kuis-progress {
+  flex: 0 0 auto;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: var(--mint);
+  color: var(--forest);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.kisi-soal {
+  font-family: var(--font-body);
+  font-size: 1.03rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.kisi-opsi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kisi-opsi {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-align: left;
+  line-height: 1.4;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.kisi-opsi:hover:not(:disabled) {
+  border-color: var(--emerald);
+  transform: translateY(-1px);
+}
+
+.kisi-opsi:disabled {
+  cursor: default;
+}
+
+.kisi-opsi.is-benar {
+  border-color: var(--emerald);
+  background: var(--mint);
+  color: var(--forest);
+}
+
+.kisi-opsi.is-salah {
+  border-color: var(--t-danger-line);
+  background: var(--t-danger-bg);
+  color: var(--t-danger-ink);
+}
+
+.kisi-opsi-huruf {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--forest);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.kisi-opsi.is-salah .kisi-opsi-huruf {
+  background: var(--t-danger-bg);
+  color: var(--t-danger-ink);
+}
+
+.kisi-jawaban {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-s);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.kisi-jawaban.is-benar {
+  background: var(--mint);
+  border: 1px solid var(--t-soft-line);
+  color: var(--forest);
+}
+
+.kisi-jawaban.is-salah {
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+.kisi-kuis-selesai {
+  align-items: center;
+  text-align: center;
+}
+
+.kisi-kuis-emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.kisi-kuis-skor {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.kisi-kuis-skor strong {
+  font-size: 1.35rem;
+  color: var(--forest);
+}
+
+.kisi-kuis-selesai .kisi-form-actions {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---------- toast ---------- */
+
+.kisi-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.2rem;
+  z-index: 520;
+  max-width: min(92vw, 460px);
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  background: var(--forest);
+  color: var(--white);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.45);
+  transform: translateX(-50%);
+}
+
+.kisi-toast.is-ok {
+  background: var(--forest);
+  color: var(--white);
+}
+
+.kisi-toast.is-warn {
+  background: var(--t-catatan-bg);
+  border: 1px solid var(--t-catatan-line);
+  color: var(--ink);
+}
+
+.kisi-toast.is-error {
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+/* ---------- responsif ---------- */
+
+@media (max-width: 600px) {
+  .kisi-section { padding-top: 2rem; }
+  .kisi-kategori-grid { grid-template-columns: 1fr; }
+  .kisi-materi-card { padding: 0.95rem; }
+  .kisi-materi-head-row { flex-direction: column; align-items: stretch; }
+  .kisi-materi-head-row .kisi-btn { width: 100%; }
+  .kisi-act { flex: 1 1 30%; text-align: center; padding: 0.52rem 0.4rem; font-size: 0.76rem; }
+  .kisi-viewer-frame { height: 58vh; }
+  .kisi-form-actions-3 { justify-content: stretch; }
+  .kisi-form-actions-3 > * { flex: 1 1 auto; }
+  .kisi-toast { bottom: 0.9rem; font-size: 0.8rem; padding: 0.65rem 0.85rem; }
+}
