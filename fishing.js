@@ -2576,9 +2576,12 @@
   // Toast cepat hilang; alasan gagal rekrut juga ditempel di dalam modal
   // supaya kelihatan jelas apa yang ditolak Firestore/mesin.
   function galatWorker(err) {
+    const jumlah = FC.state ? FC.state.workers.length : 0;
+    const detail = `${String((err && err.code) || "error")} · ${String((err && err.message) || "")} · Kru ${jumlah}/${workerMax()}`;
+    console.warn("Rekrut Worker gagal:", detail);
     const el = document.getElementById("worker-error");
     if (!el) return;
-    el.textContent = pesanGalat(err);
+    el.innerHTML = `${esc(pesanGalat(err))}<small class="fishing-form-error-detail">${esc(detail)}</small>`;
     el.hidden = false;
   }
 
