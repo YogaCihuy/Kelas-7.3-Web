@@ -1257,6 +1257,11 @@ body.fishing-modal-open { overflow: hidden; }
 .fishing-result-grid strong { font-size: 0.86rem; color: var(--fish-deep); font-variant-numeric: tabular-nums; }
 .fishing-result-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.55; margin: 0.2rem auto 0.4rem; max-width: 38ch; }
 .fishing-result-ach { display: inline-flex; gap: 0.3rem; align-items: center; background: #fff8e8; border: 1px solid #f0e2b8; border-radius: 999px; padding: 0.24rem 0.65rem; font-size: 0.72rem; color: #8a7434; font-weight: 700; }
+.fishing-result-drop { display: flex; align-items: center; gap: 0.55rem; width: min(100%, 420px); margin: 0.7rem auto 0; padding: 0.55rem 0.7rem; border-radius: 14px; background: linear-gradient(120deg, var(--potion-soft, #eef6f3), #ffffff); border: 1px solid #d6ecea; border-left: 4px solid var(--potion, #3f9e68); text-align: left; }
+.fishing-result-drop > span { font-size: 1.45rem; flex-shrink: 0; }
+.fishing-result-drop small { display: block; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; color: var(--muted); }
+.fishing-result-drop strong { display: block; font-family: var(--font-display); font-size: 0.9rem; color: var(--forest); line-height: 1.2; }
+.fishing-result-drop em { margin-left: auto; flex-shrink: 0; font-style: normal; font-size: 0.68rem; font-weight: 800; color: var(--potion, #2f8f5b); background: var(--potion-soft, #eef6f3); border-radius: 999px; padding: 0.16rem 0.5rem; }
 .fishing-result-actions { display: flex; gap: 0.45rem; justify-content: center; flex-wrap: wrap; margin-top: 0.9rem; }
 .fishing-result-actions > * { flex: 1; min-width: 130px; }
 
@@ -1592,6 +1597,42 @@ body.fishing-modal-open { overflow: hidden; }
   .fishing-board-row .fishing-avatar { display: none; }
   .fishing-legend-head p { font-size: 0.72rem; }
 }
+
+/* ================= POTION ================= */
+.fishing-potion-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.55rem; }
+.fishing-potion-strip-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  background: linear-gradient(120deg, var(--potion-soft, #eef6f3), #ffffff);
+  border: 1px solid #dcefee;
+  border-left: 4px solid var(--potion, #3f9e68);
+}
+.fishing-potion-strip-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--potion, #3f9e68);
+  font-size: 1.2rem;
+}
+.fishing-potion-strip-card strong { display: block; font-family: var(--font-display); font-size: 0.9rem; color: var(--forest); line-height: 1.2; }
+.fishing-potion-strip-card small { font-size: 0.72rem; color: var(--muted); }
+.fishing-potion-strip-card b { color: var(--potion, #3f9e68); font-variant-numeric: tabular-nums; }
+
+.fishing-potion-note { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.7rem 0.85rem; border-radius: 14px; background: #f7fcfb; border: 1px solid #dcefee; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.9rem; }
+.fishing-potion-note span { font-size: 1.15rem; }
+
+.fishing-list-art.is-potion { font-size: 1.6rem; background: var(--potion-soft, #eef6f3); border-color: transparent; }
+.fishing-list-row.potion-row { border-left: 4px solid var(--potion, #3f9e68); }
+.fishing-potion-live { font-size: 0.7rem; font-weight: 700; color: var(--potion, #2f8f5b); }
+.fishing-potion-live b { font-variant-numeric: tabular-nums; }
+.fishing-potion-live.is-warn { color: #b07a2a; font-weight: 600; }
 
 /* ================= REDUCED MOTION ================= */
 @media (prefers-reduced-motion: reduce) {

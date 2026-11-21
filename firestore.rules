@@ -114,7 +114,7 @@ service cloud.firestore {
 
     function isValidFishingState(d) {
       return d.keys().hasOnly(['absen','name','coins','rods','equippedRod','baits','equippedBait',
-                                'fish','locked','collection','totalValue','totalCaught','stats',
+                                'potions','activePotions','fish','locked','collection','totalValue','totalCaught','stats',
                                 'achievements','activeCast','requests','autoSell','workers',
                                 'createdAt','updatedAt','version'])
         && d.keys().hasAll(['absen','name','coins','rods','equippedRod','baits','equippedBait',
@@ -134,6 +134,8 @@ service cloud.firestore {
         && d.equippedRod is string
         && d.baits is map
         && d.equippedBait is string
+        && (!('potions' in d) || (d.potions is map && d.potions.size() <= 64))
+        && (!('activePotions' in d) || isValidActivePotions(d.activePotions))
         && d.fish is map
         && d.locked is map
         && d.collection is map
@@ -164,10 +166,11 @@ service cloud.firestore {
 
     function isValidFishingWorkers(list) {
       return list is list
-        && list.size() <= 3
+        && list.size() <= 4
         && (list.size() < 1 || isValidFishingWorker(list[0]))
         && (list.size() < 2 || isValidFishingWorker(list[1]))
-        && (list.size() < 3 || isValidFishingWorker(list[2]));
+        && (list.size() < 3 || isValidFishingWorker(list[2]))
+        && (list.size() < 4 || isValidFishingWorker(list[3]));
     }
 
     function isValidFishingWorker(w) {
@@ -186,7 +189,7 @@ service cloud.firestore {
         && w.look in ['topi','kapten','anak','nenek','kakek','keren']
         && w.level is number
         && w.level >= 0
-        && w.level <= 6
+        && w.level <= 9
         && w.rodId is string
         && w.rodId.size() <= 40
         && w.lastCatchAt is number
@@ -195,6 +198,23 @@ service cloud.firestore {
         && w.earned is number
         && w.earned >= 0
         && w.hiredAt is number;
+    }
+
+    function isValidActivePotions(a) {
+      return a is map
+        && a.keys().hasOnly(['luck','worker','coin'])
+        && (!('luck' in a) || (isValidActivePotion(a.luck) && a.luck.id.matches('^luck-[23]-(5|10|15|30)$')))
+        && (!('worker' in a) || (isValidActivePotion(a.worker) && a.worker.id.matches('^worker-2-(5|10|15|30)$')))
+        && (!('coin' in a) || (isValidActivePotion(a.coin) && a.coin.id.matches('^coin-2-(5|10|15|30)$')));
+    }
+
+    function isValidActivePotion(p) {
+      return p is map
+        && p.keys().hasOnly(['id','endsAt'])
+        && p.keys().hasAll(['id','endsAt'])
+        && p.id is string
+        && p.endsAt is number
+        && p.endsAt > 0;
     }
 
     function isValidFirstCatches(d) {

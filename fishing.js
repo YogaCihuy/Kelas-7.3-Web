@@ -10,7 +10,7 @@
 
   const REGION = "us-central1";
   const FUNCTION_NAME = "fishingApi";
-  const CAT_KEY = "kelas73-fishing-catalog-v3";
+  const CAT_KEY = "kelas73-fishing-catalog-v5";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
 
@@ -43,6 +43,7 @@
     terakhirState: 0,
     tickTimer: null,
     terakhirTickWorker: 0,
+    terakhirSyncPotion: 0,
   };
 
   let artSeq = 0;
@@ -249,8 +250,8 @@
       collection[id] = { caught: Math.max(0, Number(rec && rec.caught) || 0), firstAt: tsMs(rec && rec.firstAt) };
     });
     const rods = Array.isArray(raw.rods) ? raw.rods.map((r) => ({ id: String(r && r.id), durability: Math.max(0, Number(r && r.durability) || 0) })) : [];
-    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 3;
-    const maxLevel = (FC.cat && FC.cat.worker && FC.cat.worker.maxLevel) || 6;
+    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 4;
+    const maxLevel = (FC.cat && FC.cat.worker && FC.cat.worker.maxLevel) || 9;
     const workers = (Array.isArray(raw.workers) ? raw.workers : []).slice(0, maxWorker).map((w, i) => ({
       id: String((w && w.id) || `w-${i + 1}`),
       name: String((w && w.name) || `Worker ${i + 1}`),
@@ -277,6 +278,8 @@
       equippedRod,
       baits: Object.assign({}, raw.baits || {}),
       equippedBait: String(raw.equippedBait || "cacing"),
+      potions: Object.assign({}, raw.potions || {}),
+      activePotions: Object.assign({}, raw.activePotions || {}),
       fish: Object.assign({}, raw.fish || {}),
       locked: Object.assign({}, raw.locked || {}),
       collection,
@@ -354,24 +357,30 @@
   }
 
   function infoWorker() { return (FC.cat && FC.cat.worker) || {}; }
-  function workerMax() { return Number(infoWorker().max) || 3; }
+  function workerMax() { return Number(infoWorker().max) || 4; }
   function workerPrice() { return Number(infoWorker().price) || 3000; }
-  function workerLevelMaks() { return Number(infoWorker().maxLevel) || 6; }
+  function workerLevelMaks() { return Number(infoWorker().maxLevel) || 9; }
   function kecepatanWorker(level) {
     const base = Number(infoWorker().baseSpeedMs) || 3600000;
-    const min = Number(infoWorker().minSpeedMs) || 1800000;
+    const min = Number(infoWorker().minSpeedMs) || 900000;
     const step = Number(infoWorker().stepMs) || 300000;
     return Math.max(min, base - Math.max(0, Math.min(workerLevelMaks(), Number(level) || 0)) * step);
   }
+  function kecepatanWorkerEfektif(level) {
+    return Math.max(60000, Math.round(kecepatanWorker(level) / potionMult("worker")));
+  }
 
+  function angkaMenit(n) {
+    return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
+  }
   function durasiTeks(ms) {
-    const menit = Math.max(1, Math.round((Number(ms) || 0) / 60000));
+    const menit = Math.max(1, Math.round(((Number(ms) || 0) / 60000) * 10) / 10);
     if (menit >= 60) {
       const jam = Math.floor(menit / 60);
-      const sisa = menit % 60;
-      return sisa ? `${jam} jam ${sisa} menit` : `${jam} jam`;
+      const sisa = Math.round((menit % 60) * 10) / 10;
+      return sisa ? `${jam} jam ${angkaMenit(sisa)} menit` : `${jam} jam`;
     }
-    return `${menit} menit`;
+    return `${angkaMenit(menit)} menit`;
   }
   function biayaUpgradeWorker(level) {
     const arr = infoWorker().upgradeCosts || [];
@@ -396,7 +405,7 @@
   }
   function progresWorker(w) {
     if (!w || !w.lastCatchAt) return 0;
-    const speed = kecepatanWorker(w.level);
+    const speed = kecepatanWorkerEfektif(w.level);
     return Math.max(0, Math.min(1, (serverNow() - w.lastCatchAt) / speed));
   }
 
@@ -404,6 +413,44 @@
   function infoBait(id) { return FC.baitMap[id] || null; }
   function infoIkan(id) { return FC.fishMap[id] || null; }
   function stokUmpan(id) { return FC.state ? (Number(FC.state.baits[id]) || 0) : 0; }
+
+  function daftarPotion() { return (FC.cat && FC.cat.potions) || []; }
+  function infoPotion(id) { return daftarPotion().find((p) => p.id === id) || null; }
+  function stokPotion(id) { return FC.state ? (Number(FC.state.potions[id]) || 0) : 0; }
+  function labelKategoriPotion(cat) { return ((FC.cat && FC.cat.potionCategories) || {})[cat] || cat; }
+
+  function potionAktif(cat) {
+    const rec = FC.state && FC.state.activePotions ? FC.state.activePotions[cat] : null;
+    if (!rec || !(Number(rec.endsAt) > serverNow())) return null;
+    const info = infoPotion(rec.id);
+    if (!info) return null;
+    return { id: rec.id, endsAt: Number(rec.endsAt), info };
+  }
+
+  function potionMult(cat) {
+    const aktif = potionAktif(cat);
+    return aktif ? Math.max(1, Number(aktif.info.mult) || 1) : 1;
+  }
+
+  function sisaTeks(ms) {
+    const total = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+    const menit = Math.floor(total / 60);
+    const detik = total % 60;
+    return menit > 0 ? `${menit}m ${String(detik).padStart(2, "0")}s` : `${detik}s`;
+  }
+
+  function potionStrip() {
+    const aktif = ["luck", "worker", "coin"].map(potionAktif).filter(Boolean);
+    if (!aktif.length) return "";
+    return `<div class="fishing-potion-strip">${aktif.map((a) => `
+      <article class="fishing-potion-strip-card" style="--potion:${esc(a.info.color)};--potion-soft:${esc(a.info.soft)}">
+        <span class="fishing-potion-strip-icon" aria-hidden="true">${esc(a.info.icon)}</span>
+        <div>
+          <strong>${esc(a.info.name)}</strong>
+          <small>${esc(labelKategoriPotion(a.info.cat))} · sisa <b data-potion-timer="${a.endsAt}">${sisaTeks(a.endsAt - serverNow())}</b></small>
+        </div>
+      </article>`).join("")}</div>`;
+  }
 
   function simpanToken(token) {
     FC.token = token;
@@ -953,7 +1000,7 @@
               ${topSecret ? `
                 <span class="fishing-first-art">${fishArt(infoIkan(topSecret.fishId), { label: topSecret.fishName })}</span>
                 <div><strong>${esc(topSecret.fishName)}</strong><small>${esc(topSecret.name)} · ${waktu(topSecret.at)}</small></div>
-              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,01% — siapa berani?</small></div>`}
+              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi. Potion Luck menembus batas jadi 0,2%–0,3%.</small></div>`}
             </div>
           </article>
         </div>
@@ -977,7 +1024,8 @@
     const st = statusWorker(w);
     const look = infoLook(w.look);
     const gender = infoGender(w.gender);
-    const speed = kecepatanWorker(w.level);
+    const speed = kecepatanWorkerEfektif(w.level);
+    const speedDasar = kecepatanWorker(w.level);
     const maxLv = workerLevelMaks();
     const biaya = biayaUpgradeWorker(w.level);
     const maks = w.level >= maxLv;
@@ -1012,7 +1060,7 @@
             <b data-worker-pct>${st.kode === "kerja" ? `${pct}%` : "—"}</b>
           </div>
           <div class="fishing-worker-bar"><span data-worker-fill style="width:${st.kode === "kerja" ? pct : 0}%"></span></div>
-          <small>${durasiTeks(speed)}/ikan${maks ? " · kecepatan maksimal" : ""}</small>
+          <small>${durasiTeks(speed)}/ikan${speedDasar !== speed ? " · potion aktif" : ""}${maks ? " · kecepatan maksimal" : ""}</small>
         </div>
         <div class="fishing-worker-stats">
           <span>🐟 ${angka(w.catches)} tangkapan</span>
@@ -1048,10 +1096,11 @@
         </div>
         <div class="fishing-worker-top">
           <div class="fishing-worker-count"><strong>${s.workers.length}/${max}</strong><span>Worker</span></div>
-          <div class="fishing-worker-hint">Rekrut <b>💰 ${angka(harga)}</b> · awal 1 jam/ikan · upgrade sampai 30 menit/ikan · tetap jalan saat kamu AFK.</div>
+          <div class="fishing-worker-hint">Rekrut <b>💰 ${angka(harga)}</b> · awal 1 jam/ikan · upgrade sampai 15 menit/ikan · tetap jalan saat kamu AFK.</div>
           <button class="btn-primary" type="button" data-fish-act="hire-worker" ${penuh || !cukup ? "disabled" : ""}>${penuh ? "Worker penuh" : cukup ? "＋ Rekrut Worker" : "Koin kurang"}</button>
         </div>
         ${autoSellRingkas()}
+        ${potionStrip()}
         <div class="fishing-worker-grid">${cards}</div>
       </div>`;
   }
@@ -1072,7 +1121,8 @@
 
   function persenPeluang(v) {
     const n = Number(v) || 0;
-    return `${n.toFixed(n < 1 ? 2 : 1).replace(/\.?0+$/, "")}%`;
+    const teks = n.toFixed(n < 1 ? 2 : 1).replace(/\.?0+$/, "");
+    return `${teks.replace(".", ",")}%`;
   }
 
   function beratNilai(v) {
@@ -1127,6 +1177,8 @@
     const durasi = phase === "bite" && seq.windowEnd
       ? Math.max(120, Number(seq.windowEnd) - serverNow()) : 0;
     const odds = (seq.odds && (phase === "waiting" || phase === "bite")) ? seq.odds : null;
+    const multLuck = potionMult("luck");
+    const totalLuck = Math.round(((rodInfo ? rodInfo.luck : 0) + (baitInfo ? baitInfo.luck : 0)) * multLuck);
     const scenePhase = phase === "bite" ? "is-bite" : phase === "waiting" ? "is-waiting" : phase === "reeling" ? "is-reeling" : "is-idle";
 
     const tombol =
@@ -1183,6 +1235,7 @@
         </div>
 
         ${peringatan}
+        ${potionStrip()}
 
         <div class="fishing-cast-card">
           <div class="fishing-cast-info">
@@ -1203,8 +1256,8 @@
               </div>
             </div>
             <div class="fishing-cast-luck">
-              <small>Total luck</small>
-              <strong>+${angka((rodInfo ? rodInfo.luck : 0) + (baitInfo ? baitInfo.luck : 0))}</strong>
+              <small>Total luck${multLuck > 1 ? ` · potion ×${multLuck}` : ""}</small>
+              <strong>+${angka(totalLuck)}</strong>
             </div>
           </div>
 
@@ -1235,7 +1288,7 @@
 
         <div class="fishing-area-tips">
           <span>💡 Tips</span>
-          <p>Joran &amp; umpan dengan luck lebih tinggi memperbesar peluang Rare ke atas. Umpan tetap terpakai walaupun ikan kabur.</p>
+          <p>Joran &amp; umpan dengan luck lebih tinggi memperbesar peluang Rare ke atas. Umpan tetap terpakai walaupun ikan kabur. Potion kadang ikut terbawa saat menangkap ikan dan langsung masuk Tas — tekan Pakai untuk mengaktifkannya.</p>
         </div>
       </div>`;
   }
@@ -1250,7 +1303,9 @@
 
   function panelToko() {
     const s = FC.state;
-    const isi = FC.shopTab === "bait" ? tokoUmpan() : FC.shopTab === "repair" ? tokoRepair() : tokoJoran();
+    const isi = FC.shopTab === "bait" ? tokoUmpan()
+      : FC.shopTab === "repair" ? tokoRepair()
+        : tokoJoran();
     return `
       <div class="fishing-shop">
         <div class="fishing-section-head">
@@ -1379,7 +1434,7 @@
   /* ================= PANEL: TAS ================= */
   function tasTabs() {
     return `<div class="fishing-subtabs" role="tablist" aria-label="Kategori tas">
-      ${[["fish", "🐟 Ikan"], ["rod", "🎣 Joran"], ["bait", "🐛 Umpan"]].map(([id, label]) => `
+      ${[["fish", "🐟 Ikan"], ["rod", "🎣 Joran"], ["bait", "🐛 Umpan"], ["potion", "🧪 Potion"]].map(([id, label]) => `
         <button class="fishing-subtab ${FC.invTab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${FC.invTab === id}" data-fish-act="inv-tab" data-tab="${id}">${label}</button>`).join("")}
     </div>`;
   }
@@ -1420,7 +1475,10 @@
 
   function panelTas() {
     const s = FC.state;
-    const isi = FC.invTab === "rod" ? tasJoran() : FC.invTab === "bait" ? tasUmpan() : tasIkan();
+    const isi = FC.invTab === "rod" ? tasJoran()
+      : FC.invTab === "bait" ? tasUmpan()
+        : FC.invTab === "potion" ? tasPotion()
+          : tasIkan();
     return `
       <div class="fishing-inventory">
         <div class="fishing-section-head">
@@ -1534,6 +1592,45 @@
             : `<button class="btn-secondary fishing-mini-btn" type="button" data-fish-act="equip-bait" data-bait="${esc(b.id)}">Pakai</button>`}
         </article>`;
     }).join("")}</div>`;
+  }
+
+  function tasPotion() {
+    const items = daftarPotion()
+      .filter((p) => stokPotion(p.id) > 0)
+      .sort((a, b) => a.cat.localeCompare(b.cat) || a.minutes - b.minutes);
+    const aktif = potionStrip();
+    const infoDrop = `<div class="fishing-potion-note">
+        <span>🎣</span>
+        <p>Potion didapat dari tangkapan ikan — makin langka ikannya, makin besar peluangnya. Durasi 5–30 menit. Potion langsung masuk Tas; tekan <b>Pakai</b> untuk mengaktifkan. Satu potion aktif per kategori.</p>
+      </div>`;
+    if (!items.length) {
+      return `${aktif}${infoDrop}
+        <div class="fishing-empty-card">
+          <span>🧪</span><h4>Belum punya Potion</h4>
+          <p>Terus mancing untuk menemukan Potion Luck x2/x3, Worker x2, dan Koin x2.</p>
+          <button class="btn-primary" type="button" data-fish-nav="area">Mulai Mancing</button>
+        </div>`;
+    }
+    return `${aktif}${infoDrop}
+      <div class="fishing-list">${items.map((p) => {
+        const aktifKat = potionAktif(p.cat);
+        const sedang = aktifKat && aktifKat.id === p.id;
+        return `
+          <article class="fishing-list-row potion-row ${sedang ? "is-equipped" : ""}" style="--potion:${esc(p.color)};--potion-soft:${esc(p.soft)}">
+            <span class="fishing-list-art is-potion">${esc(p.icon)}</span>
+            <div class="fishing-list-body">
+              <div class="fishing-list-title"><h4>${esc(p.name)}</h4><span class="fishing-tier">${esc(labelKategoriPotion(p.cat))}</span></div>
+              <div class="fishing-stat-row">
+                <span>⏱️ ${angka(p.minutes)} menit</span>
+                <span>📦 Stok ${angka(stokPotion(p.id))}</span>
+              </div>
+              ${sedang
+                ? `<small class="fishing-potion-live">Aktif · sisa <b data-potion-timer="${aktifKat.endsAt}">${sisaTeks(aktifKat.endsAt - serverNow())}</b></small>`
+                : aktifKat ? `<small class="fishing-potion-live is-warn">Kategori ${esc(labelKategoriPotion(p.cat))} masih dipakai ${esc(aktifKat.info.name)}</small>` : ""}
+            </div>
+            <button class="btn-primary fishing-mini-btn" type="button" data-fish-act="use-potion" data-potion="${esc(p.id)}">${sedang ? "Pakai Lagi" : "Pakai"}</button>
+          </article>`;
+      }).join("")}</div>`;
   }
 
   /* ================= PANEL: KOLEKSI ================= */
@@ -1701,7 +1798,7 @@
                 return `<div class="fishing-legend-slot is-empty">
                   <span class="fishing-legend-slot-no">#${i + 1}</span>
                   <span class="fishing-legend-empty-art" aria-hidden="true">${rarity === "secret" ? "🌟" : "👑"}</span>
-                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? "Peluang 0,01% per lemparan." : "Peluang 0,5% per lemparan."}</small></div>
+                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? "Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi. Potion Luck menembus batas jadi 0,2%–0,3%." : "Peluang 0,5% per lemparan."}</small></div>
                 </div>`;
               }
               return `<div class="fishing-legend-slot is-filled">
@@ -2168,6 +2265,12 @@
           <div><span>Nilai jual</span><strong>💰 ${angka(fish.value)}</strong></div>
           <div><span>Durability</span><strong>-${angka(res.durabilityLoss)}</strong></div>
         </div>
+        ${res.potionDrop ? `
+          <div class="fishing-result-drop" style="--potion:${esc(res.potionDrop.color)};--potion-soft:${esc(res.potionDrop.soft)}">
+            <span aria-hidden="true">${esc(res.potionDrop.icon)}</span>
+            <div><small>Potion ikut terbawa!</small><strong>${esc(res.potionDrop.name)}</strong></div>
+            <em>Masuk Tas</em>
+          </div>` : ""}
         <p class="fishing-result-desc">${autoSold ? `Auto Sell menjual ikan ini otomatis karena harganya di bawah ambang 💰 ${angka((FC.state && FC.state.autoSell && FC.state.autoSell.minPrice) || 0)}. ` : ""}${esc(fish.desc)}</p>
         ${ach.length ? `<div class="fishing-result-ach">🏆 ${ach.map((a) => esc(a.name)).join(" · ")}</div>` : ""}
         <div class="fishing-result-actions">
@@ -2250,6 +2353,29 @@
     if (res) {
       SFX.coin();
       toast(`✅ ${jumlah} × ${esc(bait.name)} ditambahkan ke Tas.`, "ok");
+    }
+  }
+
+  async function pakaiPotion(id) {
+    const potion = infoPotion(id);
+    if (!potion || !FC.state) return;
+    if (stokPotion(id) <= 0) return toast("Potion ini tidak ada di Tas.", "error");
+    const aktif = potionAktif(potion.cat);
+    if (aktif) {
+      const ok = await konfirmasi({
+        icon: potion.icon,
+        title: `Ganti potion ${labelKategoriPotion(potion.cat)}?`,
+        body: `<b>${esc(aktif.info.name)}</b> masih aktif dengan sisa <b>${sisaTeks(aktif.endsAt - serverNow())}</b>. Kalau diganti, sisa waktunya hangus.`,
+        okLabel: "Pakai Potion",
+      });
+      if (!ok) return;
+    }
+    const res = await jalankanAksi(null, () => api("usePotion", {
+      absen: FC.absen, token: FC.token, potionId: id, requestId: reqId(),
+    }));
+    if (res) {
+      SFX.click();
+      toast(`${potion.icon} <b>${esc(potion.name)}</b> aktif selama ${angka(potion.minutes)} menit.`, "ok");
     }
   }
 
@@ -2543,7 +2669,32 @@
 
   function mulaiTicker() {
     hentikanTicker();
-    FC.tickTimer = setInterval(tickerWorker, 1000);
+    FC.tickTimer = setInterval(tickerDetik, 1000);
+  }
+
+  function tickerDetik() {
+    tickerWorker();
+    tickerPotion();
+  }
+
+  function tickerPotion() {
+    if (!FC.state || !FC.aktif) return;
+    let habis = false;
+    document.querySelectorAll("[data-potion-timer]").forEach((el) => {
+      const end = Number(el.dataset.potionTimer) || 0;
+      const sisa = end - serverNow();
+      if (sisa <= 0) {
+        el.textContent = "habis";
+        habis = true;
+      } else {
+        el.textContent = sisaTeks(sisa);
+      }
+    });
+    const sedangMinigame = FC.seq && ["waiting", "bite", "reeling"].includes(FC.seq.phase);
+    if (habis && !FC.aksi && !sedangMinigame && Date.now() - FC.terakhirSyncPotion > 15000) {
+      FC.terakhirSyncPotion = Date.now();
+      render();
+    }
   }
 
   function tickerWorker() {
@@ -2562,7 +2713,7 @@
       if (pct) pct.textContent = kerja ? `${Math.round(p * 100)}%` : "—";
     });
 
-    const siap = list.some((w) => statusWorker(w).kode === "kerja" && serverNow() - w.lastCatchAt >= kecepatanWorker(w.level));
+    const siap = list.some((w) => statusWorker(w).kode === "kerja" && serverNow() - w.lastCatchAt >= kecepatanWorkerEfektif(w.level));
     if (!siap || FC.aksi || Date.now() - FC.terakhirTickWorker < 5000) return;
     FC.terakhirTickWorker = Date.now();
     api("workerTick", { absen: FC.absen, token: FC.token, requestId: reqId() }).then((res) => {
@@ -2630,6 +2781,9 @@
         break;
       case "buy-bait":
         beliUmpan(el.dataset.bait, el.dataset.qty);
+        break;
+      case "use-potion":
+        pakaiPotion(el.dataset.potion);
         break;
       case "repair":
         repairJoran(el.dataset.rod);

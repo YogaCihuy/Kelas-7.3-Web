@@ -3,7 +3,7 @@
 
   // Katalog Fishing versi browser (tanpa Blaze). Dipakai fishing-local.js.
 
-  const CATALOG_VERSION = 3;
+  const CATALOG_VERSION = 5;
 
   const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "mythic", "legend", "secret"];
 
@@ -14,21 +14,22 @@
     epic: { label: "Epic", labelId: "Epik", color: "#8a5bd6", soft: "#efe6ff", chance: 5.5, order: 3 },
     mythic: { label: "Mythic", labelId: "Mitos", color: "#d94f9e", soft: "#ffe3f3", chance: 1.7, order: 4 },
     legend: { label: "Legend", labelId: "Legenda", color: "#d99a2b", soft: "#fff2cf", chance: 0.5, order: 5 },
-    secret: { label: "Secret", labelId: "Rahasia", color: "#e0445c", soft: "#ffe1e6", chance: 0.01, order: 6 },
+    secret: { label: "Secret", labelId: "Rahasia", color: "#e0445c", soft: "#ffe1e6", chance: 0.05, order: 6 },
   };
 
   // Bobot dasar per 10.000 cast. Totalnya tepat 10.000 (100%).
   const RARITY_BASE_WEIGHT = {
-    common: 5529,
+    common: 5525,
     uncommon: 2500,
     rare: 1200,
     epic: 550,
     mythic: 170,
     legend: 50,
-    secret: 1,
+    secret: 5,
   };
 
-  // Batas maksimum bobot setelah luck (secret 0.03%, legend 2%).
+  // Batas maksimum bobot setelah luck (secret 0.1%, legend 2%).
+  // Potion Luck menembus batas Secret: x2 jadi 0.2%, x3 jadi 0.3%.
   const RARITY_CAPS = {
     common: 9999,
     uncommon: 3500,
@@ -36,7 +37,7 @@
     epic: 1500,
     mythic: 600,
     legend: 200,
-    secret: 3,
+    secret: 10,
   };
 
   // [id, nama, rarity, nilai jual, berat(kg), bentuk, warna badan, warna perut, warna sirip, corak, deskripsi]
@@ -202,6 +203,75 @@
 
   const BAIT_BY_ID = Object.fromEntries(BAITS.map((b) => [b.id, b]));
 
+  // Potion: 4 efek × 4 durasi. Didapat dari tangkapan, disimpan di Tas.
+  // Satu potion aktif per kategori (luck/worker/coin).
+  const POTION_BASE = [
+    {
+      cat: "luck", mult: 2, icon: "🍀", name: "Potion Luck x2",
+      color: "#3f9e68", soft: "#e2f6e9",
+      desc: "Luck mancing jadi 2x dan batas Secret naik ke 0,2% selama potion aktif.",
+    },
+    {
+      cat: "luck", mult: 3, icon: "🌟", name: "Potion Luck x3",
+      color: "#d99a2b", soft: "#fff2cf",
+      desc: "Luck mancing jadi 3x dan batas Secret naik ke 0,3% selama potion aktif.",
+    },
+    {
+      cat: "worker", mult: 2, icon: "⏩", name: "Potion Worker x2",
+      color: "#3d7fd6", soft: "#e3efff",
+      desc: "Worker menangkap 2x lebih cepat; worker level maksimal jadi 7,5 menit per ikan.",
+    },
+    {
+      cat: "coin", mult: 2, icon: "💰", name: "Potion Koin x2",
+      color: "#8a5bd6", soft: "#efe6ff",
+      desc: "Semua koin hasil jual ikan jadi 2x selama potion aktif, termasuk Auto Sell.",
+    },
+  ];
+
+  // bobot = peluang durasi ini keluar saat potion drop (total 100).
+  const POTION_DURASI = [
+    { menit: 5, bobot: 55 },
+    { menit: 10, bobot: 28 },
+    { menit: 15, bobot: 12 },
+    { menit: 30, bobot: 5 },
+  ];
+
+  const POTIONS = POTION_BASE.flatMap((base) => POTION_DURASI.map((d) => ({
+    id: `${base.cat}-${base.mult}-${d.menit}`,
+    name: `${base.name} · ${d.menit} menit`,
+    cat: base.cat,
+    mult: base.mult,
+    icon: base.icon,
+    color: base.color,
+    soft: base.soft,
+    minutes: d.menit,
+    ms: d.menit * 60000,
+    bobot: d.bobot,
+    desc: base.desc,
+  })));
+
+  // Peluang potion ikut terbawa tiap tangkapan pemain, makin langka ikannya makin besar.
+  const POTION_DROP = {
+    chanceByRarity: {
+      common: 2,
+      uncommon: 3,
+      rare: 5,
+      epic: 8,
+      mythic: 12,
+      legend: 18,
+      secret: 30,
+    },
+  };
+
+  // Kategori bisa langsung dipakai sebagai label.
+  const POTION_CATEGORIES = {
+    luck: "Luck",
+    worker: "Kecepatan Worker",
+    coin: "Koin",
+  };
+
+  const POTION_BY_ID = Object.fromEntries(POTIONS.map((p) => [p.id, p]));
+
   const ECONOMY = {
     startCoins: 500,
     startRod: "bambu",
@@ -214,6 +284,7 @@
     strikeWindowPerTierMs: 70,
     castTtlMs: 12000,
     maxBaitStack: 9999,
+    maxPotionStack: 99,
     maxSellQty: 9999,
     leaderboardSize: 50,
   };
@@ -243,8 +314,9 @@
     { id: "rods-5", name: "Kolektor Joran", desc: "Miliki 5 joran berbeda.", icon: "🎣", kind: "rods", target: 5 },
   ];
 
-  function hitungBobotRarity(luck) {
+  function hitungBobotRarity(luck, secretMult) {
     const l = Math.max(0, Math.min(100, Number(luck) || 0));
+    const mult = Math.max(1, Math.min(3, Math.floor(Number(secretMult) || 1)));
     const boost = {
       secret: Math.min(RARITY_CAPS.secret - RARITY_BASE_WEIGHT.secret, Math.floor(l * 0.16)),
       legend: Math.min(RARITY_CAPS.legend - RARITY_BASE_WEIGHT.legend, Math.round(l * 1.0)),
@@ -265,11 +337,28 @@
       sisa -= ambilUncommon;
     }
     if (sisa > 0) w.common += sisa; // pengaman, seharusnya tidak pernah terjadi
+
+    // Potion Luck menembus batas Secret. Bobot tambahannya diambil dari
+    // common/uncommon supaya total tetap 10.000 dan ikan langka lain tidak hilang.
+    const tambahanSecret = w.secret * (mult - 1);
+    if (tambahanSecret > 0) {
+      let sisaSecret = tambahanSecret;
+      const ambilCommonSecret = Math.min(sisaSecret, w.common - 1200);
+      w.common -= ambilCommonSecret;
+      sisaSecret -= ambilCommonSecret;
+      if (sisaSecret > 0) {
+        const ambilUncommonSecret = Math.min(sisaSecret, w.uncommon - 800);
+        w.uncommon -= ambilUncommonSecret;
+        sisaSecret -= ambilUncommonSecret;
+      }
+      if (sisaSecret > 0) w.common -= sisaSecret;
+      w.secret += tambahanSecret;
+    }
     return w;
   }
 
-  function peluangRarity(luck) {
-    const w = hitungBobotRarity(luck);
+  function peluangRarity(luck, secretMult) {
+    const w = hitungBobotRarity(luck, secretMult);
     const out = {};
     RARITY_ORDER.forEach((r) => { out[r] = w[r] / 100; });
     return out;
@@ -288,6 +377,10 @@
     ROD_BY_ID,
     BAITS,
     BAIT_BY_ID,
+    POTIONS,
+    POTION_BY_ID,
+    POTION_CATEGORIES,
+    POTION_DROP,
     ECONOMY,
     ACHIEVEMENTS,
     hitungBobotRarity,

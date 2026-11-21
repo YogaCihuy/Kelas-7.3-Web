@@ -15,13 +15,13 @@
   };
 
   const WORKER = {
-    max: 3,
+    max: 4,
     price: 3000,
     baseSpeedMs: 3600000,
-    minSpeedMs: 1800000,
+    minSpeedMs: 900000,
     stepMs: 300000,
-    maxLevel: 6,
-    upgradeCosts: [1500, 2200, 3000, 4000, 5200, 7000],
+    maxLevel: 9,
+    upgradeCosts: [1500, 2200, 3000, 4000, 5200, 7000, 9200, 12000, 15500],
     maxCatchPerTick: 30,
     genders: [
       { id: "laki", label: "Laki-laki" },
@@ -46,6 +46,20 @@
   function biayaUpgradeWorker(level) {
     const lv = Math.max(0, Math.min(WORKER.maxLevel, Math.floor(Number(level) || 0)));
     return WORKER.upgradeCosts[lv] || 0;
+  }
+
+  const KATEGORI_POTION = ["luck", "worker", "coin"];
+
+  function potionAktif(state, kategori, now) {
+    const aktif = state.activePotions && state.activePotions[kategori];
+    if (!aktif || !(Number(aktif.endsAt) > (Number(now) || Date.now()))) return null;
+    return aktif;
+  }
+
+  function multiplierPotion(state, kategori, now) {
+    const aktif = potionAktif(state, kategori, now);
+    const info = aktif ? DATA.POTION_BY_ID[aktif.id] : null;
+    return info ? Math.max(1, Number(info.mult) || 1) : 1;
   }
 
   function fs() {
@@ -83,6 +97,9 @@
       fish: DATA.FISH,
       rods: DATA.RODS,
       baits: DATA.BAITS,
+      potions: DATA.POTIONS,
+      potionCategories: DATA.POTION_CATEGORIES,
+      potionDrop: DATA.POTION_DROP,
       economy: DATA.ECONOMY,
       achievements: DATA.ACHIEVEMENTS,
       worker: {
@@ -162,6 +179,8 @@
       equippedRod: rod.id,
       baits: { [DATA.ECONOMY.startBait]: DATA.ECONOMY.startBaitQty },
       equippedBait: DATA.ECONOMY.startBait,
+      potions: {},
+      activePotions: {},
       fish: {},
       locked: {},
       collection: {},
@@ -274,6 +293,26 @@
       s.equippedBait = stok[0] || DATA.ECONOMY.startBait;
     }
 
+    const potions = {};
+    for (const [id, count] of Object.entries(raw.potions || {})) {
+      if (!DATA.POTION_BY_ID[id]) continue;
+      const n = Math.max(0, Math.min(DATA.ECONOMY.maxPotionStack, Math.floor(Number(count) || 0)));
+      if (n > 0) potions[id] = n;
+    }
+    s.potions = potions;
+
+    const activePotions = {};
+    const sekarang = Date.now();
+    for (const kategori of KATEGORI_POTION) {
+      const rec = raw.activePotions && raw.activePotions[kategori];
+      if (!rec) continue;
+      const info = DATA.POTION_BY_ID[rec.id];
+      const endsAt = Number(rec.endsAt);
+      if (!info || info.cat !== kategori || !Number.isFinite(endsAt) || endsAt <= sekarang) continue;
+      activePotions[kategori] = { id: info.id, endsAt };
+    }
+    s.activePotions = activePotions;
+
     const fish = {};
     for (const [id, count] of Object.entries(raw.fish || {})) {
       if (!DATA.FISH_BY_ID[id]) continue;
@@ -333,8 +372,8 @@
     return out;
   }
 
-  function pilihRarity(luck) {
-    const w = DATA.hitungBobotRarity(luck);
+  function pilihRarity(luck, secretMult) {
+    const w = DATA.hitungBobotRarity(luck, secretMult);
     let roll = acakInt(10000);
     for (const rarity of DATA.RARITY_ORDER) {
       if (roll < w[rarity]) return rarity;
@@ -346,6 +385,29 @@
   function pilihIkan(rarity) {
     const list = DATA.FISH_BY_RARITY[rarity] || DATA.FISH_BY_RARITY.common;
     return list[acakInt(list.length)];
+  }
+
+  function pilihPotionDrop(rarity) {
+    const info = DATA.POTION_DROP;
+    const chance = (info && info.chanceByRarity && info.chanceByRarity[rarity]) || 0;
+    if (!(chance > 0) || Math.random() * 100 >= chance) return null;
+    const total = DATA.POTIONS.reduce((a, p) => a + (Number(p.bobot) || 0), 0);
+    if (total <= 0) return null;
+    let roll = Math.random() * total;
+    for (const p of DATA.POTIONS) {
+      roll -= Number(p.bobot) || 0;
+      if (roll < 0) return p;
+    }
+    return DATA.POTIONS[DATA.POTIONS.length - 1];
+  }
+
+  function catatPotionDrop(state, rarity) {
+    const potion = pilihPotionDrop(rarity);
+    if (!potion) return null;
+    const stok = Number(state.potions[potion.id]) || 0;
+    if (stok >= DATA.ECONOMY.maxPotionStack) return null;
+    state.potions[potion.id] = stok + 1;
+    return potion;
   }
 
   function beratAcak(fish) {
@@ -388,8 +450,8 @@
     return autoSellAktif(state) && !state.locked[fish.id] && fish.value < Number(state.autoSell.minPrice);
   }
 
-  function tangkapIkan(state, rod, luck, now) {
-    const rarity = pilihRarity(luck);
+  function tangkapIkan(state, rod, luck, now, secretMult) {
+    const rarity = pilihRarity(luck, secretMult);
     const fish = pilihIkan(rarity);
     const weight = beratAcak(fish);
     const sudahPunya = !!(state.collection[fish.id]);
@@ -413,11 +475,12 @@
     if (kenaAutoSell(state, fish)) {
       state.fish[fish.id] = (state.fish[fish.id] || 0) - 1;
       if (state.fish[fish.id] <= 0) delete state.fish[fish.id];
-      state.coins += fish.value;
-      state.stats.totalEarned += fish.value;
+      const koin = Math.round(fish.value * multiplierPotion(state, "coin", now));
+      state.coins += koin;
+      state.stats.totalEarned += koin;
       state.stats.autoSold += 1;
-      state.stats.autoSoldValue += fish.value;
-      autoSold = fish.value;
+      state.stats.autoSoldValue += koin;
+      autoSold = koin;
     }
 
     return { fish, rarity, weight, loss, isNew: !sudahPunya, autoSold };
@@ -484,7 +547,10 @@
       const rod = state.rods.find((r) => r.id === w.rodId);
       if (!rod || rod.durability <= 0) continue;
       if (state.activeCast && String(state.activeCast.rodId) === rod.id) continue;
-      const speed = kecepatanWorker(w.level);
+      const multWorker = multiplierPotion(state, "worker", now);
+      const multLuckWorker = multiplierPotion(state, "luck", now);
+      const speed = Math.max(60000, Math.round(kecepatanWorker(w.level) / multWorker));
+      const luckWorker = Math.round(((DATA.ROD_BY_ID[rod.id] && DATA.ROD_BY_ID[rod.id].luck) || 0) * multLuckWorker);
       if (!Number.isFinite(w.lastCatchAt) || w.lastCatchAt <= 0) w.lastCatchAt = now - speed;
       let jumlah = 0;
 
@@ -492,8 +558,7 @@
       // hasil AFK tetap diproses bertahap di tick berikutnya.
       while (now - w.lastCatchAt >= speed && rod.durability > 0 && jumlah < WORKER.maxCatchPerTick) {
         w.lastCatchAt += speed;
-        const infoRod = DATA.ROD_BY_ID[rod.id];
-        const tangkap = tangkapIkan(state, rod, (infoRod && infoRod.luck) || 0, now);
+        const tangkap = tangkapIkan(state, rod, luckWorker, now, multLuckWorker);
         w.catches += 1;
         w.earned += tangkap.fish.value;
         state.stats.workerCatches += 1;
@@ -607,9 +672,11 @@
 
       const windowMs = DATA.ECONOMY.strikeWindowBaseMs + ((infoRod && infoRod.tier) || 1) * DATA.ECONOMY.strikeWindowPerTierMs;
       const expiresAt = biteAt + windowMs + 1500;
-      const luck = ((infoRod && infoRod.luck) || 0) + (bait.luck || 0);
+      const luckDasar = ((infoRod && infoRod.luck) || 0) + (bait.luck || 0);
+      const multLuck = multiplierPotion(state, "luck", now);
+      const luck = Math.round(luckDasar * multLuck);
 
-      state.activeCast = { id: castId, biteAt, windowMs, expiresAt, rodId: rod.id, baitId: bait.id, luck };
+      state.activeCast = { id: castId, biteAt, windowMs, expiresAt, rodId: rod.id, baitId: bait.id, luck, secretMult: multLuck };
       state.updatedAt = Date.now();
       if (metaPack && metaPack.berubah) tx.set(metaPack.ref, metaPack.data, { merge: true });
       tx.set(ref, state);
@@ -618,6 +685,7 @@
         state,
         castId,
         luck,
+        secretMult: multLuck,
         windowMs,
         rodName: infoRod ? infoRod.name : "",
         baitName: bait.name,
@@ -636,9 +704,10 @@
         windowMs: hasil.windowMs,
         serverNow: Date.now(),
         luck: hasil.luck,
+        secretMult: hasil.secretMult,
         rodName: hasil.rodName,
         baitName: hasil.baitName,
-        odds: DATA.peluangRarity(hasil.luck),
+        odds: DATA.peluangRarity(hasil.luck, hasil.secretMult),
       },
       achievements: hasil.achievements,
       workerCatches: hasil.workerCatches,
@@ -701,7 +770,8 @@
         };
       }
 
-      const tangkap = tangkapIkan(state, rod, cast.luck, now);
+      const tangkap = tangkapIkan(state, rod, cast.luck, now, Number(cast.secretMult) || 1);
+      const potionDrop = catatPotionDrop(state, tangkap.rarity);
       const firstSlot = catatFirstCatch(tx, state, absen, metaPack, tangkap.rarity, tangkap.fish);
       state.totalValue = hitungTotalValue(state);
       state.activeCast = null;
@@ -720,6 +790,16 @@
         durability: rod.durability,
         isNew: tangkap.isNew,
         autoSold: tangkap.autoSold,
+        potionDrop: potionDrop ? {
+          id: potionDrop.id,
+          name: potionDrop.name,
+          cat: potionDrop.cat,
+          mult: potionDrop.mult,
+          icon: potionDrop.icon,
+          color: potionDrop.color,
+          soft: potionDrop.soft,
+          minutes: potionDrop.minutes,
+        } : null,
         firstSlot,
         achievements: pencapaian,
         workerCatches: ambil,
@@ -772,8 +852,9 @@
         sold.push({ fishId: id, name: fish.name, qty, value: total });
       }
 
-      state.coins += total;
-      state.stats.totalEarned += total;
+      const koinMasuk = Math.round(total * multiplierPotion(state, "coin", now));
+      state.coins += koinMasuk;
+      state.stats.totalEarned += koinMasuk;
       state.totalValue = hitungTotalValue(state);
       state.updatedAt = Date.now();
       const pencapaian = hitungPencapaianBaru(state);
@@ -782,7 +863,8 @@
       return {
         ok: true,
         sold,
-        total,
+        total: koinMasuk,
+        bonus: koinMasuk - total,
         achievements: pencapaian,
         workerCatches: ambil,
         state: stateClient(state),
@@ -1231,6 +1313,41 @@
     });
   }
 
+  async function aksiUsePotion(data) {
+    const absen = sesi(data);
+    const ref = refState(absen);
+    const potion = DATA.POTION_BY_ID[typeof data.potionId === "string" ? data.potionId : ""];
+    if (!potion) throw galat("Potion tidak ditemukan.", "invalid-argument");
+    return fs().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const state = bacaState(snap);
+      if (!(state.potions[potion.id] > 0)) throw galat("Potion ini tidak ada di Tas.");
+      tandaiPermintaan(state, data.requestId);
+      const now = Date.now();
+      const metaPack = await siapkanMeta(tx, state, false);
+      const ambil = prosesPekerja(tx, state, now, metaPack);
+
+      const lama = potionAktif(state, potion.cat, now);
+      const endsAt = now + potion.ms;
+      state.potions[potion.id] -= 1;
+      if (state.potions[potion.id] <= 0) delete state.potions[potion.id];
+      state.activePotions[potion.cat] = { id: potion.id, endsAt };
+      state.updatedAt = Date.now();
+      const pencapaian = ambil.length ? hitungPencapaianBaru(state) : [];
+      if (metaPack && metaPack.berubah) tx.set(metaPack.ref, metaPack.data, { merge: true });
+      tx.set(ref, state);
+      return {
+        ok: true,
+        potion,
+        endsAt,
+        replaced: !!lama,
+        achievements: pencapaian,
+        workerCatches: ambil,
+        state: stateClient(state),
+      };
+    });
+  }
+
   async function aksiWorkerTick(data) {
     const absen = sesi(data);
     const ref = refState(absen);
@@ -1269,6 +1386,7 @@
     if (action === "sell") return aksiSell(data);
     if (action === "buyRod") return aksiBuyRod(data);
     if (action === "buyBait") return aksiBuyBait(data);
+    if (action === "usePotion") return aksiUsePotion(data);
     if (action === "repair") return aksiRepair(data);
     if (action === "equip") return aksiEquip(data);
     if (action === "lock") return aksiLock(data);

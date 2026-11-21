@@ -4115,6 +4115,18 @@ const UPDATE_LOG = [
   {
     tanggal: "21/11/26",
     items: [
+      "Version 2.12.0 Peluang Dasar Ikan Secret Jadi 0,05% dan Bisa Naik sampai 0,1% dengan Luck Tinggi",
+      "Version 2.12.0 Worker Bisa Upgrade sampai 15 Menit per Ikan dan Bisa Punya 4 Worker",
+      "Version 2.12.0 Potion Didapat dari Hasil Mancing dan Langsung Masuk Tas, Tinggal Tekan Pakai",
+      "Version 2.12.0 Potion Bisa Tembus Batas: Luck x2 Bikin Secret 0,2%, Luck x3 Bikin 0,3%",
+      "Version 2.12.0 Potion Worker x2 Bikin Worker Level Maksimal 7,5 Menit per Ikan",
+      "Version 2.12.0 Durasi Potion 5, 10, 15, atau 30 Menit dengan Efek Luck, Worker, dan Koin",
+      "Version 2.12.0 Timer Potion Jalan di Tas, Area, dan Panel Worker",
+    ],
+  },
+  {
+    tanggal: "21/11/26",
+    items: [
       "Version 2.11.0 AI Chat 7.3 di Halaman Chat: Tanya Info Kelas atau Curhat Langsung Dibalas AI",
       "Version 2.11.0 Pakai Key Gemini yang Sama dengan Kisi Kisi, Tersimpan Cuma di HP Kamu",
       "Version 2.11.0 AI Tahu Data Kelas 7.3: Little Rondentia, Wali Kelas Pak Andrian, 32 Siswa",

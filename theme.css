@@ -810,6 +810,62 @@ html[data-theme="sage"]:not([data-theme="light"]) #game-fishing-view .fishing-le
   background: rgba(255, 255, 255, 0.65);
 }
 
+/* Potion. */
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-strip-card {
+  background: linear-gradient(120deg, var(--t-fish-tile), var(--t-fish-card));
+  border-color: var(--t-fish-tile-line);
+  border-left-color: var(--fish-teal);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-strip-icon {
+  background: var(--t-fish-card);
+  border-color: var(--t-fish-tile-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-strip-card strong {
+  color: var(--fish-deep);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-strip-card b {
+  color: var(--fish-teal);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-note {
+  background: var(--t-fish-tile);
+  border-color: var(--t-fish-tile-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row.potion-row {
+  border-left-color: var(--fish-teal);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-drop {
+  background: linear-gradient(120deg, var(--t-fish-tile), var(--t-fish-card));
+  border-color: var(--t-fish-tile-line);
+  border-left-color: var(--fish-teal);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-drop strong {
+  color: var(--fish-deep);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-drop small,
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-drop em {
+  color: var(--t-fish-accent-ink);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-art.is-potion {
+  background: var(--t-fish-tile);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-live {
+  color: var(--t-fish-accent-ink);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-potion-live.is-warn {
+  color: var(--t-fish-gold-ink);
+}
+
 /* ---------- tombol tema ---------- */
 
 .theme-toggle {
