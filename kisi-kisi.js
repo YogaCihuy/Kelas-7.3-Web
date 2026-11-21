@@ -800,14 +800,26 @@
 
   async function panggilGemini(parts, opsi) {
     const key = apiKey();
-    if (!key) throw new Error("API key Gemini belum diisi. Buka Pengaturan AI.");
+    if (!key) throw new Error("API key Gemini belum diisi.");
+    const contents = [];
+    if (opsi && Array.isArray(opsi.riwayat)) {
+      opsi.riwayat.forEach((m) => {
+        if (!m || !m.teks) return;
+        contents.push({ role: m.role === "model" ? "model" : "user", parts: [{ text: String(m.teks) }] });
+      });
+    }
+    contents.push({ role: "user", parts });
     const isi = {
-      contents: [{ role: "user", parts }],
+      contents,
       generationConfig: Object.assign(
-        { temperature: 0.35, maxOutputTokens: 8192 },
+        {
+          temperature: opsi && typeof opsi.temperature === "number" ? opsi.temperature : 0.35,
+          maxOutputTokens: (opsi && opsi.maxOutputTokens) || 8192,
+        },
         opsi && opsi.json ? { responseMimeType: "application/json" } : {}
       ),
     };
+    if (opsi && opsi.system) isi.systemInstruction = { parts: [{ text: String(opsi.system) }] };
     let model = (opsi && opsi.model) || modelAI();
     let hasil = await kirimGemini(model, key, isi);
     if (!hasil.res.ok && hasil.res.status === 404 && model !== DEFAULT_MODEL) {
@@ -1273,6 +1285,25 @@
   };
   window.kisiKisiAkunBerubah = function () {
     render();
+  };
+
+  // Dipakai juga oleh AI Chat 7.3 di chat.js (key & model yang sama).
+  window.geminiKelas73 = {
+    tersedia: function () {
+      return !!apiKey();
+    },
+    panjangKey: function () {
+      return apiKey().length;
+    },
+    simpanKey: function (teks) {
+      try {
+        localStorage.setItem(KEY_STORE, bersihKey(teks));
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+    panggil: panggilGemini,
   };
 
   if (document.readyState === "loading") {

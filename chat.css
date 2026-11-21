@@ -379,6 +379,189 @@
 .chat-send:hover { filter: brightness(1.06); }
 .chat-send:active { transform: translateY(2px); box-shadow: 0 2px 0 #1d5c3a; }
 
+/* ---------- AI Chat 7.3 ---------- */
+
+.chat-ai-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  background: linear-gradient(150deg, var(--t-active-a), var(--t-active-b));
+  border: 1.5px solid var(--emerald);
+  border-radius: 18px;
+  box-shadow: 0 4px 0 var(--t-card-edge);
+  text-align: left;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.chat-ai-card:hover { transform: translateY(-1px); filter: brightness(1.03); }
+
+.chat-ai-ikon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #f4fff8, #cdeed9);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  font-size: 1.3rem;
+  box-shadow: 0 5px 12px -7px rgba(18, 62, 52, 0.65);
+}
+
+.chat-ai-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-ai-main strong {
+  color: var(--forest);
+  font-size: 0.95rem;
+}
+
+.chat-ai-main small {
+  color: var(--muted);
+  font-size: 0.79rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-ai-tag {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--emerald);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.chat-ai-key-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--t-chip-line);
+  background: var(--t-surface);
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.chat-ai-key-btn:hover { color: var(--forest); border-color: var(--emerald); }
+
+.chat-ai-setup {
+  margin: auto;
+  max-width: 420px;
+  width: 100%;
+  padding: 1rem;
+  background: var(--t-surface);
+  border: 1.5px dashed var(--t-soft-line);
+  border-radius: 16px;
+  text-align: left;
+}
+
+.chat-ai-setup h4 {
+  margin: 0 0 0.3rem;
+  color: var(--forest);
+  font-size: 1rem;
+}
+
+.chat-ai-setup p {
+  margin: 0 0 0.7rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.chat-ai-key input {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--t-chip-line);
+  background: var(--t-soft-a);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.chat-ai-key input:focus { border-color: var(--emerald); }
+.chat-ai-key input::placeholder { color: var(--muted); }
+
+.chat-ai-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+}
+
+.chat-ai-link {
+  color: var(--emerald);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.chat-ai-link:hover { text-decoration: underline; }
+
+.chat-ai-warn {
+  margin: 0.5rem 0 0;
+  color: var(--t-danger-ink);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.chat-ai-typing {
+  align-self: flex-start;
+  display: flex;
+  gap: 4px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 16px;
+  border-bottom-left-radius: 5px;
+  background: var(--t-chip);
+  border: 1px solid var(--t-chip-line);
+}
+
+.chat-ai-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--emerald);
+  opacity: 0.35;
+  animation: chat-ai-blink 1s infinite;
+}
+
+.chat-ai-typing span:nth-child(2) { animation-delay: 0.15s; }
+.chat-ai-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes chat-ai-blink {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+.chat-ai-error {
+  align-self: center;
+  max-width: 90%;
+  margin: 0.2rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  background: var(--t-error-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-align: center;
+}
+
 /* ---------- badge tab navigasi ---------- */
 
 .chat-tab-badge {

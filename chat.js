@@ -6,9 +6,28 @@
   const CHAT_RIWAYAT_MAKS = 200;
   const CHAT_THREAD_MAKS = 120;
 
+  const AI_RIWAYAT_STORE = "kelas73-chat-ai-riwayat";
+  const AI_RIWAYAT_MAKS = 40;
+
+  // Data kelas untuk AI Chat 7.3. Ubah di sini kalau nanti naik ke kelas 8.
+  const AI_DATA_KELAS = {
+    nama: "Little Rondentia 7.3",
+    sekolah: "SMP Smart Cibinong",
+    tahunAjaran: "2026 - 2027",
+    jumlahSiswa: 32,
+    waliKelas: "Pak Andrian",
+    dibuatOleh: "Putu Yoga Pradhana Amarta",
+    linkOwner: "https://yogacihuy.github.io/YogaWeb/",
+  };
+
   let chatUser = null;
   let chatThreads = [];
   let chatAktif = null;
+  let chatAiAktif = false;
+  let chatAiSibuk = false;
+  let chatAiSetup = false;
+  let chatAiError = "";
+  let chatAiPesan = [];
   let chatUnsubThreads = null;
   let chatUnsubPesan = null;
   let chatTerpasang = false;
@@ -344,6 +363,245 @@
     }
   }
 
+  /* ---------------- AI Chat 7.3 ---------------- */
+
+  function aiApi() {
+    try {
+      return window.geminiKelas73 || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function aiSiap() {
+    const api = aiApi();
+    return !!(api && api.tersedia());
+  }
+
+  function aiMuat() {
+    try {
+      const raw = localStorage.getItem(AI_RIWAYAT_STORE);
+      const arr = raw ? JSON.parse(raw) : [];
+      chatAiPesan = Array.isArray(arr)
+        ? arr
+            .filter((m) => m && (m.role === "user" || m.role === "model") && typeof m.teks === "string")
+            .slice(-AI_RIWAYAT_MAKS)
+        : [];
+    } catch (err) {
+      chatAiPesan = [];
+    }
+  }
+
+  function aiSimpan() {
+    try {
+      localStorage.setItem(AI_RIWAYAT_STORE, JSON.stringify(chatAiPesan.slice(-AI_RIWAYAT_MAKS)));
+    } catch (err) {}
+  }
+
+  function aiSistem() {
+    const d = AI_DATA_KELAS;
+    return [
+      `Kamu "AI Chat 7.3", asisten ramah untuk siswa kelas 7.3 di ${d.sekolah}.`,
+      `Data kelas (tahun ajaran ${d.tahunAjaran}):`,
+      `- Nama kelas: ${d.nama}`,
+      `- Sekolah: ${d.sekolah}`,
+      `- Jumlah siswa: ${d.jumlahSiswa} orang`,
+      `- Wali kelas: ${d.waliKelas}`,
+      `- Dibuat oleh: ${d.dibuatOleh}`,
+      "",
+      "Aturan:",
+      "1. Pakai bahasa Indonesia santai dan ramah. Jawab ringkas (maksimal 6 kalimat) kecuali diminta detail.",
+      "2. Soal fakta kelas, pakai data di atas saja. Kalau tidak ada di data, bilang belum tahu dan jangan mengarang.",
+      `3. Kalau ditanya pembuat/owner, jawab dibuat oleh ${d.dibuatOleh}, lalu suruh buka profilnya di ${d.linkOwner}. Sebut link itu apa adanya dan jangan mengarang isi website-nya.`,
+      "4. Boleh jadi teman curhat soal kelas atau kehidupan. Dengar dengan empati, jangan menghakimi, dan beri saran praktis yang positif.",
+      `5. Kalau ceritanya berat (sedih banget, menyakiti diri, masalah keluarga besar), sarankan cerita ke wali kelas ${d.waliKelas}, orang tua, atau orang dewasa yang dipercaya.`,
+      "6. Jangan minta atau menyimpan data pribadi sensitif seperti password, alamat rumah, atau nomor HP.",
+      "7. Tolak dengan sopan topik 18+, kekerasan, atau hal berbahaya, lalu arahkan ke topik lain.",
+      '8. Kalau ditanya "kamu AI apa", jawab kamu AI Chat 7.3 yang jalan pakai Gemini.',
+    ].join("\n");
+  }
+
+  function aiSetupHtml() {
+    return `
+      <div class="chat-ai-setup">
+        <h4>Hubungkan AI dulu</h4>
+        <p>AI Chat 7.3 pakai Gemini. Tempel API key Gemini kamu (gratis). Key yang sama dengan Kisi Kisi otomatis kepakai dan cuma disimpan di HP ini.</p>
+        <label class="chat-ai-key">
+          <input id="chat-ai-key" type="password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Tempel API key Gemini...">
+        </label>
+        <p class="chat-ai-warn" id="chat-ai-key-warn" hidden></p>
+        <div class="chat-ai-actions">
+          <a class="chat-ai-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Dapat key gratis</a>
+          <button type="button" class="btn-primary" id="chat-ai-key-simpan">Simpan key</button>
+        </div>
+      </div>`;
+  }
+
+  function renderAi() {
+    const wrap = el("chat-pesan");
+    if (!wrap) return;
+    const dekatBawah = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 110;
+    let html = "";
+
+    if (chatAiSetup || !aiSiap()) html += aiSetupHtml();
+
+    if (!chatAiPesan.length && aiSiap() && !chatAiSetup) {
+      html += `<p class="chat-room-empty">Halo! Aku AI Chat 7.3. Kamu bisa tanya soal kelas 7.3 atau curhat apa aja. Obrolan ini cuma tersimpan di HP kamu.</p>`;
+    }
+
+    chatAiPesan.forEach((m) => {
+      const mine = m.role === "user";
+      html += `
+        <div class="chat-bubble-row ${mine ? "is-me" : "is-them"}">
+          <div class="chat-bubble">
+            <p>${esc(m.teks).replace(/\n/g, "<br>")}</p>
+            <time>${esc(jamTeks(m.at))}</time>
+          </div>
+        </div>`;
+    });
+
+    if (chatAiSibuk) {
+      html += `<div class="chat-ai-typing" aria-label="AI sedang mengetik"><span></span><span></span><span></span></div>`;
+    }
+    if (chatAiError) html += `<p class="chat-ai-error">${esc(chatAiError)}</p>`;
+
+    wrap.innerHTML = html;
+    if (dekatBawah || chatAiSibuk) {
+      requestAnimationFrame(() => {
+        wrap.scrollTop = wrap.scrollHeight;
+      });
+    }
+  }
+
+  function bukaAi() {
+    if (!chatUser) {
+      tampilkanChat();
+      return;
+    }
+    hentikanPesan();
+    chatAktif = null;
+    chatAiAktif = true;
+    chatAiSetup = !aiSiap();
+    chatAiError = "";
+
+    const list = el("chat-list-view");
+    const room = el("chat-room-view");
+    if (list) list.hidden = true;
+    if (room) room.hidden = false;
+
+    renderRoomHead();
+    renderThreads();
+    renderOrang();
+    renderAi();
+
+    const input = el("chat-input");
+    if (input) {
+      input.value = "";
+      input.placeholder = "Tanya soal kelas atau curhat...";
+      input.disabled = !aiSiap();
+      autoTinggi(input);
+      try {
+        input.focus({ preventScroll: true });
+      } catch (err) {
+        input.focus();
+      }
+    }
+    bunyi("buttonClick");
+  }
+
+  function simpanKeyAi() {
+    const inp = el("chat-ai-key");
+    const warn = el("chat-ai-key-warn");
+    const api = aiApi();
+    const salah = (pesan) => {
+      if (warn) {
+        warn.hidden = false;
+        warn.textContent = pesan;
+      }
+    };
+    if (!api) {
+      salah("Modul AI belum siap. Refresh halaman dulu.");
+      return;
+    }
+    const key = String((inp && inp.value) || "").replace(/\s+/g, "");
+    if (!key) {
+      salah("Tempel key-nya dulu ya.");
+      return;
+    }
+    if (key.length < 30) {
+      salah(`Key cuma ${key.length} karakter, sepertinya kepotong. Paste ulang ya.`);
+      return;
+    }
+    if (!api.simpanKey(key)) {
+      salah("Browser menolak menyimpan key.");
+      return;
+    }
+    chatAiSetup = false;
+    chatAiError = "";
+    renderRoomHead();
+    renderAi();
+    const input = el("chat-input");
+    if (input) {
+      input.disabled = false;
+      try {
+        input.focus({ preventScroll: true });
+      } catch (err) {
+        input.focus();
+      }
+    }
+    bunyi("buttonClick");
+  }
+
+  async function kirimAi(e) {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    if (!chatAiAktif || chatAiSibuk) return;
+    const input = el("chat-input");
+    const teks = String((input && input.value) || "").trim().slice(0, CHAT_PESAN_MAKS);
+    if (!teks) return;
+
+    const api = aiApi();
+    if (!api || !api.tersedia()) {
+      chatAiSetup = true;
+      renderAi();
+      return;
+    }
+
+    chatAiPesan.push({ role: "user", teks, at: Date.now() });
+    chatAiPesan = chatAiPesan.slice(-AI_RIWAYAT_MAKS);
+    aiSimpan();
+    if (input) {
+      input.value = "";
+      autoTinggi(input);
+    }
+    chatAiSibuk = true;
+    chatAiError = "";
+    renderAi();
+
+    const riwayat = chatAiPesan
+      .slice(0, -1)
+      .slice(-20)
+      .map((m) => ({ role: m.role, teks: m.teks }));
+
+    try {
+      const balas = await api.panggil([{ text: teks }], {
+        system: aiSistem(),
+        riwayat,
+        temperature: 0.8,
+        maxOutputTokens: 1200,
+      });
+      chatAiPesan.push({ role: "model", teks: balas, at: Date.now() });
+      chatAiPesan = chatAiPesan.slice(-AI_RIWAYAT_MAKS);
+      aiSimpan();
+    } catch (err) {
+      chatAiError = String((err && err.message) || err || "AI gagal membalas. Coba lagi.");
+      if (/api key/i.test(chatAiError)) chatAiSetup = true;
+      bunyi("errorSound");
+    } finally {
+      chatAiSibuk = false;
+      renderAi();
+    }
+  }
+
   function renderThreads() {
     const wrap = el("chat-threads");
     if (!wrap) return;
@@ -487,6 +745,21 @@
   }
 
   function renderRoomHead() {
+    const ganti = el("btn-chat-ai-key");
+    if (chatAiAktif) {
+      const av = el("chat-room-avatar");
+      if (av) {
+        av.innerHTML = "&#10024;";
+        av.style.setProperty("--chat-hue", "150");
+      }
+      const judul = el("chat-room-nama");
+      if (judul) judul.textContent = "AI Chat 7.3";
+      const status = el("chat-room-status");
+      if (status) status.textContent = aiSiap() ? "Asisten kelas · siap bantu" : "Asisten kelas · belum dihubungkan";
+      if (ganti) ganti.hidden = false;
+      return;
+    }
+    if (ganti) ganti.hidden = true;
     if (!chatAktif) return;
     const nama = namaSiswa(chatAktif.absen);
     const av = el("chat-room-avatar");
@@ -528,6 +801,9 @@
     if (!lawan || lawan === Number(chatUser.absen)) return;
 
     hentikanPesan();
+    chatAiAktif = false;
+    chatAiSetup = false;
+    chatAiError = "";
     chatAktif = { absen: lawan };
     const list = el("chat-list-view");
     const room = el("chat-room-view");
@@ -542,6 +818,8 @@
 
     const input = el("chat-input");
     if (input) {
+      input.disabled = false;
+      input.placeholder = "Tulis pesan...";
       input.value = "";
       autoTinggi(input);
       try {
@@ -556,6 +834,14 @@
   function tutupRuang() {
     hentikanPesan();
     chatAktif = null;
+    chatAiAktif = false;
+    chatAiSetup = false;
+    chatAiError = "";
+    const input = el("chat-input");
+    if (input) {
+      input.disabled = false;
+      input.placeholder = "Tulis pesan...";
+    }
     const list = el("chat-list-view");
     const room = el("chat-room-view");
     if (list) list.hidden = false;
@@ -710,6 +996,7 @@
     perbaruiBarisNotif();
     mintaIzinNotifChat();
     sembunyikanToastChat();
+    if (chatAiAktif) renderAi();
   }
 
   function chatAkunBerubah(user) {
@@ -722,6 +1009,9 @@
       hentikanPesan();
       chatThreads = [];
       chatAktif = null;
+      chatAiAktif = false;
+      chatAiSetup = false;
+      chatAiError = "";
       chatTahu.clear();
       chatTahuSiap = false;
       sembunyikanToastChat();
@@ -740,6 +1030,9 @@
     if (absenLama !== absenBaru) {
       hentikanPesan();
       chatAktif = null;
+      chatAiAktif = false;
+      chatAiSetup = false;
+      chatAiError = "";
       chatTahu.clear();
       chatTahuSiap = false;
       sembunyikanToastChat();
@@ -773,6 +1066,19 @@
     if (app) {
       app.addEventListener("click", (e) => {
         const target = e.target;
+        if (target.closest("#chat-ai-open")) {
+          bukaAi();
+          return;
+        }
+        if (target.closest("#chat-ai-key-simpan")) {
+          simpanKeyAi();
+          return;
+        }
+        if (target.closest("#btn-chat-ai-key")) {
+          chatAiSetup = true;
+          renderAi();
+          return;
+        }
         const thread = target.closest("[data-chat-thread]");
         if (thread) {
           bukaRuang(thread.getAttribute("data-chat-thread"));
@@ -785,10 +1091,21 @@
         }
         if (target.closest("#btn-chat-back")) tutupRuang();
       });
+      app.addEventListener("keydown", (e) => {
+        if (e.target && e.target.id === "chat-ai-key" && e.key === "Enter") {
+          e.preventDefault();
+          simpanKeyAi();
+        }
+      });
     }
 
     const form = el("form-chat");
-    if (form) form.addEventListener("submit", kirimPesan);
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        if (chatAiAktif) kirimAi(e);
+        else kirimPesan(e);
+      });
+    }
 
     const notifBtn = el("btn-chat-notif");
     if (notifBtn) {
@@ -817,7 +1134,8 @@
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
           e.preventDefault();
-          kirimPesan();
+          if (chatAiAktif) kirimAi();
+          else kirimPesan();
         }
       });
     }
@@ -828,6 +1146,7 @@
 
   function initChat() {
     pasangEvent();
+    aiMuat();
     if (typeof currentUser !== "undefined" && currentUser) chatAkunBerubah(currentUser);
     else chatAkunBerubah(null);
   }

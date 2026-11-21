@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="guess-color.css?v=3">
 <link rel="stylesheet" href="blockblast.css?v=3">
 <link rel="stylesheet" href="sudoku.css?v=1">
-<link rel="stylesheet" href="chat.css?v=3">
+<link rel="stylesheet" href="chat.css?v=4">
 <link rel="stylesheet" href="fishing.css?v=2">
 <link rel="stylesheet" href="tableverse.css?v=10">
 <link rel="stylesheet" href="kisi-kisi.css?v=5">
@@ -317,6 +317,14 @@
             <button type="button" id="btn-chat-notif" class="btn-secondary">Aktifkan</button>
           </div>
           <div id="chat-list-view" class="chat-list-view">
+            <button type="button" class="chat-ai-card" id="chat-ai-open">
+              <span class="chat-ai-ikon" aria-hidden="true">&#10024;</span>
+              <span class="chat-ai-main">
+                <strong>AI Chat 7.3</strong>
+                <small>Tanya soal kelas 7.3 atau curhat, dibalas AI</small>
+              </span>
+              <span class="chat-ai-tag">AI</span>
+            </button>
             <label class="chat-search">
               <span aria-hidden="true">&#128269;</span>
               <input id="chat-search" type="search" placeholder="Cari nama teman..." autocomplete="off" aria-label="Cari teman">
@@ -337,6 +345,7 @@
                 <strong id="chat-room-nama">-</strong>
                 <small id="chat-room-status">Percakapan privat</small>
               </div>
+              <button id="btn-chat-ai-key" class="chat-ai-key-btn" type="button" hidden>Ganti key</button>
             </div>
             <div id="chat-pesan" class="chat-pesan" aria-live="polite"></div>
             <form id="form-chat" class="chat-form">
@@ -729,8 +738,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.10.0</button>
-    <button class="footer-link" type="button" data-open-updates>Last Update (20/11/26)</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.11.0</button>
+    <button class="footer-link" type="button" data-open-updates>Last Update (21/11/26)</button>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -1207,10 +1216,10 @@
 <script src="tableverse-local.js?v=5"></script>
 <script src="tableverse-stick.js?v=2"></script>
 <script src="tableverse.js?v=10"></script>
-<script src="kisi-kisi.js?v=5"></script>
+<script src="kisi-kisi.js?v=6"></script>
 <script src="blockblast.js?v=5"></script>
 <script src="sudoku.js?v=1"></script>
-<script src="chat.js?v=3"></script>
+<script src="chat.js?v=4"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
 </html>

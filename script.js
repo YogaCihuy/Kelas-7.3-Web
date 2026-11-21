@@ -4113,6 +4113,15 @@ async function simpanGameProfil(e) {
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
   {
+    tanggal: "21/11/26",
+    items: [
+      "Version 2.11.0 AI Chat 7.3 di Halaman Chat: Tanya Info Kelas atau Curhat Langsung Dibalas AI",
+      "Version 2.11.0 Pakai Key Gemini yang Sama dengan Kisi Kisi, Tersimpan Cuma di HP Kamu",
+      "Version 2.11.0 AI Tahu Data Kelas 7.3: Little Rondentia, Wali Kelas Pak Andrian, 32 Siswa",
+      "Version 2.11.0 Riwayat Obrolan AI Tersimpan di HP Biar Bisa Dilanjut Kapan Aja",
+    ],
+  },
+  {
     tanggal: "20/11/26",
     items: [
       "Version 2.10.0 Tab Baru Kisi Kisi: Materi Belajar Rapi per Kategori",
