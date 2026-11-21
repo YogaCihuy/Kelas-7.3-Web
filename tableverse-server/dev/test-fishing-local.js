@@ -386,6 +386,20 @@ async function tangkap(absen) {
   cek(tickSisa1.catches.length === 30, "tick pertama memproses 30 hasil AFK", String(tickSisa1.catches.length));
   cek(tickSisa2.catches.length === 2, "sisa hasil AFK tidak hilang setelah batas per tick", String(tickSisa2.catches.length));
 
+  // Worker juga ikut menjatuhkan potion seperti pemain.
+  Math.random = () => 0;
+  const nowPotionW = Date.now();
+  const stPotionW = db.__get("fishing", "2");
+  stPotionW.potions = {};
+  stPotionW.rods.find((r) => r.id === "karbon").durability = 100;
+  stPotionW.workers.find((w) => w.id === w1id).lastCatchAt = nowPotionW - (900000 + 5000);
+  db.__set("fishing", "2", stPotionW);
+  const tickPotionW = await panggil(2, "workerTick");
+  Math.random = RANDOM_ASLI;
+  const dariW1 = tickPotionW.catches.filter((c) => c.workerId === w1id);
+  cek(dariW1.length === 1 && !!dariW1[0].potionId, "tangkapan worker bisa berisi potion", dariW1.map((c) => c.potionId).join(","));
+  cek(Object.keys(tickPotionW.state.potions).length >= 1, "potion dari tangkapan worker masuk Tas");
+
   // ── POTION ────────────────────────────────────────
   const stP = db.__get("fishing", "1");
   stP.coins = 50000;

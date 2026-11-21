@@ -44,6 +44,9 @@
     tickTimer: null,
     terakhirTickWorker: 0,
     terakhirSyncPotion: 0,
+    autoPotion: false,
+    autoPotionBusy: false,
+    autoPotionTimer: null,
   };
 
   let artSeq = 0;
@@ -332,6 +335,7 @@
     simpanRingkas();
     perbaruiHeader();
     if (FC.aktif && !FC.tahanRender && !(FC.seq && ["waiting", "bite", "reeling"].includes(FC.seq.phase))) render();
+    jadwalkanAutoPotion();
   }
 
   function perbaruiHeader() {
@@ -467,6 +471,68 @@
     try { return localStorage.getItem(TOKEN_KEY(absen)) || ""; } catch (err) { return ""; }
   }
 
+  // Pengaturan Auto Pakai Potion disimpan per akun di perangkat. Tidak perlu
+  // field baru di Firestore, jadi tidak ada rules tambahan yang harus publish.
+  function autoPotionKey(absen) { return `kelas73-fishing-autopotion-${absen}`; }
+  function muatAutoPotion(absen) {
+    try { FC.autoPotion = localStorage.getItem(autoPotionKey(absen)) === "1"; } catch (err) { FC.autoPotion = false; }
+  }
+  function simpanAutoPotion() {
+    if (!FC.absen) return;
+    try { localStorage.setItem(autoPotionKey(FC.absen), FC.autoPotion ? "1" : "0"); } catch (err) { /* ignore */ }
+  }
+  function jadwalkanAutoPotion() {
+    if (!FC.autoPotion || !FC.aktif || !FC.state || FC.autoPotionBusy) return;
+    if (FC.autoPotionTimer) clearTimeout(FC.autoPotionTimer);
+    FC.autoPotionTimer = setTimeout(() => {
+      FC.autoPotionTimer = null;
+      pakaiPotionOtomatis();
+    }, 400);
+  }
+  function hentikanAutoPotion() {
+    if (FC.autoPotionTimer) clearTimeout(FC.autoPotionTimer);
+    FC.autoPotionTimer = null;
+    FC.autoPotionBusy = false;
+  }
+  async function pakaiPotionOtomatis() {
+    if (!FC.autoPotion || !FC.aktif || !FC.state || FC.autoPotionBusy || FC.aksi) return;
+    FC.autoPotionBusy = true;
+    try {
+      for (const cat of ["luck", "worker", "coin"]) {
+        if (!FC.autoPotion) return;
+        if (potionAktif(cat)) continue;
+        const kandidat = daftarPotion()
+          .filter((p) => p.cat === cat && stokPotion(p.id) > 0)
+          .sort((a, b) => b.minutes - a.minutes || b.mult - a.mult)[0];
+        if (!kandidat) continue;
+        const res = await api("usePotion", {
+          absen: FC.absen, token: FC.token, potionId: kandidat.id, requestId: reqId(),
+        });
+        if (res && res.state) terapkanState(res.state);
+        if (res) toast(`⚡ Auto pakai <b>${esc(kandidat.name)}</b>`, "ok", 3200);
+      }
+    } catch (err) {
+      console.warn("Auto pakai potion gagal:", err);
+    } finally {
+      FC.autoPotionBusy = false;
+      if (FC.autoPotion && FC.aktif) jadwalkanAutoPotionSaatSelesai();
+    }
+  }
+  function jadwalkanAutoPotionSaatSelesai() {
+    const menunggu = daftarPotion()
+      .filter((p) => stokPotion(p.id) > 0)
+      .map((p) => potionAktif(p.cat))
+      .filter(Boolean)
+      .reduce((min, a) => Math.min(min, a.endsAt), Infinity);
+    if (!Number.isFinite(menunggu)) return;
+    const jeda = Math.max(1000, Math.min(menunggu - serverNow() + 500, 30 * 60 * 1000));
+    if (FC.autoPotionTimer) clearTimeout(FC.autoPotionTimer);
+    FC.autoPotionTimer = setTimeout(() => {
+      FC.autoPotionTimer = null;
+      pakaiPotionOtomatis();
+    }, jeda);
+  }
+
   /* ================= CATALOG & SESSION ================= */
   async function muatKatalogServer() {
     const res = await api("catalog");
@@ -522,6 +588,7 @@
     const res = await api("ensure", { absen, password, token: lama });
     if (!res || !res.ok) throw new Error("Sesi mancing ditolak.");
     FC.absen = absen;
+    muatAutoPotion(absen);
     if (res.token) simpanToken(res.token);
     else if (lama) simpanToken(lama);
     if (res.serverNow) FC.serverOffset = Number(res.serverNow) - Date.now();
@@ -552,6 +619,7 @@
         simpanRingkas();
         perbaruiHeader();
         if (FC.aktif && !FC.tahanRender && !(FC.seq && ["waiting", "bite", "reeling"].includes(FC.seq.phase))) render();
+        jadwalkanAutoPotion();
       }, (err) => console.warn("Fishing state listener:", err));
       FC.subs.push(unState);
 
@@ -1622,6 +1690,16 @@
     }).join("")}</div>`;
   }
 
+  function autoPotionToggle() {
+    return `<label class="fishing-auto-potion">
+        <span class="fishing-auto-potion-text">
+          <b>⚡ Auto Pakai Potion</b>
+          <small>Potion dari tarikanmu maupun tangkapan Worker langsung dipakai kalau slot kategorinya kosong.</small>
+        </span>
+        <input class="fishing-auto-potion-check" type="checkbox" data-fish-act="toggle-auto-potion" ${FC.autoPotion ? "checked" : ""}>
+      </label>`;
+  }
+
   function tasPotion() {
     const items = daftarPotion()
       .filter((p) => stokPotion(p.id) > 0)
@@ -1629,17 +1707,17 @@
     const aktif = potionStrip();
     const infoDrop = `<div class="fishing-potion-note">
         <span>🎣</span>
-        <p>Potion didapat dari tangkapan ikan — makin langka ikannya, makin besar peluangnya. Durasi 5–30 menit. Potion langsung masuk Tas; tekan <b>Pakai</b> untuk mengaktifkan. Satu potion aktif per kategori.</p>
+        <p>Potion didapat dari tangkapanmu atau tangkapan Worker — makin langka ikannya, makin besar peluangnya. Durasi 5–30 menit. Potion langsung masuk Tas; tekan <b>Pakai</b> untuk mengaktifkan, atau nyalakan <b>Auto Pakai</b>. Satu potion aktif per kategori.</p>
       </div>`;
     if (!items.length) {
-      return `${aktif}${infoDrop}
+      return `${aktif}${autoPotionToggle()}${infoDrop}
         <div class="fishing-empty-card">
           <span>🧪</span><h4>Belum punya Potion</h4>
-          <p>Terus mancing untuk menemukan Potion Luck x2/x3, Worker x2, dan Koin x2.</p>
+          <p>Terus mancing atau biarkan Worker mancing untuk menemukan Potion Luck x2/x3, Worker x2, dan Koin x2.</p>
           <button class="btn-primary" type="button" data-fish-nav="area">Mulai Mancing</button>
         </div>`;
     }
-    return `${aktif}${infoDrop}
+    return `${aktif}${autoPotionToggle()}${infoDrop}
       <div class="fishing-list">${items.map((p) => {
         const aktifKat = potionAktif(p.cat);
         const sedang = aktifKat && aktifKat.id === p.id;
@@ -2015,14 +2093,16 @@
 
   function beritahuWorker(list) {
     if (!list || !list.length) return;
+    const drops = list.filter((c) => c.potionId);
     if (list.length === 1) {
       const c = list[0];
-      toast(`👷 <b>${esc(c.workerName)}</b> menangkap ${esc(c.fishName)}${c.autoSold ? ` · 🤖 auto sell +💰 ${angka(c.autoSold)}` : ""}`, "ok", 3800);
+      const info = c.potionId ? infoPotion(c.potionId) : null;
+      toast(`👷 <b>${esc(c.workerName)}</b> menangkap ${esc(c.fishName)}${c.autoSold ? ` · 🤖 auto sell +💰 ${angka(c.autoSold)}` : ""}${info ? ` · 🧪 ${esc(info.name)}` : ""}`, "ok", 3800);
       return;
     }
     const auto = list.filter((c) => Number(c.autoSold) > 0);
     const nilai = auto.reduce((a, c) => a + Number(c.autoSold), 0);
-    toast(`👷 Worker menangkap <b>${angka(list.length)} ikan</b>${auto.length ? ` · 🤖 ${angka(auto.length)} auto sell (💰 ${angka(nilai)})` : ""}`, "ok", 4400);
+    toast(`👷 Worker menangkap <b>${angka(list.length)} ikan</b>${auto.length ? ` · 🤖 ${angka(auto.length)} auto sell (💰 ${angka(nilai)})` : ""}${drops.length ? ` · 🧪 +${angka(drops.length)} Potion` : ""}`, "ok", 4400);
   }
 
   function tampilkanPengumuman(a) {
@@ -2879,6 +2959,15 @@
       case "save-autosell":
         simpanAutoSell();
         break;
+      case "toggle-auto-potion":
+        FC.autoPotion = !!el.checked;
+        simpanAutoPotion();
+        toast(FC.autoPotion
+          ? "⚡ Auto Pakai Potion aktif — potion baru langsung dipakai."
+          : "Auto Pakai Potion dimatikan.", FC.autoPotion ? "ok" : "info");
+        render();
+        if (FC.autoPotion) jadwalkanAutoPotion();
+        break;
       case "hire-worker":
         bukaFormWorker("");
         break;
@@ -2959,6 +3048,7 @@
   }
 
   function tutupGame() {
+    hentikanAutoPotion();
     if (FC.seq && ["waiting", "bite", "casting", "reeling"].includes(FC.seq.phase)) {
       bersihkanTimer();
       FC.seq = null;
@@ -2978,6 +3068,7 @@
 
   function jedaGame() {
     bersihkanTimer();
+    hentikanAutoPotion();
     FC.seq = null;
     FC.tahanRender = false;
     FC.aktif = false;
@@ -2994,9 +3085,11 @@
     const absen = currentUser ? Number(currentUser.absen) : null;
     if (absen && absen === FC.absen && FC.aktif) return;
     bersihkanTimer();
+    hentikanAutoPotion();
     hentikanTicker();
     hentikanLangganan();
     tutupModal();
+    FC.autoPotion = false;
     FC.state = null;
     FC.board = null;
     FC.meta = null;

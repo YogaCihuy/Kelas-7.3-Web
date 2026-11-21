@@ -564,6 +564,7 @@
       while (now - w.lastCatchAt >= speed && rod.durability > 0 && jumlah < WORKER.maxCatchPerTick) {
         w.lastCatchAt += speed;
         const tangkap = tangkapIkan(state, rod, luckWorker, now, multLuckWorker);
+        const potion = catatPotionDrop(state, tangkap.rarity);
         w.catches += 1;
         w.earned += tangkap.fish.value;
         state.stats.workerCatches += 1;
@@ -578,6 +579,8 @@
           value: tangkap.fish.value,
           autoSold: tangkap.autoSold,
           firstSlot: slot,
+          potionId: potion ? potion.id : "",
+          potionName: potion ? potion.name : "",
         });
         jumlah += 1;
       }

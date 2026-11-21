@@ -839,6 +839,25 @@ html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-list-row.
   border-left-color: var(--fish-teal);
 }
 
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-auto-potion {
+  background: var(--t-fish-tile);
+  border-color: var(--t-fish-tile-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-auto-potion-text b {
+  color: var(--fish-deep);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-auto-potion-check {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--t-fish-tile-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-auto-potion-check:checked {
+  background: var(--fish-teal);
+  border-color: var(--fish-teal);
+}
+
 html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-result-drop {
   background: linear-gradient(120deg, var(--t-fish-tile), var(--t-fish-card));
   border-color: var(--t-fish-tile-line);
