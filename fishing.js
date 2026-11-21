@@ -2907,6 +2907,7 @@
     }
     if (FC.seq && FC.seq.phase === "result") FC.seq = null;
     FC.aktif = false;
+    FC.membuka = false;
     FC.aksi = false;
     FC.tahanRender = false;
     FC.resumeId = null;
@@ -2922,6 +2923,7 @@
     FC.seq = null;
     FC.tahanRender = false;
     FC.aktif = false;
+    FC.membuka = false;
     FC.aksi = false;
     FC.resumeId = null;
     hentikanLangganan();
@@ -2945,6 +2947,7 @@
     FC.token = "";
     FC.seq = null;
     FC.aksi = false;
+    FC.membuka = false;
     FC.tahanRender = false;
     FC.resumeId = null;
     FC.errMsg = "";

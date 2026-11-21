@@ -522,7 +522,11 @@ async function tangkap(absen) {
   cek(!exp.state.activePotions.coin && !exp.state.activePotions.worker, "potion kedaluwarsa dibersihkan");
   cek(exp.state.activePotions.luck && exp.state.activePotions.luck.id === "luck-2-10", "potion lain yang masih aktif tetap ada");
 
+  const stLama = db.__get("fishing", "2");
+  stLama.fieldVersiLama = "sisa";
+  db.__set("fishing", "2", stLama);
   const akhir = await panggil(2, "ensure");
+  cek(!("fieldVersiLama" in akhir.state), "field sisa versi lama dibuang saat ensure");
   cek(akhir.state.workers.length === 4, "worker tersimpan setelah ensure ulang");
   cek(akhir.state.autoSell.enabled === true, "auto sell tersimpan setelah ensure ulang");
 

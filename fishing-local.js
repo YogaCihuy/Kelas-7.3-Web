@@ -223,7 +223,12 @@
   function lengkapiState(raw) {
     const absen = Number(raw.absen);
     const dasar = stateAwal(absen, raw.name);
-    const s = { ...dasar, ...raw };
+    // Hanya salin field yang memang dikenal. Field sisa versi lama kalau ikut
+    // ditulis balik akan ditolak rules dan bikin Fishing gagal dibuka.
+    const s = { ...dasar };
+    for (const k of Object.keys(dasar)) {
+      if (Object.prototype.hasOwnProperty.call(raw, k)) s[k] = raw[k];
+    }
     s.absen = absen;
     s.name = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : dasar.name;
     s.coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
