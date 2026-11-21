@@ -2872,6 +2872,20 @@
   }
 
   /* ================= BUKA / TUTUP / AKUN ================= */
+  // Pesan bawaan Firestore ("Missing or insufficient permissions") bikin
+  // bingung; diterjemahkan supaya penyebabnya langsung kelihatan.
+  function pesanGalat(err) {
+    const kode = String((err && err.code) || "").toLowerCase();
+    const teks = String((err && err.message) || "");
+    if (kode.includes("permission-denied") || /insufficient permissions|permission denied/i.test(teks)) {
+      return "Firestore menolak akses. Firestore Rules Fishing belum di-Publish ke project kelas73-web (disimpan saja belum cukup).";
+    }
+    if (kode.includes("unavailable") || /network|offline|failed to fetch|timeout|unreachable/i.test(teks)) {
+      return "Tidak bisa menghubungi Firestore. Cek koneksi/jaringan lalu coba lagi.";
+    }
+    return teks || "Gagal membuka Fishing.";
+  }
+
   async function bukaGame(paksa) {
     if (FC.membuka && !paksa) return;
     FC.aktif = true;
@@ -2895,7 +2909,7 @@
       if (FC.panel === "area" && FC.state && FC.state.activeCast) lanjutkanCastAktif();
     } catch (err) {
       FC.membuka = false;
-      FC.errMsg = err.message || "Gagal membuka Fishing.";
+      FC.errMsg = pesanGalat(err);
       render();
     }
   }
