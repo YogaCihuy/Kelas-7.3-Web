@@ -1489,6 +1489,7 @@ body.fishing-modal-open { overflow: hidden; }
 .fishing-field > span { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .fishing-field input, .fishing-field select { width: 100%; border: 1px solid var(--fish-line); border-radius: 11px; padding: 0.55rem 0.65rem; font-size: 0.86rem; color: var(--fish-ink); background: #fbfdfd; }
 .fishing-field input:focus, .fishing-field select:focus { outline: 2px solid #9fdbd7; outline-offset: 1px; border-color: #9fdbd7; background: #fff; }
+.fishing-form-error { margin: 0 0 0.7rem; padding: 0.55rem 0.7rem; border-radius: 11px; border: 1px solid #f3c9c3; background: #fff4f2; color: #a5382c; font-size: 0.8rem; line-height: 1.45; }
 
 .fishing-look-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
 .fishing-look-btn { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; border: 1px solid var(--fish-line); background: #fff; border-radius: 12px; padding: 0.42rem 0.25rem; color: var(--muted); font-size: 0.62rem; font-weight: 700; transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease; }

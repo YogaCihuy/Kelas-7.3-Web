@@ -10,7 +10,7 @@
 
   const REGION = "us-central1";
   const FUNCTION_NAME = "fishingApi";
-  const CAT_KEY = "kelas73-fishing-catalog-v5";
+  const CAT_KEY = "kelas73-fishing-catalog-v6";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
 
@@ -357,7 +357,12 @@
   }
 
   function infoWorker() { return (FC.cat && FC.cat.worker) || {}; }
-  function workerMax() { return Number(infoWorker().max) || 4; }
+  function workerMax() {
+    const dariKatalog = Number(infoWorker().max) || 0;
+    let dariMesin = 0;
+    try { dariMesin = Number(window.FishingLocal && window.FishingLocal.workerLimit) || 0; } catch (err) { dariMesin = 0; }
+    return Math.max(dariKatalog, dariMesin) || 4;
+  }
   function workerPrice() { return Number(infoWorker().price) || 3000; }
   function workerLevelMaks() { return Number(infoWorker().maxLevel) || 9; }
   function kecepatanWorker(level) {
@@ -472,7 +477,29 @@
     return FC.cat;
   }
 
+  // Di mode lokal katalog selalu dibangun ulang dari mesin yang termuat,
+  // bukan dari cache localStorage. Cache lama (mis. batas Worker masih 3
+  // atau belum ada Potion) bikin fitur baru tidak muncul walau file sudah
+  // diperbarui.
+  function katalogMesin() {
+    try {
+      const fl = window.FishingLocal;
+      if (fl && typeof fl.katalog === "function") {
+        const segar = fl.katalog();
+        if (segar && segar.version) return segar;
+      }
+    } catch (err) { /* pakai jalur cache/server */ }
+    return null;
+  }
+
   async function pastikanKatalog() {
+    const segar = katalogMesin();
+    if (segar) {
+      FC.cat = segar;
+      petaKatalog();
+      try { localStorage.setItem(CAT_KEY, JSON.stringify(FC.cat)); } catch (err) { /* ignore */ }
+      return FC.cat;
+    }
     if (!FC.cat) {
       try {
         const cached = JSON.parse(localStorage.getItem(CAT_KEY) || "null");
@@ -483,6 +510,7 @@
       } catch (err) { /* cache rusak */ }
     }
     if (!FC.cat) await muatKatalogServer();
+    return FC.cat;
   }
 
   async function bukaSesi(forceToken) {
@@ -2022,7 +2050,7 @@
   }
 
   /* ================= AKSI UMUM ================= */
-  async function jalankanAksi(el, tugas) {
+  async function jalankanAksi(el, tugas, onGagal) {
     if (FC.aksi) return null;
     FC.aksi = true;
     if (el) {
@@ -2036,6 +2064,9 @@
       if (res && res.workerCatches && res.workerCatches.length) beritahuWorker(res.workerCatches);
       return res;
     } catch (err) {
+      if (typeof onGagal === "function") {
+        try { onGagal(err); } catch (err2) { /* tetap tampilkan toast */ }
+      }
       toast(esc(err.message || "Aksi gagal."), "error");
       if (String(err.code || "").includes("unauthenticated")) {
         try { await bukaSesi(true); } catch (err2) { /* tampil pesan dari error berikutnya */ }
@@ -2534,11 +2565,21 @@
           </div>
         </div>
         <input type="hidden" id="worker-look" value="${esc(w.look)}">
+        <p class="fishing-form-error" id="worker-error" role="alert" hidden></p>
         <div class="fishing-result-actions">
           <button class="btn-primary" type="button" data-fish-act="${worker ? "worker-save" : "worker-hire"}" ${worker ? `data-worker="${esc(worker.id)}"` : ""}>${worker ? "Simpan Perubahan" : `Rekrut · 💰 ${angka(workerPrice())}`}</button>
           <button class="btn-secondary" type="button" data-fish-act="modal-close">Batal</button>
         </div>
       </div>`;
+  }
+
+  // Toast cepat hilang; alasan gagal rekrut juga ditempel di dalam modal
+  // supaya kelihatan jelas apa yang ditolak Firestore/mesin.
+  function galatWorker(err) {
+    const el = document.getElementById("worker-error");
+    if (!el) return;
+    el.textContent = pesanGalat(err);
+    el.hidden = false;
   }
 
   function bukaFormWorker(workerId) {
@@ -2568,7 +2609,7 @@
     if (!form) return;
     const res = await jalankanAksi(null, () => api("buyWorker", {
       absen: FC.absen, token: FC.token, name: form.nama, gender: form.gender, look: form.look, requestId: reqId(),
-    }));
+    }), galatWorker);
     if (res) {
       tutupModal();
       SFX.coin();

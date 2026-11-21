@@ -1405,5 +1405,5 @@
     throw galat("Aksi game tidak dikenal.", "invalid-argument");
   }
 
-  window.FishingLocal = { call, katalog: katalogClient, mode: "local" };
+  window.FishingLocal = { call, katalog: katalogClient, mode: "local", workerLimit: WORKER.max };
 })();

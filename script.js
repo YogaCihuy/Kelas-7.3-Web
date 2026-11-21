@@ -4115,6 +4115,9 @@ const UPDATE_LOG = [
   {
     tanggal: "21/11/26",
     items: [
+      "Version 2.12.2 Worker Keempat Bisa Direkrut Lagi Tanpa Harus Hapus Data",
+      "Version 2.12.2 Katalog Fishing Selalu Dimuat Ulang, Potion yang Didapat dari Mancing Langsung Muncul di Tas",
+      "Version 2.12.2 Kalau Rekrut Worker Gagal, Alasannya Tampil Langsung di Jendela Rekrut",
       "Version 2.12.0 Peluang Dasar Ikan Secret Jadi 0,05% dan Bisa Naik sampai 0,1% dengan Luck Tinggi",
       "Version 2.12.0 Worker Bisa Upgrade sampai 15 Menit per Ikan dan Bisa Punya 4 Worker",
       "Version 2.12.0 Potion Didapat dari Hasil Mancing dan Langsung Masuk Tas, Tinggal Tekan Pakai",
