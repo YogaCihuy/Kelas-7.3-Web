@@ -397,6 +397,36 @@ service cloud.firestore {
         && d.updatedAt is number;
     }
 
+    // ── RUBIK CUBE 3x3 (speedrun tanpa server) ───────────────
+    // Satu dokumen per akun berisi rekor tercepat. Kubus dihitung
+    // di browser; rules cuma menjaga bentuk dokumennya.
+    match /rubik/{absen} {
+      allow read: if true;
+      allow create, update: if isValidRubik(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidRubik(d) {
+      return d.keys().hasOnly(['absen','name','bestMs','bestMoves','solves','createdAt','updatedAt'])
+        && d.keys().hasAll(['absen','name','bestMs','bestMoves','solves','createdAt','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() <= 60
+        && d.bestMs is number
+        && d.bestMs >= 0
+        && d.bestMs <= 86400000
+        && d.bestMoves is number
+        && d.bestMoves >= 0
+        && d.bestMoves <= 100000
+        && d.solves is number
+        && d.solves >= 0
+        && d.solves <= 1000000
+        && d.createdAt is number
+        && d.updatedAt is number;
+    }
+
     // ── PROFIL GAME (nama, avatar, motto) ────────────────────
     // Satu dokumen per akun, dipakai TableVerse, Streak, Quiz,
     // Block Blast, dan Sudoku sebagai nama tampilan.
@@ -733,6 +763,198 @@ service cloud.firestore {
         && d.data.size() >= 1
         && d.data.size() <= 750000
         && d.createdAt is number;
+    }
+
+    // ── ISLAND TYCOON (pulau pribadi, tanpa server/Blaze) ─────
+    // Satu dokumen state per akun + subkoleksi objek. Pengunjung
+    // boleh membaca, tapi setiap tulisan harus lolos validasi
+    // bentuk dan tetap terikat ke nomor absen di path dokumen.
+    match /islands/{absen} {
+      allow read: if true;
+      allow create, update: if absen.matches('^([1-9]|[1-5][0-9]|6[0-4])$')
+        && isValidIslandDoc(request.resource.data);
+      allow delete: if false;
+
+      match /objects/{objectId} {
+        allow read: if true;
+        allow create, update: if absen.matches('^([1-9]|[1-5][0-9]|6[0-4])$')
+          && isValidIslandObject(request.resource.data);
+        allow delete: if resource.data.absen >= 1
+          && resource.data.absen <= 64;
+      }
+    }
+
+    // Escrow marketplace antar pemain.
+    match /islandOffers/{offerId} {
+      allow read: if true;
+      allow create, update: if isValidIslandOffer(request.resource.data);
+      allow delete: if true;
+    }
+
+    function isValidIslandDoc(d) {
+      return d.keys().hasOnly(['absen','name','money','xp','level','inventory','needs',
+                                'workers','vehicles','activeVehicle','stats','requests',
+                                'createdAt','updatedAt','version'])
+        && d.keys().hasAll(['absen','name','money','xp','level','inventory','needs',
+                            'workers','vehicles','activeVehicle','stats','requests',
+                            'createdAt','updatedAt','version'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() >= 1
+        && d.name.size() <= 30
+        && d.money is number
+        && d.money >= 0
+        && d.money <= 1000000000
+        && d.xp is number
+        && d.xp >= 0
+        && d.xp <= 10000000
+        && d.level is number
+        && d.level >= 1
+        && d.level <= 10
+        && d.inventory is map
+        && d.inventory.size() <= 16
+        && d.inventory.keys().hasOnly(['wood','stone','grain','corn','carrot','cotton',
+                                        'plank','cement','flour','bread','juice','water',
+                                        'bibit-gandum','bibit-jagung','bibit-wortel','bibit-kapas'])
+        && isValidIslandNeeds(d.needs)
+        && d.workers is list
+        && d.workers.size() <= 8
+        && d.vehicles is list
+        && d.vehicles.size() <= 6
+        && d.activeVehicle is string
+        && d.activeVehicle.size() <= 40
+        && isValidIslandStats(d.stats)
+        && d.requests is list
+        && d.requests.size() <= 12
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.version == 1;
+    }
+
+    function isValidIslandNeeds(n) {
+      return n is map
+        && n.keys().hasOnly(['hunger','thirst','updatedAt'])
+        && n.keys().hasAll(['hunger','thirst','updatedAt'])
+        && n.hunger is number
+        && n.hunger >= 0
+        && n.hunger <= 100
+        && n.thirst is number
+        && n.thirst >= 0
+        && n.thirst <= 100
+        && n.updatedAt is number
+        && n.updatedAt > 0;
+    }
+
+    function isValidIslandStats(s) {
+      return s is map
+        && s.keys().hasOnly(['chopped','mined','harvested','built','collected','earned',
+                              'spent','wagesPaid','wood','stone','woodWorker','marketSold',
+                              'marketBought','offersMade','visits'])
+        && s.keys().hasAll(['chopped','mined','harvested','built','collected','earned',
+                            'spent','wagesPaid','wood','stone','woodWorker','marketSold',
+                            'marketBought','offersMade','visits'])
+        && s.chopped is number && s.chopped >= 0 && s.chopped <= 1000000000
+        && s.mined is number && s.mined >= 0 && s.mined <= 1000000000
+        && s.harvested is number && s.harvested >= 0 && s.harvested <= 1000000000
+        && s.built is number && s.built >= 0 && s.built <= 1000000000
+        && s.collected is number && s.collected >= 0 && s.collected <= 1000000000
+        && s.earned is number && s.earned >= 0 && s.earned <= 1000000000
+        && s.spent is number && s.spent >= 0 && s.spent <= 1000000000
+        && s.wagesPaid is number && s.wagesPaid >= 0 && s.wagesPaid <= 1000000000
+        && s.wood is number && s.wood >= 0 && s.wood <= 1000000000
+        && s.stone is number && s.stone >= 0 && s.stone <= 1000000000
+        && s.woodWorker is number && s.woodWorker >= 0 && s.woodWorker <= 1000000000
+        && s.marketSold is number && s.marketSold >= 0 && s.marketSold <= 1000000000
+        && s.marketBought is number && s.marketBought >= 0 && s.marketBought <= 1000000000
+        && s.offersMade is number && s.offersMade >= 0 && s.offersMade <= 1000000000
+        && s.visits is number && s.visits >= 0 && s.visits <= 1000000000;
+    }
+
+    function isValidIslandObject(d) {
+      return d.keys().hasOnly(['absen','kind','type','x','y','rot','w','h','level','hp',
+                                'respawnAt','crop','plantedAt','readyAt','batches',
+                                'batchStartAt','auto','createdAt','updatedAt'])
+        && d.keys().hasAll(['absen','kind','type','x','y','rot','w','h','level','hp',
+                            'respawnAt','crop','plantedAt','readyAt','batches',
+                            'batchStartAt','auto','createdAt','updatedAt'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.kind in ['building','factory','plot','decor','natural']
+        && d.type in ['rumah','gudang','pondok','plot','pabrik-kayu','pabrik-air',
+                      'pabrik-pertanian','pabrik-semen','pabrik-makanan','bunga',
+                      'batu-hias','bangku','pohon-hias','lampu','patung','pohon','batu']
+        && d.x is number
+        && d.x >= 2
+        && d.x <= 38
+        && d.y is number
+        && d.y >= 2
+        && d.y <= 38
+        && d.rot is number
+        && d.rot >= 0
+        && d.rot <= 3
+        && d.w is number
+        && d.w >= 1
+        && d.w <= 6
+        && d.h is number
+        && d.h >= 1
+        && d.h <= 6
+        && d.level is number
+        && d.level >= 1
+        && d.level <= 10
+        && d.hp is number
+        && d.hp >= 0
+        && d.hp <= 10
+        && d.respawnAt is number
+        && d.respawnAt >= 0
+        && d.respawnAt <= 10000000000000
+        && d.crop is string
+        && (d.crop == '' || d.crop in ['gandum','jagung','wortel','kapas'])
+        && d.plantedAt is number
+        && d.plantedAt >= 0
+        && d.plantedAt <= 10000000000000
+        && d.readyAt is number
+        && d.readyAt >= 0
+        && d.readyAt <= 10000000000000
+        && d.batches is number
+        && d.batches >= 0
+        && d.batches <= 8
+        && d.batchStartAt is number
+        && d.batchStartAt >= 0
+        && d.batchStartAt <= 10000000000000
+        && d.auto is bool
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0;
+    }
+
+    function isValidIslandOffer(d) {
+      return d.keys().hasOnly(['sellerAbsen','sellerName','itemId','qty','price','createdAt','updatedAt'])
+        && d.keys().hasAll(['sellerAbsen','sellerName','itemId','qty','price','createdAt','updatedAt'])
+        && d.sellerAbsen is number
+        && d.sellerAbsen >= 1
+        && d.sellerAbsen <= 64
+        && d.sellerName is string
+        && d.sellerName.size() >= 1
+        && d.sellerName.size() <= 30
+        && d.itemId in ['wood','stone','grain','corn','carrot','cotton','plank','cement',
+                        'flour','bread','juice','water','bibit-gandum','bibit-jagung',
+                        'bibit-wortel','bibit-kapas']
+        && d.qty is number
+        && d.qty >= 1
+        && d.qty <= 999
+        && d.price is number
+        && d.price >= 1
+        && d.price <= 100000
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0;
     }
 
     function isValidQuizConfig(d) {

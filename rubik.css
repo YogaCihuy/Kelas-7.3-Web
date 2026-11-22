@@ -1,0 +1,802 @@
+/* ===================================================
+   RUBIK CUBE 3x3 — main, tutorial, latihan
+   Semua warna memakai token tema (theme.css) supaya
+   ikut Light, Sage, Forest, Dark, dan Dark Forest.
+=================================================== */
+
+.rb-app {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ---------- Tab ---------- */
+.rb-tabs {
+  display: flex;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-tab {
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rb-tab:hover { color: var(--forest); }
+
+.rb-tab.is-active {
+  background: var(--t-surface);
+  color: var(--forest);
+  box-shadow: 0 6px 14px -12px var(--t-card-under);
+}
+
+.rb-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.rb-panel[hidden] { display: none; }
+
+/* ---------- HUD ---------- */
+.rb-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rb-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 86px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-surface-line);
+  box-shadow: 0 8px 16px -14px var(--t-card-under);
+}
+
+.rb-stat span {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rb-stat strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.15;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+#rb-time { color: var(--emerald); }
+
+#rb-status {
+  font-size: 1rem;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.rb-stat-wide { flex: 1 1 130px; }
+
+/* ---------- Arena ---------- */
+.rb-arena {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  gap: 16px;
+  align-items: start;
+}
+
+.rb-stage {
+  position: relative;
+  width: min(100%, 520px);
+  aspect-ratio: 1 / 1;
+  justify-self: center;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 30%, var(--t-soft-b), var(--t-card-a) 70%);
+  border: 1px solid var(--t-card-edge);
+  box-shadow:
+    0 24px 40px -26px var(--t-card-under),
+    inset 0 1px 0 var(--t-card-sheen);
+}
+
+.rb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rb-canvas:active { cursor: grabbing; }
+
+.rb-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rb-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 14px 26px -20px var(--t-card-under);
+}
+
+.rb-hint {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--muted);
+}
+
+.rb-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rb-mode-row > span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rb-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-toggle button {
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.rb-toggle button.is-active {
+  background: var(--t-surface);
+  color: var(--forest);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+/* ---------- Pad sisi ---------- */
+.rb-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.rb-pad button {
+  display: grid;
+  place-items: center;
+  gap: 0;
+  min-height: 54px;
+  padding: 4px 2px;
+  border-radius: 13px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-surface);
+  color: var(--forest);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.rb-pad button:hover {
+  background: var(--t-active-b);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+.rb-pad button:active { transform: scale(0.95); }
+
+.rb-pad strong {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  line-height: 1.1;
+}
+
+.rb-pad small {
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.rb-pad-train { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ---------- Kamera & aksi ---------- */
+.rb-cam {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rb-cam button {
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px dashed var(--t-soft-line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.rb-cam button:hover {
+  color: var(--forest);
+  border-color: var(--emerald);
+}
+
+.rb-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.rb-actions button { width: 100%; padding-left: 4px; padding-right: 4px; }
+
+/* ---------- Overlay ---------- */
+.rb-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--t-overlay);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: auto;
+}
+
+.rb-overlay[hidden] { display: none; }
+
+.rb-overlay-card {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  width: min(100%, 320px);
+  padding: 18px 16px;
+  border-radius: 20px;
+  text-align: center;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 26px 44px -26px rgba(0, 0, 0, 0.6);
+}
+
+.rb-overlay-icon { font-size: 2.2rem; line-height: 1; }
+
+.rb-overlay-card h3 { font-size: 1.1rem; }
+
+.rb-overlay-note {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.rb-over-time {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  line-height: 1.1;
+  color: var(--emerald);
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-over-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.rb-over-actions button { width: 100%; }
+
+/* ---------- Peringkat ---------- */
+.rb-rank-card {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 14px 26px -20px var(--t-card-under);
+}
+
+.rb-rank-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.rb-rank-head h3 { font-size: 0.98rem; }
+
+.rb-rank-head span {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.rb-rank-hint {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.rb-rank-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.rb-rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--t-soft-a);
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.rb-rank-list li.is-me {
+  background: var(--t-active-b);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+.rb-rank-no {
+  width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.rb-rank-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rb-rank-time {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--forest);
+}
+
+.rb-rank-list small {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-rank-me {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--t-soft-line);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.rb-rank-me strong {
+  color: var(--emerald);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Notice ---------- */
+.rb-notice {
+  min-height: 1.5em;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.rb-notice.is-on {
+  opacity: 1;
+  color: var(--emerald);
+}
+
+/* ---------- Tutorial ---------- */
+.rb-tut-switch {
+  display: flex;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-tut-switch button {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.rb-tut-switch button.is-active {
+  background: var(--t-surface);
+  color: var(--forest);
+  box-shadow: 0 6px 14px -12px var(--t-card-under);
+}
+
+.rb-tut-sub {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.rb-tut-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.rb-tut-step {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, var(--t-card-a), var(--t-card-b));
+  border: 1px solid var(--t-card-edge);
+  box-shadow: 0 12px 22px -20px var(--t-card-under);
+}
+
+.rb-tut-no {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--t-soft-b);
+  color: var(--forest);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-tut-body { min-width: 0; display: grid; gap: 5px; }
+
+.rb-tut-body h4 {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--forest);
+}
+
+.rb-tut-body p {
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.rb-tut-rumus-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.rb-tut-rumus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-tut-rumus code {
+  flex: 1;
+  min-width: 0;
+  font-family: "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--forest);
+  word-break: break-word;
+}
+
+.rb-tut-coba {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--emerald);
+  background: var(--t-surface);
+  color: var(--emerald);
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.rb-tut-coba:hover { background: var(--t-active-b); }
+
+.rb-tut-tip {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--t-catatan-bg);
+  border: 1px solid var(--t-catatan-line);
+  color: var(--ink);
+}
+
+/* ---------- Latihan ---------- */
+.rb-train {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.rb-stage-train { width: min(100%, 480px); }
+
+.rb-train-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rb-train-side h3 { font-size: 0.98rem; }
+
+.rb-train-algs {
+  display: grid;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.rb-alg {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.rb-alg:hover { border-color: var(--emerald); }
+
+.rb-alg.is-active {
+  background: var(--t-active-b);
+  border-color: var(--emerald);
+  box-shadow: inset 0 0 0 1px var(--emerald);
+}
+
+.rb-alg strong {
+  font-family: var(--font-display);
+  font-size: 0.84rem;
+  color: var(--forest);
+}
+
+.rb-alg small {
+  font-family: "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.rb-alg span {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--emerald);
+}
+
+.rb-train-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rb-train-sub {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.rb-eye {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--t-soft-line);
+  background: var(--t-surface);
+  font-size: 0.9rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.rb-eye.is-off { border-style: dashed; }
+
+.rb-train-alg {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+  font-family: "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--forest);
+  word-break: break-word;
+}
+
+.rb-train-alg.is-off {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.rb-train-goal {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--muted);
+}
+
+.rb-train-goal strong { color: var(--emerald); }
+
+.rb-train-count {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rb-train-count div {
+  display: grid;
+  gap: 1px;
+  padding: 6px 4px;
+  border-radius: 9px;
+  text-align: center;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.rb-train-count span {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rb-train-count strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-train-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.rb-train-actions button { width: 100%; }
+
+/* ---------- Fokus ---------- */
+.rb-app button:focus-visible,
+.rb-tab:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 2px;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 860px) {
+  .rb-arena,
+  .rb-train {
+    grid-template-columns: 1fr;
+  }
+
+  .rb-side { order: 2; }
+
+  .rb-stage {
+    width: min(100%, 94vw);
+  }
+
+  .rb-stage-train { width: min(100%, 94vw); }
+}
+
+@media (max-width: 560px) {
+  .rb-hud { gap: 8px; }
+
+  .rb-stat {
+    flex: 1 1 70px;
+    min-width: 0;
+    padding: 7px 10px;
+  }
+
+  .rb-stat strong { font-size: 1.1rem; }
+
+  .rb-tabs,
+  .rb-tut-switch { width: 100%; }
+
+  .rb-tab,
+  .rb-tut-switch button {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+
+  .rb-pad button { min-height: 50px; }
+
+  .rb-pad strong { font-size: 1.02rem; }
+
+  .rb-tut-step { padding: 10px 11px; gap: 9px; }
+
+  .rb-tut-no { flex-basis: 26px; width: 26px; height: 26px; font-size: 0.74rem; }
+
+  .rb-train-count span { font-size: 0.53rem; }
+
+  .rb-train-algs { max-height: 260px; }
+}
+
+@media (max-width: 380px) {
+  .rb-pad { gap: 5px; }
+  .rb-cam { gap: 4px; }
+  .rb-actions { gap: 5px; }
+  .rb-toggle button { padding: 5px 7px; font-size: 0.66rem; }
+}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uji UI Island Tycoon</title>
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../island.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #eaf3ec; font-family: system-ui, sans-serif; }
+  :root { --font-display: Georgia, "Times New Roman", serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 14px; }
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .bar button { padding: 7px 12px; border-radius: 10px; border: 1px solid #c7dcce; background: #fff; color: #1f4d37; font-weight: 700; cursor: pointer; }
+  #test-log { max-height: 140px; overflow: auto; margin-top: 10px; padding: 10px; border-radius: 12px; background: #0d2117; color: #cdebd8; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+  .island-app { max-width: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <strong>Uji UI Island Tycoon</strong>
+    <button type="button" id="tes-buka">Buka</button>
+    <button type="button" id="tes-tutup">Tutup</button>
+    <button type="button" id="tes-state">Cetak State</button>
+    <button type="button" id="tes-theme">Ganti Tema</button>
+  </div>
+
+  <div id="game-island-view">
+    <div id="island-app" class="island-app">
+      <div id="island-world" class="island-world">
+        <canvas id="island-canvas" class="island-canvas" aria-label="Pulau isometrik"></canvas>
+
+        <div class="island-hud">
+          <div class="island-hud-left">
+            <span id="island-coin-badge" class="island-coin-badge">💰 0</span>
+            <div class="island-owner">
+              <b id="island-owner-name">Pulau</b>
+              <small id="island-owner-level">Lv 1</small>
+              <div class="island-xp" aria-hidden="true"><i id="island-xp-bar"></i></div>
+            </div>
+          </div>
+          <div class="island-needs">
+            <div class="island-need"><span aria-hidden="true">🍖</span><div class="island-need-track"><i id="island-hunger-bar"></i></div><small id="island-hunger-val">85%</small></div>
+            <div class="island-need"><span aria-hidden="true">💧</span><div class="island-need-track"><i id="island-thirst-bar"></i></div><small id="island-thirst-val">80%</small></div>
+          </div>
+        </div>
+
+        <div id="island-visit-banner" class="island-visit-banner" hidden>
+          <span id="island-visit-text">Mengunjungi pulau</span>
+          <button id="island-visit-home" class="island-btn-small" type="button">Pulang</button>
+        </div>
+
+        <div id="island-placement" class="island-placement" hidden>
+          <span id="island-placement-name">Menempatkan</span>
+          <button type="button" class="island-btn-small" data-place-rotate>Putar</button>
+          <button type="button" class="island-btn-small is-danger" data-place-cancel>Batal</button>
+        </div>
+
+        <div id="island-selection" class="island-selection" hidden></div>
+
+        <div id="island-joystick" class="island-joystick" aria-label="Joystick gerak">
+          <span id="island-joystick-knob" class="island-joystick-knob"></span>
+        </div>
+
+        <div id="island-actionbar" class="island-actionbar"></div>
+        <div id="island-toast" class="island-toast" role="status" aria-live="polite" hidden></div>
+      </div>
+
+      <div id="island-loading" class="island-loading" hidden></div>
+
+      <aside id="island-panel" class="island-panel" hidden aria-label="Menu pulau">
+        <div class="island-panel-head">
+          <h3 id="island-panel-title">Bangun Pulau</h3>
+          <button type="button" class="island-sel-close" data-close-panel aria-label="Tutup menu">✕</button>
+        </div>
+        <div id="island-panel-body" class="island-panel-body"></div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="test-log"></div>
+</div>
+
+<script>
+  window.__log = [];
+  function catat(pesan) {
+    window.__log.push(String(pesan));
+    const el = document.getElementById("test-log");
+    if (el) el.textContent = window.__log.join("\n");
+  }
+  window.addEventListener("error", (e) => catat("ERROR: " + (e.message || e.error)));
+  window.addEventListener("unhandledrejection", (e) => catat("REJECT: " + ((e.reason && e.reason.message) || e.reason)));
+</script>
+<script>window.currentUser = { absen: 63, namaPanggilan: "Siswa Uji" };</script>
+<script>
+  window.dataSiswa = [
+    { absen: 1, namaPanggilan: "Ayu" },
+    { absen: 2, namaPanggilan: "Bima" },
+    { absen: 63, namaPanggilan: "Siswa Uji" },
+  ];
+</script>
+<script src="ui-mock.js"></script>
+<script src="../island-catalog.js"></script>
+<script src="../island-local.js"></script>
+<script src="../island.js"></script>
+<script>
+  document.getElementById("tes-buka").addEventListener("click", () => window.islandBuka());
+  document.getElementById("tes-tutup").addEventListener("click", () => window.islandTutup());
+  document.getElementById("tes-state").addEventListener("click", () => {
+    const raw = window.__islandMock.docs.get("islands/63");
+    const objs = [];
+    window.__islandMock.docs.forEach((v, k) => { if (k.startsWith("islands/63/objects/")) objs.push(k); });
+    catat("STATE " + JSON.stringify(raw));
+    catat("OBJEK " + objs.length + " · " + JSON.stringify(objs.slice(0, 6)));
+  });
+  document.getElementById("tes-theme").addEventListener("click", () => {
+    const daftar = ["light", "sage", "forest", "dark", "dark-forest"];
+    const now = document.documentElement.getAttribute("data-theme");
+    const next = daftar[(daftar.indexOf(now) + 1) % daftar.length];
+    document.documentElement.setAttribute("data-theme", next);
+    catat("TEMA " + next);
+  });
+  window.addEventListener("load", () => {
+    window.islandBuka();
+    setTimeout(() => catat("SIAP"), 600);
+  });
+</script>
+</body>
+</html>

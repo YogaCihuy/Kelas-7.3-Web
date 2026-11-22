@@ -1867,6 +1867,20 @@ function setupPageTabs() {
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
+        const rbView = document.getElementById("game-rubik-view");
+        if (rbView && !rbView.hidden) {
+          if (typeof window.rubikTutup === "function") window.rubikTutup();
+          rbView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
+        const islView = document.getElementById("game-island-view");
+        if (islView && !islView.hidden) {
+          if (typeof window.islandTutup === "function") window.islandTutup();
+          islView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
       }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
@@ -3725,6 +3739,8 @@ function updateGamesAccount() {
   if (typeof window.gtcAkunBerubah === "function") window.gtcAkunBerubah(currentUser || null);
   if (typeof window.blockblastAkunBerubah === "function") window.blockblastAkunBerubah(currentUser || null);
   if (typeof window.sudokuAkunBerubah === "function") window.sudokuAkunBerubah(currentUser || null);
+  if (typeof window.rubikAkunBerubah === "function") window.rubikAkunBerubah(currentUser || null);
+  if (typeof window.islandAkunBerubah === "function") window.islandAkunBerubah(currentUser || null);
 
   if (!absen) {
     gameState = null;
@@ -4113,6 +4129,26 @@ async function simpanGameProfil(e) {
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
   {
+    tanggal: "22/11/26",
+    items: [
+      "Version 2.14.0 Game Baru Island Tycoon: Bangun Pulau Pribadi 1:1 dengan Kamera Geser dan Zoom",
+      "Version 2.14.0 Penempatan Hybrid: Bangunan Rapi di Grid, Pohon dan Dekorasi Bebas Ditempatkan",
+      "Version 2.14.0 Tebang Pohon, Tambang Batu, Tanam dan Panen Kebun yang Tetap Tumbuh Saat Offline",
+      "Version 2.14.0 Toko NPC, Gudang, Pekerja Lumberjack, Pabrik Bertingkat, serta Gaji dan Produksi Offline",
+      "Version 2.14.0 Kendaraan Bisa Dibeli dan Disetir Langsung, Lengkap dengan Marketplace dan Kunjungan Pulau Teman",
+    ],
+  },
+  {
+    tanggal: "21/11/26",
+    items: [
+      "Version 2.13.0 Game Baru Rubik Cube 3×3: Selesaikan Kubus dengan Geser di Layar Sentuh",
+      "Version 2.13.0 Timer Otomatis Mulai di Langkah Pertama dan Berhenti Saat Kubus Solved",
+      "Version 2.13.0 Papan Top 3 Penyelesai Tercepat Tersimpan per Akun",
+      "Version 2.13.0 Tab Tutorial Metode Pemula dan CFOP Lengkap dengan Rumusnya",
+      "Version 2.13.0 Tab Latihan Buat Hapal Rumus: Putar Berulang, Sembunyikan Rumus, dan Hitung Putaran",
+    ],
+  },
+  {
     tanggal: "21/11/26",
     items: [
       "Version 2.12.2 Worker Keempat Bisa Direkrut Lagi Tanpa Harus Hapus Data",
@@ -4332,7 +4368,7 @@ function setupThemeSettings() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku", "rubik", "island"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
@@ -4342,6 +4378,8 @@ const GAME_INFO_ATUR = {
   quiz: { judul: "Quiz", icon: "🧠" },
   blockblast: { judul: "Block Blast", icon: "🧩" },
   sudoku: { judul: "Sudoku", icon: "🔢" },
+  rubik: { judul: "Rubik Cube", icon: "🧊" },
+  island: { judul: "Island Tycoon", icon: "🏝️" },
 };
 const GAME_MODE_INFO = [
   { id: "default", judul: "Default", sub: "Urutan bawaan web." },
@@ -4585,6 +4623,19 @@ function renderGames() {
   let ringkasSudoku = "Sudoku 9x9 · 4 level";
   if (typeof window.sudokuRingkas === "function") ringkasSudoku = window.sudokuRingkas(login);
 
+  let ringkasRubik = "Rubik 3×3 · Touchscreen";
+  if (typeof window.rubikRingkas === "function") ringkasRubik = window.rubikRingkas(login);
+
+  let ringkasIsland = "Login dulu buat membangun pulau";
+  if (typeof window.islandRingkas === "function") {
+    const ri = window.islandRingkas();
+    if (ri && Number(ri.absen) === Number(currentUser && currentUser.absen)) {
+      ringkasIsland = `💰 ${Number(ri.money || 0).toLocaleString("id-ID")} · Lv ${Number(ri.level) || 1} · pulau aktif`;
+    } else if (login) {
+      ringkasIsland = "Belum ada pulau. Bangun pulau pertamamu!";
+    }
+  }
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -4666,6 +4717,26 @@ function renderGames() {
       spark: "🧮",
       kelas: "",
       cari: "sudoku angka teka teki logika 9x9 level easy medium hard wni poin peringkat leaderboard",
+    },
+    {
+      id: "rubik",
+      judul: "Rubik Cube",
+      deskripsi: "Putar kubus 3x3 dengan geser di layar sentuh. Timer otomatis, papan Top 3 tercepat, tutorial Pemula & CFOP, plus latihan rumus.",
+      progress: ringkasRubik,
+      icon: "🧊",
+      spark: "🌀",
+      kelas: "",
+      cari: "rubik cube kubus 3x3 speedrun timer top 3 tercepat tutorial pemula cfop latihan rumus touchscreen",
+    },
+    {
+      id: "island",
+      judul: "Island Tycoon",
+      deskripsi: "Kelola pulau pribadimu: tebang pohon, tambang batu, tanam kebun, bangun pabrik, rekrut pekerja, beli kendaraan, dan kunjungi pulau teman.",
+      progress: ringkasIsland,
+      icon: "🏝️",
+      spark: "🌴",
+      kelas: "",
+      cari: "island tycoon pulau bangun tanam kebun pabrik pekerja lumberjack kendaraan mobil marketplace kunjungan pulau teman isometrik",
     },
   ];
 
@@ -7008,6 +7079,28 @@ function setupGamesTab() {
     });
   }
 
+  const btnRubikBack = document.getElementById("btn-rubik-back");
+  if (btnRubikBack) {
+    btnRubikBack.addEventListener("click", () => {
+      if (typeof window.rubikTutup === "function") window.rubikTutup();
+      document.getElementById("game-rubik-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
+  const btnIslandBack = document.getElementById("btn-island-back");
+  if (btnIslandBack) {
+    btnIslandBack.addEventListener("click", () => {
+      if (typeof window.islandTutup === "function") window.islandTutup();
+      document.getElementById("game-island-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -7023,6 +7116,8 @@ function setupGamesTab() {
       if (game !== "guesscolor" && typeof window.gtcTutup === "function") window.gtcTutup();
       if (game !== "blockblast" && typeof window.blockblastTutup === "function") window.blockblastTutup();
       if (game !== "sudoku" && typeof window.sudokuTutup === "function") window.sudokuTutup();
+      if (game !== "rubik" && typeof window.rubikTutup === "function") window.rubikTutup();
+      if (game !== "island" && typeof window.islandTutup === "function") window.islandTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
@@ -7032,6 +7127,8 @@ function setupGamesTab() {
       document.getElementById("game-tableverse-view").hidden = game !== "tableverse";
       document.getElementById("game-blockblast-view").hidden = game !== "blockblast";
       document.getElementById("game-sudoku-view").hidden = game !== "sudoku";
+      document.getElementById("game-rubik-view").hidden = game !== "rubik";
+      document.getElementById("game-island-view").hidden = game !== "island";
       if (game === "timer") {
         timerRender();
       } else if (game === "guesscolor") {
@@ -7050,6 +7147,10 @@ function setupGamesTab() {
         if (typeof window.blockblastBuka === "function") window.blockblastBuka();
       } else if (game === "sudoku") {
         if (typeof window.sudokuBuka === "function") window.sudokuBuka();
+      } else if (game === "rubik") {
+        if (typeof window.rubikBuka === "function") window.rubikBuka();
+      } else if (game === "island") {
+        if (typeof window.islandBuka === "function") window.islandBuka();
       } else {
         renderGames();
       }

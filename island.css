@@ -1,0 +1,1123 @@
+/* ===================================================
+   ISLAND TYCOON — kanvas isometrik, HUD, panel game
+   Warna memakai token theme.css agar ikut lima tema hijau
+   (Light, Sage, Forest, Dark, Dark Forest).
+=================================================== */
+
+[hidden] {
+  display: none !important;
+}
+
+#game-island-view {
+  width: 100%;
+}
+
+.island-app {
+  position: relative;
+  width: 100%;
+  max-width: 1180px;
+  height: clamp(520px, 78vh, 900px);
+  margin: 0 auto;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1.5px solid var(--t-card-edge);
+  background: linear-gradient(160deg, var(--t-hero-a), var(--t-hero-c));
+  box-shadow: var(--shadow), 0 1px 0 var(--t-card-sheen) inset;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  isolation: isolate;
+}
+
+.island-world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.island-world::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0 rgba(207, 74, 74, 0);
+  transition: box-shadow 0.4s ease;
+}
+
+.island-world.is-visit::after {
+  box-shadow: inset 0 0 0 3px var(--emerald);
+}
+
+.island-world.is-lemas::after {
+  box-shadow: inset 0 0 120px rgba(207, 74, 74, 0.35);
+}
+
+.island-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.island-canvas:active { cursor: grabbing; }
+
+/* ---------- HUD atas ---------- */
+.island-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.island-hud-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.island-coin-badge {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffe9a8 0%, #f2c14e 100%);
+  border: 1.5px solid #d9a12f;
+  color: #4a3303;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 #bf8b22, 0 10px 18px -12px rgba(191, 139, 34, 0.7);
+}
+
+.island-owner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 11px;
+  border-radius: 14px;
+  background: var(--t-float-bg);
+  border: 1px solid var(--t-chip-line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 8px 18px -16px var(--t-card-under);
+}
+
+.island-owner b {
+  font-size: 0.8rem;
+  color: var(--ink);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-owner small {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--emerald);
+}
+
+.island-xp {
+  flex: 1 1 46px;
+  min-width: 34px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--t-soft-b);
+  overflow: hidden;
+}
+
+.island-xp i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald), var(--forest));
+  transition: width 0.4s ease;
+}
+
+.island-needs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.island-need {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 11px;
+  background: var(--t-float-bg);
+  border: 1px solid var(--t-chip-line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.64rem;
+  color: var(--muted);
+}
+
+.island-need > span { font-size: 0.8rem; line-height: 1; }
+
+.island-need-track {
+  width: 62px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--t-soft-b);
+  overflow: hidden;
+}
+
+.island-need-track i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5bc98e, #2f9e68);
+  transition: width 0.4s ease;
+}
+
+.island-need-track i.is-mid { background: linear-gradient(90deg, #e7b64f, #d99a2b); }
+.island-need-track i.is-low { background: linear-gradient(90deg, #e8776f, #cf4a4a); }
+
+.island-need small {
+  min-width: 28px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ---------- Banner kunjungan ---------- */
+.island-visit-banner {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 7px 9px 7px 14px;
+  border-radius: 999px;
+  background: var(--t-float-bg-solid);
+  border: 1px solid var(--t-chip-line);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.island-visit-banner span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Toast ---------- */
+.island-toast {
+  position: absolute;
+  top: 116px;
+  left: 50%;
+  z-index: 14;
+  max-width: calc(100% - 32px);
+  padding: 9px 16px;
+  border-radius: 14px;
+  background: var(--t-float-bg-solid);
+  border: 1px solid var(--t-chip-line);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -8px);
+  opacity: 0;
+  transition: opacity 0.24s ease, transform 0.24s ease;
+  pointer-events: none;
+}
+
+.island-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.island-toast.is-error {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+/* ---------- HUD penempatan ---------- */
+.island-placement {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 24px);
+  padding: 6px 8px 6px 13px;
+  border-radius: 999px;
+  background: var(--t-float-bg-solid);
+  border: 1.5px solid var(--emerald);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.island-placement > span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Joystick ---------- */
+.island-joystick {
+  position: absolute;
+  left: 16px;
+  bottom: 92px;
+  z-index: 5;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, var(--t-float-bg), rgba(0, 0, 0, 0.16));
+  border: 1.5px solid var(--t-chip-line);
+  box-shadow: 0 10px 22px -14px rgba(0, 0, 0, 0.55);
+  touch-action: none;
+  cursor: grab;
+}
+
+.island-joystick:active { cursor: grabbing; }
+
+.island-joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44%;
+  height: 44%;
+  margin: -22% 0 0 -22%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-surface));
+  border: 1.5px solid var(--t-surface-line);
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ---------- Action bar ---------- */
+.island-actionbar {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--t-float-bg);
+  border: 1px solid var(--t-chip-line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px -18px var(--t-card-under);
+  transform: translateX(-50%);
+  transition: opacity 0.2s ease;
+}
+
+.island-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 54px;
+  padding: 6px 7px;
+  border: 1.5px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+}
+
+.island-tool span { font-size: 1.18rem; line-height: 1; }
+.island-tool small { font-size: 0.56rem; font-weight: 700; color: var(--muted); }
+
+.island-tool:hover {
+  background: var(--t-surface);
+  border-color: var(--t-surface-line);
+}
+
+.island-tool:active { transform: translateY(1px) scale(0.97); }
+
+.island-tool.is-accent {
+  background: linear-gradient(180deg, var(--emerald), var(--forest));
+  color: var(--white);
+}
+
+.island-tool.is-accent small { color: inherit; opacity: 0.92; }
+
+/* ---------- Kartu seleksi objek ---------- */
+.island-selection {
+  position: absolute;
+  left: 12px;
+  bottom: 196px;
+  z-index: 8;
+  width: min(330px, calc(100% - 24px));
+  max-height: 46%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 11px 12px;
+  border-radius: 18px;
+  background: var(--t-float-bg-solid);
+  border: 1px solid var(--t-surface-line);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  scrollbar-width: thin;
+}
+
+.island-sel-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.island-sel-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+  font-size: 1.24rem;
+}
+
+.island-sel-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.island-sel-title b {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-sel-title small {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.island-sel-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--t-chip-line);
+  border-radius: 50%;
+  background: var(--t-chip);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.island-sel-close:hover { color: var(--t-danger-ink); border-color: var(--t-danger-line); }
+
+.island-sel-desc {
+  margin: 0 0 7px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.island-sel-meta {
+  margin: 0 0 7px;
+  padding: 6px 9px;
+  border-radius: 10px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- Panel ---------- */
+.island-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 40%);
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--t-float-bg-solid);
+  border: 1px solid var(--t-surface-line);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.island-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 14px 11px;
+  border-bottom: 1px solid var(--t-surface-line);
+  background: linear-gradient(160deg, var(--t-soft-a), var(--t-surface));
+}
+
+.island-panel-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--forest);
+}
+
+.island-panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 13px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.island-panel-body::-webkit-scrollbar { width: 8px; }
+.island-panel-body::-webkit-scrollbar-thumb {
+  background: var(--t-soft-line);
+  border-radius: 999px;
+}
+.island-panel-body::-webkit-scrollbar-track { background: transparent; }
+
+.island-panel-body b { color: var(--ink); }
+.island-panel-body small { color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+.island-panel-body p { margin: 0; }
+
+/* ---------- Tabs ---------- */
+.island-tabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 9px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.island-tabs button {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.island-tabs button:hover { color: var(--forest); }
+
+.island-tabs button.is-active {
+  background: var(--t-surface);
+  color: var(--forest);
+  box-shadow: 0 6px 14px -12px var(--t-card-under);
+}
+
+/* ---------- Grid bangunan ---------- */
+.island-build-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.island-build-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px;
+  border: 1.5px solid var(--t-surface-line);
+  border-radius: 14px;
+  background: var(--t-surface);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.island-build-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--emerald);
+  box-shadow: 0 12px 20px -16px var(--t-card-under);
+}
+
+.island-build-card:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+
+.island-build-card.is-ada { border-style: dashed; opacity: 0.72; }
+.island-build-card.is-locked,
+.island-build-card.is-kurang { filter: grayscale(0.35); }
+.island-build-card:disabled { cursor: not-allowed; opacity: 0.62; }
+
+.island-build-icon { font-size: 1.5rem; line-height: 1.1; }
+.island-build-name { font-size: 0.78rem; font-weight: 800; }
+.island-build-meta { font-size: 0.64rem; font-weight: 700; color: var(--emerald); }
+.island-build-card small { font-size: 0.6rem; line-height: 1.3; color: var(--muted); }
+
+/* ---------- Baris toko / tas ---------- */
+.island-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-surface-line);
+}
+
+.island-row.is-opacity { opacity: 0.6; }
+
+.island-row-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--t-soft-a);
+  font-size: 1rem;
+}
+
+.island-row-main { flex: 1; min-width: 0; }
+.island-row-main b {
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.island-row-main small { display: block; font-size: 0.62rem; line-height: 1.3; color: var(--muted); }
+
+.island-price {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--forest);
+  white-space: nowrap;
+}
+
+/* ---------- Form ---------- */
+.island-qty,
+.island-field input,
+.island-inline-form input,
+.island-panel-body select {
+  width: 62px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid var(--t-chip-line);
+  border-radius: 9px;
+  background: var(--t-chip);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.island-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.island-field input,
+.island-field select { width: 100%; }
+
+.island-inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.island-inline-form > * { flex: 1; min-width: 0; }
+.island-inline-form > .island-btn { flex: 0 0 auto; width: auto; }
+
+/* ---------- Tombol ---------- */
+.island-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--emerald), var(--forest));
+  color: var(--white);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+
+.island-btn:hover { filter: brightness(1.06); }
+.island-btn:active { transform: translateY(1px) scale(0.99); }
+.island-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
+
+.island-btn-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid var(--t-surface-line);
+  border-radius: 10px;
+  background: var(--t-chip);
+  color: var(--forest);
+  font-family: inherit;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+}
+
+.island-btn-small:hover:not(:disabled) {
+  background: var(--t-soft-a);
+  border-color: var(--emerald);
+}
+
+.island-btn-small:active:not(:disabled) { transform: translateY(1px); }
+.island-btn-small:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.island-btn.is-danger,
+.island-btn-small.is-danger {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+.island-btn-small.is-danger:hover:not(:disabled) { background: var(--t-danger-bg); border-color: var(--t-danger-ink); }
+
+/* ---------- Teks bantu ---------- */
+.island-money-line {
+  margin-bottom: 9px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.island-money-line b { color: var(--forest); }
+
+.island-hint {
+  margin: 0 0 9px;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.island-empty {
+  margin: 0 0 9px;
+  padding: 14px 12px;
+  border: 1.5px dashed var(--t-soft-line);
+  border-radius: 12px;
+  background: var(--t-soft-a);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--muted);
+}
+
+.island-subhead {
+  margin: 10px 0 7px;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--forest);
+}
+
+/* ---------- Progres ---------- */
+.island-progress {
+  height: 8px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--t-soft-b);
+  overflow: hidden;
+}
+
+.island-progress i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald), var(--forest));
+  transition: width 0.35s ease;
+}
+
+/* ---------- Kartu ---------- */
+.island-card {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 9px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+}
+
+.island-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.island-card-head b { font-size: 0.78rem; }
+
+.island-badge {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--t-chip);
+  border: 1px solid var(--t-chip-line);
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.island-warn,
+.island-ok {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+.island-warn {
+  background: var(--t-danger-bg);
+  border: 1px solid var(--t-danger-line);
+  color: var(--t-danger-ink);
+}
+
+.island-ok {
+  background: var(--t-soft-a);
+  border: 1px solid var(--t-soft-line);
+  color: var(--muted);
+}
+
+.island-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* ---------- Marketplace ---------- */
+.island-offer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-surface-line);
+}
+
+.island-offer-main { flex: 1; min-width: 0; }
+.island-offer-main b {
+  display: block;
+  font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.island-offer-main small { display: block; font-size: 0.62rem; color: var(--muted); }
+
+.island-offer-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.island-offer-side b { font-size: 0.72rem; color: var(--forest); }
+
+/* ---------- Daftar pemain ---------- */
+.island-player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-surface-line);
+}
+
+.island-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--emerald), var(--forest));
+  color: var(--white);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+/* ---------- Kamera ---------- */
+.island-camera-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+/* ---------- Loading & galat ---------- */
+.island-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: linear-gradient(160deg, var(--t-hero-a), var(--t-hero-c));
+  color: var(--t-hero-soft);
+}
+
+.island-loading p {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.island-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.24);
+  border-top-color: #f2c14e;
+  animation: island-spin 0.9s linear infinite;
+}
+
+@keyframes island-spin {
+  to { transform: rotate(360deg); }
+}
+
+.island-error {
+  max-width: 330px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--t-float-bg-solid);
+  border: 1px solid var(--t-danger-line);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.island-error b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.94rem;
+}
+
+.island-error p {
+  margin: 0 0 12px;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ---------- Fokus keyboard ---------- */
+.island-app button:focus-visible,
+.island-app input:focus-visible,
+.island-app select:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 2px;
+}
+
+/* ---------- Desktop lebar: geser action bar saat panel terbuka ---------- */
+@media (min-width: 961px) {
+  #island-app:has(.island-panel:not([hidden])) .island-actionbar {
+    left: calc((100% - 404px) / 2);
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 960px) {
+  .island-app {
+    height: clamp(500px, 72vh, 780px);
+    border-radius: 20px;
+  }
+
+  .island-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 68%;
+    border-radius: 20px;
+  }
+
+  .island-panel-head { padding: 11px 13px 9px; }
+
+  .island-actionbar {
+    max-width: calc(100% - 16px);
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .island-tool { min-width: 50px; padding: 5px 6px; }
+  .island-tool span { font-size: 1.08rem; }
+
+  .island-selection { bottom: 178px; }
+
+  .island-joystick { width: 84px; height: 84px; bottom: 86px; }
+}
+
+/* ---------- Ponsel ---------- */
+@media (max-width: 720px) {
+  .island-app {
+    height: calc(100dvh - 198px);
+    min-height: 460px;
+    border-radius: 18px;
+  }
+
+  .island-hud { top: 8px; left: 8px; right: 8px; gap: 6px; }
+
+  .island-coin-badge { padding: 6px 10px; font-size: 0.78rem; }
+
+  .island-owner { padding: 5px 8px; gap: 5px; }
+  .island-owner b { max-width: 82px; font-size: 0.72rem; }
+
+  .island-need { padding: 3px 7px; }
+  .island-need-track { width: 48px; }
+
+  .island-visit-banner,
+  .island-placement { top: 96px; max-width: calc(100% - 16px); }
+  .island-toast { top: 142px; }
+
+  .island-actionbar {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-width: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 16px;
+    transform: none;
+  }
+
+  .island-tool { flex: 1 1 46px; min-width: 0; padding: 5px 2px; }
+  .island-tool span { font-size: 1.02rem; }
+  .island-tool small { font-size: 0.52rem; }
+
+  .island-joystick {
+    width: 74px;
+    height: 74px;
+    left: 10px;
+    bottom: 148px;
+  }
+
+  .island-selection {
+    left: 8px;
+    right: 8px;
+    bottom: 232px;
+    width: auto;
+    max-height: 36%;
+  }
+
+  .island-panel { left: 6px; right: 6px; bottom: 6px; max-height: 74%; }
+
+  .island-build-grid { gap: 6px; }
+  .island-build-card { padding: 8px; }
+  .island-build-icon { font-size: 1.3rem; }
+
+  .island-row { gap: 6px; padding: 7px 8px; }
+  .island-row-icon { width: 26px; height: 26px; font-size: 0.9rem; }
+  .island-qty { width: 48px; }
+}
+
+@media (max-width: 380px) {
+  .island-app { height: calc(100dvh - 190px); }
+  .island-owner { display: none; }
+  .island-need-track { width: 40px; }
+  .island-selection { bottom: 226px; }
+  .island-build-grid { grid-template-columns: 1fr; }
+  .island-offer { flex-wrap: wrap; }
+}
+
+/* ---------- Kurangi gerak ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .island-spinner { animation-duration: 1.6s; }
+  .island-xp i,
+  .island-need-track i,
+  .island-progress i { transition: none; }
+  .island-build-card:hover:not(:disabled),
+  .island-tool:active { transform: none; }
+}

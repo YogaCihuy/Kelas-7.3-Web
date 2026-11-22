@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="guess-color.css?v=3">
 <link rel="stylesheet" href="blockblast.css?v=3">
 <link rel="stylesheet" href="sudoku.css?v=1">
+<link rel="stylesheet" href="rubik.css?v=1">
+<link rel="stylesheet" href="island.css?v=2">
 <link rel="stylesheet" href="chat.css?v=4">
 <link rel="stylesheet" href="fishing.css?v=6">
 <link rel="stylesheet" href="tableverse.css?v=10">
@@ -701,6 +703,187 @@
             <p id="sd-notice" class="sd-notice" aria-live="polite"></p>
           </div>
         </div>
+
+        <div id="game-rubik-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-rubik-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span class="game-coin" aria-live="polite">&#129513; Rubik 3&#215;3</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Rubik Cube</h2>
+            <p class="section-sub">Selesaikan kubus 3&#215;3 dengan geser di layar sentuh. Timer mulai di langkah pertama setelah acak, lalu berhenti sendiri saat kubus solved.</p>
+          </div>
+
+          <div id="rb-app" class="rb-app">
+            <div class="rb-tabs" role="tablist" aria-label="Mode Rubik">
+              <button type="button" class="rb-tab is-active" data-rb-tab="main" role="tab" aria-selected="true">Main</button>
+              <button type="button" class="rb-tab" data-rb-tab="tutorial" role="tab" aria-selected="false">Tutorial</button>
+              <button type="button" class="rb-tab" data-rb-tab="latihan" role="tab" aria-selected="false">Latihan</button>
+            </div>
+
+            <section id="rb-panel-main" class="rb-panel">
+              <div class="rb-hud">
+                <div class="rb-stat">
+                  <span>Waktu</span>
+                  <strong id="rb-time">00:00.00</strong>
+                </div>
+                <div class="rb-stat">
+                  <span>Langkah</span>
+                  <strong id="rb-moves">0</strong>
+                </div>
+                <div class="rb-stat rb-stat-wide">
+                  <span>Status</span>
+                  <strong id="rb-status">Acak dulu</strong>
+                </div>
+                <div class="rb-stat">
+                  <span>Rekor</span>
+                  <strong id="rb-best">&#8212;</strong>
+                </div>
+              </div>
+
+              <div class="rb-arena">
+                <div class="rb-stage">
+                  <canvas id="rb-canvas" class="rb-canvas" aria-label="Kubus Rubik 3x3. Geser permukaan kubus untuk memutar sisi."></canvas>
+
+                  <div id="rb-start" class="rb-overlay">
+                    <div class="rb-overlay-card">
+                      <span class="rb-overlay-icon" aria-hidden="true">&#129513;</span>
+                      <h3>Rubik 3&#215;3</h3>
+                      <p id="rb-start-note" class="rb-overlay-note"></p>
+                      <button class="btn-primary" type="button" data-rb-action="scramble">Acak &amp; Mulai</button>
+                    </div>
+                  </div>
+
+                  <div id="rb-over" class="rb-overlay" hidden>
+                    <div class="rb-overlay-card">
+                      <span id="rb-over-icon" class="rb-overlay-icon" aria-hidden="true">&#127881;</span>
+                      <h3>Solved!</h3>
+                      <strong id="rb-over-time" class="rb-over-time">00:00.00</strong>
+                      <p id="rb-over-note" class="rb-overlay-note"></p>
+                      <div class="rb-over-actions">
+                        <button class="btn-primary" type="button" data-rb-action="scramble">Main Lagi</button>
+                        <button class="btn-secondary" type="button" data-rb-action="close-over">Lihat Kubus</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rb-side">
+                  <div class="rb-card">
+                    <p class="rb-hint">Geser permukaan kubus untuk memutar baris itu. Geser latar untuk memutar kamera. Bisa juga pakai tombol sisi.</p>
+                    <div class="rb-mode-row">
+                      <span>Arah tombol</span>
+                      <div class="rb-toggle" role="group" aria-label="Arah putaran">
+                        <button type="button" class="is-active" data-rb-arah="1" data-rb-for="main">&#10227; Searah</button>
+                        <button type="button" data-rb-arah="-1" data-rb-for="main">&#10226; Balik</button>
+                      </div>
+                    </div>
+                    <div id="rb-pad" class="rb-pad"></div>
+                    <div id="rb-cam" class="rb-cam" aria-label="Putar kamera">
+                      <button type="button" data-rb-cam="left" aria-label="Geser kamera ke kiri">&#8592;</button>
+                      <button type="button" data-rb-cam="up" aria-label="Geser kamera ke atas">&#8593;</button>
+                      <button type="button" data-rb-cam="reset" aria-label="Reset kamera">&#10227;</button>
+                      <button type="button" data-rb-cam="down" aria-label="Geser kamera ke bawah">&#8595;</button>
+                      <button type="button" data-rb-cam="right" aria-label="Geser kamera ke kanan">&#8594;</button>
+                    </div>
+                    <div class="rb-actions">
+                      <button class="btn-secondary" type="button" data-rb-action="scramble">Acak</button>
+                      <button class="btn-secondary" type="button" data-rb-action="undo">Undo</button>
+                      <button class="btn-secondary" type="button" data-rb-action="reset">Reset</button>
+                    </div>
+                  </div>
+                  <div id="rb-rank" class="rb-rank"></div>
+                </div>
+              </div>
+
+              <p id="rb-notice" class="rb-notice" aria-live="polite"></p>
+            </section>
+
+            <section id="rb-panel-tutorial" class="rb-panel" hidden>
+              <div id="rb-tutorial" class="rb-tutorial"></div>
+            </section>
+
+            <section id="rb-panel-latihan" class="rb-panel" hidden>
+              <div class="rb-train">
+                <div class="rb-stage rb-stage-train">
+                  <canvas id="rb-canvas-train" class="rb-canvas" aria-label="Kubus latihan. Geser permukaan untuk memutar sisi."></canvas>
+                </div>
+                <div class="rb-train-side">
+                  <div class="rb-card">
+                    <h3>Latihan Rumus</h3>
+                    <p class="rb-train-sub">Pilih rumus, lihat gerakannya, lalu ulangi sendiri sampai hafal.</p>
+                    <div id="rb-train-algs" class="rb-train-algs"></div>
+                  </div>
+                  <div id="rb-train-panel" class="rb-card"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div id="game-island-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-island-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span class="game-coin" aria-live="polite">&#127965;&#65039; Island Tycoon</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Island Tycoon</h2>
+            <p class="section-sub">Bangun pulau pribadimu: tebang pohon, tanam kebun, rekrut pekerja, jalankan pabrik, dan kendarai kendaraan. Progres tersimpan otomatis di akunmu, termasuk saat offline.</p>
+          </div>
+
+          <div id="island-app" class="island-app">
+            <div id="island-world" class="island-world">
+              <canvas id="island-canvas" class="island-canvas" aria-label="Pulau isometrik. Geser untuk memindah kamera, cubit atau scroll untuk zoom, tap objek untuk memilih."></canvas>
+
+              <div class="island-hud">
+                <div class="island-hud-left">
+                  <span id="island-coin-badge" class="island-coin-badge">&#128176; 0</span>
+                  <div class="island-owner">
+                    <b id="island-owner-name">Pulau</b>
+                    <small id="island-owner-level">Lv 1</small>
+                    <div class="island-xp" aria-hidden="true"><i id="island-xp-bar"></i></div>
+                  </div>
+                </div>
+                <div class="island-needs">
+                  <div class="island-need"><span aria-hidden="true">&#127830;</span><div class="island-need-track"><i id="island-hunger-bar"></i></div><small id="island-hunger-val">85%</small></div>
+                  <div class="island-need"><span aria-hidden="true">&#128167;</span><div class="island-need-track"><i id="island-thirst-bar"></i></div><small id="island-thirst-val">80%</small></div>
+                </div>
+              </div>
+
+              <div id="island-visit-banner" class="island-visit-banner" hidden>
+                <span id="island-visit-text">Mengunjungi pulau</span>
+                <button id="island-visit-home" class="island-btn-small" type="button">Pulang</button>
+              </div>
+
+              <div id="island-placement" class="island-placement" hidden>
+                <span id="island-placement-name">Menempatkan</span>
+                <button type="button" class="island-btn-small" data-place-rotate>Putar</button>
+                <button type="button" class="island-btn-small is-danger" data-place-cancel>Batal</button>
+              </div>
+
+              <div id="island-selection" class="island-selection" hidden></div>
+
+              <div id="island-joystick" class="island-joystick" aria-label="Joystick gerak">
+                <span id="island-joystick-knob" class="island-joystick-knob"></span>
+              </div>
+
+              <div id="island-actionbar" class="island-actionbar"></div>
+              <div id="island-toast" class="island-toast" role="status" aria-live="polite" hidden></div>
+            </div>
+
+            <div id="island-loading" class="island-loading" hidden></div>
+
+            <aside id="island-panel" class="island-panel" hidden aria-label="Menu pulau">
+              <div class="island-panel-head">
+                <h3 id="island-panel-title">Bangun Pulau</h3>
+                <button type="button" class="island-sel-close" data-close-panel aria-label="Tutup menu">&#10005;</button>
+              </div>
+              <div id="island-panel-body" class="island-panel-body"></div>
+            </aside>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -738,8 +921,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.12.3</button>
-    <button class="footer-link" type="button" data-open-updates>Last Update (21/11/26)</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.14.0</button>
+    <button class="footer-link" type="button" data-open-updates>Last Update (22/11/26)</button>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -1205,7 +1388,7 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=5"></script>
 <script src="data.js?v=2"></script>
-<script src="script.js?v=60"></script>
+<script src="script.js?v=62"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=6"></script>
 <script src="fishing-local.js?v=9"></script>
@@ -1219,6 +1402,11 @@
 <script src="kisi-kisi.js?v=6"></script>
 <script src="blockblast.js?v=5"></script>
 <script src="sudoku.js?v=1"></script>
+<script src="rubik-engine.js?v=1"></script>
+<script src="rubik.js?v=1"></script>
+<script src="island-catalog.js?v=1"></script>
+<script src="island-local.js?v=1"></script>
+<script src="island.js?v=3"></script>
 <script src="chat.js?v=4"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
