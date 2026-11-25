@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=18">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="streak3d.css?v=2">
 <link rel="stylesheet" href="timer.css?v=1">
@@ -186,6 +186,7 @@
       <button id="btn-edit-profil" class="account-menu-item">Edit Profil</button>
       <button id="btn-edit-credentials" class="account-menu-item">Ganti Username & Password</button>
       <button id="btn-kelola-admin" class="account-menu-item" hidden>Kelola Admin</button>
+      <button id="btn-kelola-guru" class="account-menu-item" hidden>Atur Akun Guru</button>
       <button id="btn-logout" class="account-menu-item account-menu-danger">Logout</button>
     </div>
   </div>
@@ -218,6 +219,7 @@
   <nav class="page-nav">
     <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
     <button class="page-tab-btn active" data-page-tab="home">Home</button>
+    <button class="page-tab-btn" data-page-tab="guru">Daftar Guru</button>
     <button class="page-tab-btn" data-page-tab="info">Info</button>
     <button class="page-tab-btn" data-page-tab="chat">Chat<span id="chat-tab-badge" class="chat-tab-badge" hidden></span></button>
     <button class="page-tab-btn" data-page-tab="medsos">Sosmed</button>
@@ -244,6 +246,17 @@
           <p>Pakai fitur pengacak buat milih satu orang atau bikin tim dadakan.</p>
           <button id="btn-open-picker" class="btn-primary">Random Teams or Person Picker</button>
         </div>
+      </section>
+    </div>
+
+    <!-- HALAMAN DAFTAR GURU -->
+    <div class="page-panel" data-page-panel="guru" hidden>
+      <section class="siswa-section" id="guru-section" aria-labelledby="guru-heading">
+        <div class="section-head">
+          <h2 id="guru-heading">Daftar Guru</h2>
+          <p class="section-sub">Biodata guru dipisah dari siswa. Klik kartu buat lihat.</p>
+        </div>
+        <div id="grid-guru" class="grid-siswa"></div>
       </section>
     </div>
 
@@ -930,7 +943,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.15.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.16.1</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (25/11/26)</button>
   </footer>
 
@@ -1109,8 +1122,8 @@
   <div id="modal-login" class="modal-overlay" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="login-title">
       <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
-      <h3 id="login-title">Login Siswa 7.3</h3>
-      <p class="form-hint">Masukan Username dan Password Anda.</p>
+      <h3 id="login-title">Login Kelas 7.3</h3>
+      <p class="form-hint">Masukan Username dan Password akunmu (siswa atau guru).</p>
       <form id="form-login" class="account-form">
         <label for="login-username">Username</label>
         <input id="login-username" type="text" autocomplete="username" required>
@@ -1189,6 +1202,77 @@
         <input id="cred-password-baru" type="password">
         <p id="cred-error" class="form-error" hidden></p>
         <button type="submit" class="btn-primary btn-block">Simpan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL BIODATA GURU -->
+  <div id="modal-guru-profil" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="guru-profil-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <div class="detail-top">
+        <span class="detail-absen">GURU</span>
+        <svg class="detail-leaf" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20C4 11 9 4 20 4C20 15 13 20 4 20Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M20 4C14 8 9 13 4 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3 id="guru-profil-title" class="detail-nama"></h3>
+      <p id="guru-profil-panggilan" class="detail-panggilan"></p>
+
+      <dl id="guru-profil-tampilan" class="detail-list">
+        <div class="detail-row">
+          <dt>Mata pelajaran</dt>
+          <dd id="guru-profil-mapel"></dd>
+        </div>
+        <div class="detail-row">
+          <dt>Bio</dt>
+          <dd><p id="guru-profil-bio" class="detail-bio guru-profil-bio"></p></dd>
+        </div>
+        <div class="detail-row">
+          <dt>Akun guru</dt>
+          <dd>Bisa main semua game di tab Games.</dd>
+        </div>
+      </dl>
+
+      <form id="form-guru-profil" class="account-form" hidden>
+        <label for="guru-profil-panggilan-input">Nama Panggilan</label>
+        <input id="guru-profil-panggilan-input" type="text" maxlength="30" required>
+        <label for="guru-profil-mapel-input">Mata Pelajaran</label>
+        <input id="guru-profil-mapel-input" type="text" maxlength="80" placeholder="Contoh: Matematika">
+        <label for="guru-profil-bio-input">Bio</label>
+        <textarea id="guru-profil-bio-input" rows="4" maxlength="300" placeholder="Perkenalan singkat"></textarea>
+        <p id="guru-profil-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Simpan Biodata</button>
+      </form>
+
+      <button id="btn-guru-profil-edit" class="btn-secondary btn-block" type="button" hidden>Edit Biodata Saya</button>
+    </div>
+  </div>
+
+  <!-- MODAL ATUR AKUN GURU (Admin & Owner) -->
+  <div id="modal-kelola-guru" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="guru-kelola-title">
+      <button class="modal-close" data-close-modal aria-label="Tutup">&times;</button>
+      <h3 id="guru-kelola-title">Atur Akun Guru</h3>
+      <p class="form-hint">Akun guru punya biodata sendiri dan bisa main Games. Login pakai username &amp; password di bawah.</p>
+      <div id="daftar-kelola-guru" class="kelola-admin-list"></div>
+      <form id="form-kelola-guru" class="account-form">
+        <h4 id="guru-form-title" class="guru-form-title">Tambah Akun Guru</h4>
+        <label for="guru-form-nama">Nama Lengkap</label>
+        <input id="guru-form-nama" type="text" maxlength="80" required>
+        <label for="guru-form-panggilan">Nama Panggilan</label>
+        <input id="guru-form-panggilan" type="text" maxlength="30" required>
+        <label for="guru-form-mapel">Mata Pelajaran</label>
+        <input id="guru-form-mapel" type="text" maxlength="80" placeholder="Contoh: Matematika">
+        <label for="guru-form-username">Username</label>
+        <input id="guru-form-username" type="text" maxlength="30" autocomplete="off" required>
+        <label for="guru-form-password">Password</label>
+        <input id="guru-form-password" type="text" maxlength="60" autocomplete="off" required placeholder="Wajib diisi buat akun baru">
+        <p id="guru-form-error" class="form-error" hidden></p>
+        <p id="guru-form-status" class="form-hint" hidden></p>
+        <button type="submit" id="guru-form-submit" class="btn-primary btn-block">Tambah Akun</button>
+        <button type="button" id="btn-guru-form-batal" class="btn-secondary btn-block" hidden>Batal Edit</button>
       </form>
     </div>
   </div>
@@ -1406,8 +1490,9 @@
 <script src="firebase-init.js"></script>
 <script src="schedule.js?v=5"></script>
 <script src="data.js?v=2"></script>
+<script src="guru.js?v=2"></script>
 <script src="streak3d.js?v=2"></script>
-<script src="script.js?v=65"></script>
+<script src="script.js?v=67"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=7"></script>
 <script src="fishing-local.js?v=10"></script>
@@ -1415,7 +1500,7 @@
 <script src="tableverse-config.js?v=2"></script>
 <script src="tableverse-chess.js?v=1"></script>
 <script src="tableverse-boards.js?v=11"></script>
-<script src="tableverse-local.js?v=5"></script>
+<script src="tableverse-local.js?v=6"></script>
 <script src="tableverse-stick.js?v=2"></script>
 <script src="tableverse.js?v=10"></script>
 <script src="kisi-kisi.js?v=7"></script>

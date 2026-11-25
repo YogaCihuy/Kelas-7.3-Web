@@ -67,7 +67,15 @@
   }
 
   function namaSiswa(absen) {
-    return studentMap()[Number(absen)] || `Siswa ${absen}`;
+    const siswa = studentMap()[Number(absen)];
+    if (siswa) return siswa;
+    try {
+      const guru = typeof window.guruGet === "function" ? window.guruGet(Number(absen)) : null;
+      if (guru) return guru.namaPanggilan || guru.namaLengkap || `Guru ${absen}`;
+    } catch (e) {
+      /* guru belum siap */
+    }
+    return `Siswa ${absen}`;
   }
 
   function namaSaya(absen) {
@@ -1138,7 +1146,7 @@
     const map = {};
     snap.forEach((doc) => { map[doc.id] = doc.data(); });
     const nowMs = now();
-    return (dataSiswa || []).map((s) => {
+    const hasil = (dataSiswa || []).map((s) => {
       const p = map[String(s.absen)] || {};
       const online = nowMs - (Number(p.lastSeen) || 0) < ONLINE_MS;
       const status = !online
@@ -1157,6 +1165,35 @@
         lastSeen: Number(p.lastSeen) || 0,
       };
     });
+
+    // Akun guru (absen 33..64) ikut tampil sebagai lawan kalau sudah pernah buka TableVerse.
+    const idSiswa = new Set((dataSiswa || []).map((s) => String(s.absen)));
+    snap.forEach((doc) => {
+      if (idSiswa.has(doc.id)) return;
+      const absen = Number(doc.id);
+      if (!(absen >= 33 && absen <= 64)) return;
+      const guru = typeof window.guruGet === "function" ? window.guruGet(absen) : null;
+      if (!guru) return;
+      const p = doc.data();
+      const online = nowMs - (Number(p.lastSeen) || 0) < ONLINE_MS;
+      const status = !online
+        ? "offline"
+        : p.roomStatus === "playing"
+          ? "playing"
+          : p.roomStatus === "waiting"
+            ? "in_lobby"
+            : "online";
+      hasil.push({
+        absen,
+        nama: p.nama || guru.namaPanggilan || guru.namaLengkap || `Guru ${absen}`,
+        username: p.username || p.nama || guru.username || guru.namaPanggilan || `Guru ${absen}`,
+        online,
+        status,
+        lastSeen: Number(p.lastSeen) || 0,
+      });
+    });
+
+    return hasil;
   }
 
   async function listRooms(body) {

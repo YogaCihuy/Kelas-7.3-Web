@@ -237,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSosial();
   setupPickerModal();
   setupAccountUI();
+  if (typeof window.guruInit === "function") window.guruInit();
   setupInfoTab();
   setupMedsosTab();
   setupPollingTab();
@@ -732,7 +733,11 @@ function getDefaultAccount(siswa) {
 
 function getMergedAccount(absen) {
   const siswa = dataSiswa.find((s) => s.absen === Number(absen));
-  if (!siswa) return null;
+  if (!siswa) {
+    // Guru punya biodata terpisah di koleksi "guru" (absen 33..64).
+    if (typeof window.guruGet === "function") return window.guruGet(Number(absen));
+    return null;
+  }
   const def = getDefaultAccount(siswa);
   const override = accountsData[String(absen)];
   if (!override) return def;
@@ -777,7 +782,11 @@ function setupAccountsListener() {
 
 function restoreSession() {
   const saved = localStorage.getItem("kelas73-session");
-  if (saved) {
+  if (saved && saved.indexOf("guru:") === 0) {
+    const id = Number(saved.slice(5));
+    if (id && typeof window.guruMuatSesi === "function") window.guruMuatSesi(id);
+    else localStorage.removeItem("kelas73-session");
+  } else if (saved) {
     const merged = getMergedAccount(Number(saved));
     if (merged) currentUser = merged;
   }
@@ -790,6 +799,39 @@ function loginUser(absen) {
   updateAccountUI();
   renderSosialKarenaLogin();
 }
+
+function loginUserGuru(guru) {
+  currentUser = guru;
+  localStorage.setItem("kelas73-session", "guru:" + guru.absen);
+  updateAccountUI();
+  renderSosialKarenaLogin();
+}
+
+window.sesiGuruSiap = function (guru) {
+  if (!guru) {
+    localStorage.removeItem("kelas73-session");
+    if (currentUser && currentUser.isGuru) {
+      currentUser = null;
+      updateAccountUI();
+      renderSosialKarenaLogin();
+    }
+    return;
+  }
+  if (currentUser && !currentUser.isGuru) return; // jangan tabrak login siswa
+  loginUserGuru(guru);
+};
+
+window.guruAkunTerbarui = function (guru) {
+  if (!currentUser || !currentUser.isGuru) return;
+  if (Number(currentUser.absen) !== Number(guru.absen)) return;
+  currentUser = guru;
+  updateAccountUI();
+};
+
+window.guruSesiHilang = function () {
+  if (!currentUser || !currentUser.isGuru) return;
+  logoutUser();
+};
 
 function logoutUser() {
   currentUser = null;
@@ -1902,6 +1944,23 @@ function setupPageTabs() {
   });
 }
 
+/* Guest & akun guru cuma boleh pakai Home + Daftar Guru + Games. */
+function terapkanTabGuru() {
+  const terbatas = !currentUser || !!currentUser.isGuru;
+  const diizinkan = { home: true, guru: true, games: true };
+  let aktifDisembunyikan = false;
+  document.querySelectorAll(".page-tab-btn").forEach((btn) => {
+    const sembunyi = terbatas && !diizinkan[btn.dataset.pageTab];
+    btn.hidden = sembunyi;
+    if (sembunyi && btn.classList.contains("active")) aktifDisembunyikan = true;
+  });
+  if (aktifDisembunyikan) {
+    const home = document.querySelector('.page-tab-btn[data-page-tab="home"]');
+    if (home) home.click();
+  }
+  if (terbatas) window.dispatchEvent(new Event("resize"));
+}
+
 /* ===================================================
    7. TAB INFO (jadwal otomatis + override admin)
 =================================================== */
@@ -2510,7 +2569,16 @@ function setupAccountUI() {
 
   document.getElementById("btn-edit-profil").addEventListener("click", () => {
     closeAccountPanels();
+    if (currentUser && currentUser.isGuru && typeof window.guruBukaProfil === "function") {
+      window.guruBukaProfil(currentUser.absen, true);
+      return;
+    }
     openEditProfilModal(currentUser.absen);
+  });
+
+  document.getElementById("btn-kelola-guru").addEventListener("click", () => {
+    closeAccountPanels();
+    if (typeof window.guruBukaKelola === "function") window.guruBukaKelola();
   });
 
   document.getElementById("btn-edit-credentials").addEventListener("click", () => {
@@ -2652,26 +2720,41 @@ function updateAccountUI() {
   const helloName = document.getElementById("account-hello-name");
   const roleBadge = document.getElementById("account-role-badge");
   const btnKelolaAdmin = document.getElementById("btn-kelola-admin");
+  const btnKelolaGuru = document.getElementById("btn-kelola-guru");
 
   if (currentUser) {
     label.textContent = currentUser.namaPanggilan;
     helloName.textContent = currentUser.namaPanggilan;
-    if (currentUser.role === "owner" || currentUser.role === "admin") {
+    if (currentUser.isGuru) {
+      roleBadge.textContent = "guru";
+      roleBadge.hidden = false;
+    } else if (currentUser.role === "owner" || currentUser.role === "admin") {
       roleBadge.textContent = currentUser.role;
       roleBadge.hidden = false;
     } else {
       roleBadge.hidden = true;
     }
-    btnKelolaAdmin.hidden = currentUser.role !== "owner";
+    btnKelolaAdmin.hidden = currentUser.isGuru || currentUser.role !== "owner";
   } else {
     label.textContent = "Akun";
+  }
+  if (btnKelolaGuru) {
+    btnKelolaGuru.hidden = !(
+      currentUser &&
+      !currentUser.isGuru &&
+      (currentUser.role === "admin" || currentUser.role === "owner")
+    );
   }
   updateInfoEditButtonVisibility();
   updateMedsosEditVisibility();
   updatePollingCreateVisibility();
   updateGamesAccount();
-  if (typeof window.chatAkunBerubah === "function") window.chatAkunBerubah(currentUser || null);
-  if (typeof window.kisiKisiAkunBerubah === "function") window.kisiKisiAkunBerubah(currentUser || null);
+  // Guru cuma pakai Biodata + Games, jadi chat & kisi-kisi diperlakukan seperti guest.
+  const akunFitur = currentUser && !currentUser.isGuru ? currentUser : null;
+  if (typeof window.chatAkunBerubah === "function") window.chatAkunBerubah(akunFitur);
+  if (typeof window.kisiKisiAkunBerubah === "function") window.kisiKisiAkunBerubah(akunFitur);
+  if (typeof window.guruAkunBerubah === "function") window.guruAkunBerubah(currentUser || null);
+  terapkanTabGuru();
 }
 
 async function handleLoginSubmit(e) {
@@ -2691,6 +2774,22 @@ async function handleLoginSubmit(e) {
   }
 
   if (matchedAbsen === null) {
+    const guru = typeof window.guruCariUsername === "function" ? window.guruCariUsername(username) : null;
+    if (guru) {
+      if (guru.password !== password) {
+        errorEl.textContent = "Password salah.";
+        errorEl.hidden = false;
+        SoundFX.errorSound();
+        return;
+      }
+      loginUserGuru(guru);
+      if (typeof window.tableverseLoginDenganPassword === "function") {
+        window.tableverseLoginDenganPassword(guru.absen, password);
+      }
+      closeModal(document.getElementById("modal-login"));
+      SoundFX.resultReveal();
+      return;
+    }
     errorEl.textContent = "Username gak ditemukan.";
     errorEl.hidden = false;
     SoundFX.errorSound();
@@ -2834,6 +2933,7 @@ async function handleEditCredentialsSubmit(e) {
   const usernameBaru = document.getElementById("cred-username-baru").value.trim();
   const passwordBaru = document.getElementById("cred-password-baru").value;
 
+  const isGuru = !!(currentUser && currentUser.isGuru);
   const merged = getMergedAccount(currentUser.absen);
   if (merged.password !== passwordLama) {
     errorEl.textContent = "Password sekarang salah.";
@@ -2847,10 +2947,13 @@ async function handleEditCredentialsSubmit(e) {
     return;
   }
 
-  const dipakaiOrangLain = dataSiswa.some(
+  const dipakaiSiswa = dataSiswa.some(
     (s) => s.absen !== currentUser.absen && getMergedAccount(s.absen).username === usernameBaru
   );
-  if (dipakaiOrangLain) {
+  const dipakaiGuru = (typeof window.guruDaftar === "function" ? window.guruDaftar() : []).some(
+    (guru) => Number(guru.absen) !== Number(currentUser.absen) && guru.username === usernameBaru
+  );
+  if (dipakaiSiswa || dipakaiGuru) {
     errorEl.textContent = "Username udah dipake orang lain.";
     errorEl.hidden = false;
     SoundFX.errorSound();
@@ -2861,7 +2964,8 @@ async function handleEditCredentialsSubmit(e) {
   if (passwordBaru) payload.password = passwordBaru;
 
   try {
-    await db.collection("accounts").doc(String(currentUser.absen)).set(payload, { merge: true });
+    const koleksi = isGuru ? "guru" : "accounts";
+    await db.collection(koleksi).doc(String(currentUser.absen)).set(payload, { merge: true });
     closeModal(document.getElementById("modal-edit-credentials"));
     SoundFX.resultReveal();
   } catch (err) {
@@ -4071,6 +4175,16 @@ const UPDATE_LOG = [
   {
     tanggal: "25/11/26",
     items: [
+      "Version 2.16.1 Daftar Guru Pindah ke Tab Sendiri, Posisinya Tepat Setelah Home",
+      "Version 2.16.1 Tab Daftar Guru Bisa Dibuka Semua Orang, Termasuk Guest",
+      "Version 2.16.1 Akun Guest Sekarang Cuma Lihat Home, Daftar Guru, dan Games",
+      "Version 2.16.1 Akun Guru Juga Cuma Lihat Home, Daftar Guru, dan Games",
+      "Version 2.16.1 Kalau Belum Ada Guru, Tab Daftar Guru Kasih Pesan Kosong yang Jelas",
+      "Version 2.16.0 Akun Guru Baru: Guru Punya Akun Sendiri Buat Login di Web Kelas",
+      "Version 2.16.0 Biodata Guru Dipisah dari Siswa dan Tampil di Bagian Daftar Guru pada Home",
+      "Version 2.16.0 Akun Guru Bisa Main Semua Games Tanpa Pinjam Akun Murid",
+      "Version 2.16.0 Admin & Owner Bisa Bikin, Edit, dan Hapus Akun Guru Lewat Menu Atur Akun Guru",
+      "Version 2.16.0 Akun Guru Cuma Lihat Biodata dan Games, Tab Lain Otomatis Disembunyikan",
       "Version 2.15.0 Pengaturan Tema Sekarang Punya Bagian Design: Normal, Modern Design, Hand Drawn, Cartoon, dan Manga",
       "Version 2.15.0 Semua Design Tetap Putih-Hijau Seperti Normal, Jadi Enak Dibaca",
       "Version 2.15.0 Hand Drawn Gaya Gambar Pensil, Cartoon Garis Tebal, Manga Tinta Hitam Screentone",

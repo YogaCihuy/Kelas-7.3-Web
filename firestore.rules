@@ -9,6 +9,13 @@ service cloud.firestore {
       allow delete: if false; // akun nggak pernah dihapus dari app, jadi diblok total
     }
 
+    // Akun guru: biodata terpisah dari siswa (absen 33..64) + dipakai main Games.
+    match /guru/{guruId} {
+      allow read: if true;
+      allow create, update: if isValidGuru(request.resource.data);
+      allow delete: if true; // dipakai Admin/Owner lewat menu Atur Akun Guru
+    }
+
     // Override jadwal/info harian (mapel, seragam, PR, dll) oleh admin
     match /infoOverrides/{tanggal} {
       allow read: if true;
@@ -97,7 +104,7 @@ service cloud.firestore {
     // ── FISHING GAME (tanpa Blaze) ────────────────────────────
     // Ditulis langsung dari browser lewat transaksi Firestore. RNG & aturan
     // main ada di fishing-local.js, bentuk dokumen dijaga rules di bawah.
-    // PENANDA VERSI: "fishing-v4-worker-potion-2026-11-25" — kalau di Rules Console
+    // PENANDA VERSI: "fishing-v4-worker-potion-guru-2026-11-25" — kalau di Rules Console
     // tidak ada tulisan ini, berarti rules lama masih yang dipakai.
     match /fishing/{absen} {
       allow read: if true;
@@ -641,6 +648,33 @@ service cloud.firestore {
         && (!('username' in d) || d.username is string)
         && (!('password' in d) || d.password is string)
         && (!('ultah' in d) || d.ultah is string);
+    }
+
+    function isValidGuru(d) {
+      let allowedKeys = ['absen','namaLengkap','namaPanggilan','mapel','bio',
+                          'username','password','role','createdAt','updatedAt'];
+      return d.keys().hasOnly(allowedKeys)
+        && d.keys().hasAll(['absen','namaLengkap','namaPanggilan','username','password','role'])
+        && d.absen is number
+        && d.absen >= 33
+        && d.absen <= 64
+        && d.role == 'guru'
+        && d.namaLengkap is string
+        && d.namaLengkap.size() >= 1
+        && d.namaLengkap.size() <= 80
+        && d.namaPanggilan is string
+        && d.namaPanggilan.size() >= 1
+        && d.namaPanggilan.size() <= 40
+        && d.username is string
+        && d.username.size() >= 1
+        && d.username.size() <= 40
+        && d.password is string
+        && d.password.size() >= 1
+        && d.password.size() <= 80
+        && (!('mapel' in d) || (d.mapel is string && d.mapel.size() <= 80))
+        && (!('bio' in d) || (d.bio is string && d.bio.size() <= 300))
+        && (!('createdAt' in d) || d.createdAt is number)
+        && (!('updatedAt' in d) || d.updatedAt is number);
     }
 
     function isValidInfoOverride(d) {
