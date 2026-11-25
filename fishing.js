@@ -13,6 +13,9 @@
   const CAT_KEY = "kelas73-fishing-catalog-v6";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
+  // Potion disimpan sementara: mesin & data tetap jalan, tampilannya saja yang
+  // disembunyikan. Ubah ke true kalau mau memunculkan lagi.
+  const TAMPILKAN_POTION = false;
 
   const FC = {
     aktif: false,
@@ -253,7 +256,7 @@
       collection[id] = { caught: Math.max(0, Number(rec && rec.caught) || 0), firstAt: tsMs(rec && rec.firstAt) };
     });
     const rods = Array.isArray(raw.rods) ? raw.rods.map((r) => ({ id: String(r && r.id), durability: Math.max(0, Number(r && r.durability) || 0) })) : [];
-    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 4;
+    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 3;
     const maxLevel = (FC.cat && FC.cat.worker && FC.cat.worker.maxLevel) || 9;
     const workers = (Array.isArray(raw.workers) ? raw.workers : []).slice(0, maxWorker).map((w, i) => ({
       id: String((w && w.id) || `w-${i + 1}`),
@@ -365,7 +368,7 @@
     const dariKatalog = Number(infoWorker().max) || 0;
     let dariMesin = 0;
     try { dariMesin = Number(window.FishingLocal && window.FishingLocal.workerLimit) || 0; } catch (err) { dariMesin = 0; }
-    return Math.max(dariKatalog, dariMesin) || 4;
+    return Math.max(dariKatalog, dariMesin) || 3;
   }
   function workerPrice() { return Number(infoWorker().price) || 3000; }
   function workerLevelMaks() { return Number(infoWorker().maxLevel) || 9; }
@@ -449,6 +452,7 @@
   }
 
   function potionStrip() {
+    if (!TAMPILKAN_POTION) return "";
     const aktif = ["luck", "worker", "coin"].map(potionAktif).filter(Boolean);
     if (!aktif.length) return "";
     return `<div class="fishing-potion-strip">${aktif.map((a) => `
@@ -482,6 +486,7 @@
     try { localStorage.setItem(autoPotionKey(FC.absen), FC.autoPotion ? "1" : "0"); } catch (err) { /* ignore */ }
   }
   function jadwalkanAutoPotion() {
+    if (!TAMPILKAN_POTION) return;
     if (!FC.autoPotion || !FC.aktif || !FC.state || FC.autoPotionBusy) return;
     if (FC.autoPotionTimer) clearTimeout(FC.autoPotionTimer);
     FC.autoPotionTimer = setTimeout(() => {
@@ -495,6 +500,7 @@
     FC.autoPotionBusy = false;
   }
   async function pakaiPotionOtomatis() {
+    if (!TAMPILKAN_POTION) return;
     if (!FC.autoPotion || !FC.aktif || !FC.state || FC.autoPotionBusy || FC.aksi) return;
     FC.autoPotionBusy = true;
     try {
@@ -1096,7 +1102,7 @@
               ${topSecret ? `
                 <span class="fishing-first-art">${fishArt(infoIkan(topSecret.fishId), { label: topSecret.fishName })}</span>
                 <div><strong>${esc(topSecret.fishName)}</strong><small>${esc(topSecret.name)} · ${waktu(topSecret.at)}</small></div>
-              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi. Potion Luck menembus batas jadi 0,2%–0,3%.</small></div>`}
+              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi.${TAMPILKAN_POTION ? " Potion Luck menembus batas jadi 0,2%–0,3%." : ""}</small></div>`}
             </div>
           </article>
         </div>
@@ -1156,7 +1162,7 @@
             <b data-worker-pct>${st.kode === "kerja" ? `${pct}%` : "—"}</b>
           </div>
           <div class="fishing-worker-bar"><span data-worker-fill style="width:${st.kode === "kerja" ? pct : 0}%"></span></div>
-          <small>${durasiTeks(speed)}/ikan${speedDasar !== speed ? " · potion aktif" : ""}${maks ? " · kecepatan maksimal" : ""}</small>
+          <small>${durasiTeks(speed)}/ikan${TAMPILKAN_POTION && speedDasar !== speed ? " · potion aktif" : ""}${maks ? " · kecepatan maksimal" : ""}</small>
         </div>
         <div class="fishing-worker-stats">
           <span>🐟 ${angka(w.catches)} tangkapan</span>
@@ -1352,7 +1358,7 @@
               </div>
             </div>
             <div class="fishing-cast-luck">
-              <small>Total luck${multLuck > 1 ? ` · potion ×${multLuck}` : ""}</small>
+              <small>Total luck${TAMPILKAN_POTION && multLuck > 1 ? ` · potion ×${multLuck}` : ""}</small>
               <strong>+${angka(totalLuck)}</strong>
             </div>
           </div>
@@ -1384,7 +1390,7 @@
 
         <div class="fishing-area-tips">
           <span>💡 Tips</span>
-          <p>Joran &amp; umpan dengan luck lebih tinggi memperbesar peluang Rare ke atas. Umpan tetap terpakai walaupun ikan kabur. Potion kadang ikut terbawa saat menangkap ikan dan langsung masuk Tas — tekan Pakai untuk mengaktifkannya.</p>
+          <p>Joran &amp; umpan dengan luck lebih tinggi memperbesar peluang Rare ke atas. Umpan tetap terpakai walaupun ikan kabur.${TAMPILKAN_POTION ? " Potion kadang ikut terbawa saat menangkap ikan dan langsung masuk Tas — tekan Pakai untuk mengaktifkannya." : ""}</p>
         </div>
       </div>`;
   }
@@ -1529,8 +1535,10 @@
 
   /* ================= PANEL: TAS ================= */
   function tasTabs() {
+    const tab = [["fish", "🐟 Ikan"], ["rod", "🎣 Joran"], ["bait", "🐛 Umpan"]];
+    if (TAMPILKAN_POTION) tab.push(["potion", "🧪 Potion"]);
     return `<div class="fishing-subtabs" role="tablist" aria-label="Kategori tas">
-      ${[["fish", "🐟 Ikan"], ["rod", "🎣 Joran"], ["bait", "🐛 Umpan"], ["potion", "🧪 Potion"]].map(([id, label]) => `
+      ${tab.map(([id, label]) => `
         <button class="fishing-subtab ${FC.invTab === id ? "is-active" : ""}" type="button" role="tab" aria-selected="${FC.invTab === id}" data-fish-act="inv-tab" data-tab="${id}">${label}</button>`).join("")}
     </div>`;
   }
@@ -1573,7 +1581,7 @@
     const s = FC.state;
     const isi = FC.invTab === "rod" ? tasJoran()
       : FC.invTab === "bait" ? tasUmpan()
-        : FC.invTab === "potion" ? tasPotion()
+        : FC.invTab === "potion" && TAMPILKAN_POTION ? tasPotion()
           : tasIkan();
     return `
       <div class="fishing-inventory">
@@ -1691,6 +1699,7 @@
   }
 
   function autoPotionToggle() {
+    if (!TAMPILKAN_POTION) return "";
     return `<label class="fishing-auto-potion">
         <span class="fishing-auto-potion-text">
           <b>⚡ Auto Pakai Potion</b>
@@ -1904,7 +1913,7 @@
                 return `<div class="fishing-legend-slot is-empty">
                   <span class="fishing-legend-slot-no">#${i + 1}</span>
                   <span class="fishing-legend-empty-art" aria-hidden="true">${rarity === "secret" ? "🌟" : "👑"}</span>
-                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? "Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi. Potion Luck menembus batas jadi 0,2%–0,3%." : "Peluang 0,5% per lemparan."}</small></div>
+                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? `Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi.${TAMPILKAN_POTION ? " Potion Luck menembus batas jadi 0,2%–0,3%." : ""}` : "Peluang 0,5% per lemparan."}</small></div>
                 </div>`;
               }
               return `<div class="fishing-legend-slot is-filled">
@@ -2097,12 +2106,12 @@
     if (list.length === 1) {
       const c = list[0];
       const info = c.potionId ? infoPotion(c.potionId) : null;
-      toast(`👷 <b>${esc(c.workerName)}</b> menangkap ${esc(c.fishName)}${c.autoSold ? ` · 🤖 auto sell +💰 ${angka(c.autoSold)}` : ""}${info ? ` · 🧪 ${esc(info.name)}` : ""}`, "ok", 3800);
+      toast(`👷 <b>${esc(c.workerName)}</b> menangkap ${esc(c.fishName)}${c.autoSold ? ` · 🤖 auto sell +💰 ${angka(c.autoSold)}` : ""}${TAMPILKAN_POTION && info ? ` · 🧪 ${esc(info.name)}` : ""}`, "ok", 3800);
       return;
     }
     const auto = list.filter((c) => Number(c.autoSold) > 0);
     const nilai = auto.reduce((a, c) => a + Number(c.autoSold), 0);
-    toast(`👷 Worker menangkap <b>${angka(list.length)} ikan</b>${auto.length ? ` · 🤖 ${angka(auto.length)} auto sell (💰 ${angka(nilai)})` : ""}${drops.length ? ` · 🧪 +${angka(drops.length)} Potion` : ""}`, "ok", 4400);
+    toast(`👷 Worker menangkap <b>${angka(list.length)} ikan</b>${auto.length ? ` · 🤖 ${angka(auto.length)} auto sell (💰 ${angka(nilai)})` : ""}${drops.length && TAMPILKAN_POTION ? ` · 🧪 +${angka(drops.length)} Potion` : ""}`, "ok", 4400);
   }
 
   function tampilkanPengumuman(a) {
@@ -2376,7 +2385,7 @@
           <div><span>Nilai jual</span><strong>💰 ${angka(fish.value)}</strong></div>
           <div><span>Durability</span><strong>-${angka(res.durabilityLoss)}</strong></div>
         </div>
-        ${res.potionDrop ? `
+        ${TAMPILKAN_POTION && res.potionDrop ? `
           <div class="fishing-result-drop" style="--potion:${esc(res.potionDrop.color)};--potion-soft:${esc(res.potionDrop.soft)}">
             <span aria-hidden="true">${esc(res.potionDrop.icon)}</span>
             <div><small>Potion ikut terbawa!</small><strong>${esc(res.potionDrop.name)}</strong></div>

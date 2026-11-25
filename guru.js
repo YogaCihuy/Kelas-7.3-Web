@@ -40,6 +40,10 @@
     return nilai.trim().slice(0, batas);
   }
 
+  function ultahSah(nilai) {
+    return typeof nilai === "string" && /^\d{4}-\d{2}-\d{2}$/.test(nilai) ? nilai : "";
+  }
+
   function esc(nilai) {
     return String(nilai == null ? "" : nilai)
       .replace(/&/g, "&amp;")
@@ -60,6 +64,7 @@
       namaPanggilan: teks(raw.namaPanggilan, BATAS_PANGGILAN) || namaLengkap,
       mapel: teks(raw.mapel, BATAS_MAPEL),
       bio: teks(raw.bio, BATAS_BIO),
+      ultah: ultahSah(raw.ultah),
       username: teks(raw.username, BATAS_USERNAME),
       password: typeof raw.password === "string" ? raw.password : "",
       role: "guru",
@@ -102,6 +107,7 @@
           namaPanggilan: guru.namaPanggilan,
           mapel: guru.mapel,
           bio: guru.bio,
+          ultah: guru.ultah,
           username: guru.username,
           role: "guru",
         };
@@ -139,14 +145,16 @@
       return;
     }
     grid.innerHTML = daftar
-      .map(
-        (guru) => `
-        <button class="siswa-card guru-card" type="button" data-guru-id="${guru.absen}">
+      .map((guru) => {
+        const ultah = typeof isUltahHariIni === "function" && isUltahHariIni(guru.ultah);
+        return `
+        <button class="siswa-card guru-card${ultah ? " siswa-card-ultah" : ""}" type="button" data-guru-id="${guru.absen}">
+          ${ultah ? `<span class="cake-deco cake-1">🎂</span><span class="cake-deco cake-2">🧁</span><span class="cake-deco cake-3">🍰</span>` : ""}
           <span class="siswa-absen guru-card-label">GURU</span>
           <div class="siswa-nama">${esc(guru.namaPanggilan)}</div>
           <span class="guru-mapel">${esc(guru.mapel || "Guru Kelas 7.3")}</span>
-        </button>`
-      )
+        </button>`;
+      })
       .join("");
   }
 
@@ -157,10 +165,21 @@
     document.getElementById("guru-profil-panggilan").textContent = `Dipanggil ${guru.namaPanggilan}`;
     document.getElementById("guru-profil-mapel").textContent = guru.mapel || "Belum diisi";
     document.getElementById("guru-profil-bio").textContent = guru.bio || "Belum ada bio.";
+    document.getElementById("guru-profil-ultah").textContent =
+      typeof formatUltah === "function" ? formatUltah(guru.ultah) : guru.ultah || "Belum diatur";
     document.getElementById("guru-profil-panggilan-input").value = guru.namaPanggilan;
     document.getElementById("guru-profil-mapel-input").value = guru.mapel;
+    document.getElementById("guru-profil-ultah-input").value = guru.ultah;
     document.getElementById("guru-profil-bio-input").value = guru.bio;
     document.getElementById("guru-profil-error").hidden = true;
+
+    const kotak = document.querySelector("#modal-guru-profil .modal-box");
+    if (kotak) {
+      kotak.classList.toggle(
+        "modal-ultah",
+        typeof isUltahHariIni === "function" && isUltahHariIni(guru.ultah)
+      );
+    }
   }
 
   function terapkanModeProfil() {
@@ -202,6 +221,7 @@
             namaPanggilan,
             mapel: teks(document.getElementById("guru-profil-mapel-input").value, BATAS_MAPEL),
             bio: teks(document.getElementById("guru-profil-bio-input").value, BATAS_BIO),
+            ultah: ultahSah(document.getElementById("guru-profil-ultah-input").value),
             updatedAt: Date.now(),
           },
           { merge: true }
@@ -356,6 +376,7 @@
           namaPanggilan,
           mapel,
           bio: "",
+          ultah: "",
           username,
           password,
           role: "guru",
@@ -423,6 +444,7 @@
         cacheGuru = next;
         simpanCacheLokal();
         renderGrid();
+        if (typeof applyBirthdayTheme === "function") applyBirthdayTheme();
         renderKelola();
 
         const modalProfil = document.getElementById("modal-guru-profil");

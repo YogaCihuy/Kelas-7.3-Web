@@ -864,7 +864,7 @@ function renderGridSiswa() {
         <span class="siswa-like-heart">&#9829;</span>
         <span class="siswa-like-count" data-like-count="${siswa.absen}">0</span>
       </span>
-      <div class="siswa-nama">${merged.namaPanggilan}</div>
+      <div class="siswa-nama">${escSosial(merged.namaPanggilan)}</div>
     `;
     const like = likeRingkas(siswa.absen);
     card.querySelector(".siswa-like-count").textContent = String(like.count);
@@ -905,6 +905,12 @@ function applyBirthdayTheme() {
     .map((s) => getMergedAccount(s.absen))
     .filter((m) => isUltahHariIni(m.ultah))
     .map((m) => m.namaPanggilan);
+  if (typeof window.guruDaftar === "function") {
+    window
+      .guruDaftar()
+      .filter((guru) => isUltahHariIni(guru.ultah))
+      .forEach((guru) => namaList.push(guru.namaPanggilan));
+  }
   const on = namaList.length > 0;
 
   document.body.classList.toggle("birthday-theme", on);
@@ -1493,7 +1499,7 @@ function setupPickerSettings(pickerModal) {
           <input type="checkbox" value="${s.absen}" ${pickerSettings.absen.includes(s.absen) ? "checked" : ""}>
           <span class="absent-check"></span>
           <span class="absent-no">${String(s.absen).padStart(2, "0")}</span>
-          <span class="absent-name">${s.namaPanggilan}</span>
+          <span class="absent-name">${escSosial(s.namaPanggilan)}</span>
         </label>`
       )
       .join("");
@@ -1571,8 +1577,8 @@ function setupPersonPicker() {
   function showResult(siswa) {
     resultBox.innerHTML = `
       <div class="person-name">
-        ${siswa.namaPanggilan}
-        <span class="person-sub">Absen ${String(siswa.absen).padStart(2, "0")} · ${siswa.namaLengkap}</span>
+        ${escSosial(siswa.namaPanggilan)}
+        <span class="person-sub">Absen ${String(siswa.absen).padStart(2, "0")} · ${escSosial(siswa.namaLengkap)}</span>
       </div>
     `;
   }
@@ -1594,7 +1600,7 @@ function setupPersonPicker() {
     const maxTicks = 14;
     const interval = setInterval(() => {
       const acakSementara = pool[Math.floor(Math.random() * pool.length)];
-      resultBox.innerHTML = `<div class="person-name">${acakSementara.namaPanggilan}</div>`;
+      resultBox.innerHTML = `<div class="person-name">${escSosial(acakSementara.namaPanggilan)}</div>`;
       SoundFX.shuffleTick();
       ticks++;
 
@@ -1830,7 +1836,7 @@ function setupTeamsPicker() {
           <ul>
             ${anggota
               .map(
-                (s) => `<li><span class="team-no">${String(s.absen).padStart(2, "0")}</span><span class="team-name">${s.namaPanggilan}</span></li>`
+                (s) => `<li><span class="team-no">${String(s.absen).padStart(2, "0")}</span><span class="team-name">${escSosial(s.namaPanggilan)}</span></li>`
               )
               .join("")}
           </ul>
@@ -2990,7 +2996,7 @@ function renderKelolaAdmin() {
     row.innerHTML = `
       <label>
         <input type="checkbox" data-admin-absen="${siswa.absen}" ${merged.role === "admin" ? "checked" : ""}>
-        ${merged.namaPanggilan} (absen ${String(siswa.absen).padStart(2, "0")})
+        ${escSosial(merged.namaPanggilan)} (absen ${String(siswa.absen).padStart(2, "0")})
       </label>
     `;
     container.appendChild(row);
@@ -3167,7 +3173,7 @@ function renderPollingList(daftar) {
         .map((opsi, i) => {
           const pemilih = Object.entries(votes)
             .filter(([, v]) => Array.isArray(v) && v.includes(i))
-            .map(([absen]) => getMergedAccount(Number(absen))?.namaPanggilan || "?");
+            .map(([absen]) => escSosial(getMergedAccount(Number(absen))?.namaPanggilan || "?"));
           const jumlah = pemilih.length;
           const persen = totalVotes > 0 ? Math.round((jumlah / totalVotes) * 100) : 0;
           const votedMine = myVotes.includes(i);
@@ -3175,7 +3181,7 @@ function renderPollingList(daftar) {
           return `
             <div class="polling-opsi-row ${votedMine ? "voted-mine" : ""}" data-poll-id="${poll.id}" data-opsi-index="${i}">
               <div class="polling-opsi-label">
-                <span>${opsi} ${votedMine ? "&#9989;" : ""}</span>
+                <span>${escSosial(opsi)} ${votedMine ? "&#9989;" : ""}</span>
                 <span class="polling-opsi-persen">${persen}% (${jumlah})</span>
               </div>
               <div class="polling-opsi-track"><div class="polling-opsi-bar" style="width:${persen}%"></div></div>
@@ -3187,7 +3193,7 @@ function renderPollingList(daftar) {
 
       return `
         <div class="polling-card">
-          <h4 class="polling-pertanyaan">${poll.pertanyaan}</h4>
+          <h4 class="polling-pertanyaan">${escSosial(poll.pertanyaan)}</h4>
           <p class="form-hint">${maxPilihan >= poll.opsi.length ? "Boleh milih semuanya" : `Maksimal pilih ${maxPilihan}`}</p>
           ${opsiHtml}
           <div class="polling-meta">
@@ -3279,7 +3285,7 @@ function openBuatPollingModal(pollToEdit) {
 
   const opsiAwal = pollToEdit ? pollToEdit.opsi : ["", ""];
   document.getElementById("polling-opsi-list").innerHTML = opsiAwal
-    .map((val, i) => `<input type="text" class="polling-opsi-input" placeholder="Pilihan ${i + 1}" value="${val}" required>`)
+    .map((val, i) => `<input type="text" class="polling-opsi-input" placeholder="Pilihan ${i + 1}" value="${escSosial(val)}" required>`)
     .join("");
 
   document.getElementById("polling-error").hidden = true;
@@ -4175,6 +4181,13 @@ const UPDATE_LOG = [
   {
     tanggal: "25/11/26",
     items: [
+      "Version 2.17.1 Worker Dibatasi Maksimal 3 per Akun Lagi",
+      "Version 2.17.1 Tampilan Potion Disembunyikan Sementara, Sistem dan Datanya Tetap Ada",
+      "Version 2.17.0 Biodata Guru Sekarang Punya Ulang Tahun yang Bisa Diatur Sendiri oleh Guru",
+      "Version 2.17.0 Guru yang Ulang Tahun Hari Ini Dapat Banner Happy Birthday dan Kartu Berhias Kue",
+      "Version 2.17.0 Keamanan Data Diperketat: Nama, Pertanyaan Polling, dan Pilihan Selalu Ditampilkan Sebagai Teks Aman",
+      "Version 2.17.0 Batas Ukuran Biodata, Polling, Album, dan Akun Guru Divalidasi Ketat di Server",
+      "Version 2.17.0 Akun Guru Tidak Bisa Ditimpa Akun Lain, Nomor Absen di Dalam Data Harus Cocok dengan ID Akun",
       "Version 2.16.1 Daftar Guru Pindah ke Tab Sendiri, Posisinya Tepat Setelah Home",
       "Version 2.16.1 Tab Daftar Guru Bisa Dibuka Semua Orang, Termasuk Guest",
       "Version 2.16.1 Akun Guest Sekarang Cuma Lihat Home, Daftar Guru, dan Games",

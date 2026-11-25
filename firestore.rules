@@ -2,18 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // PENANDA VERSI: "hardening-v1-2026-11-25" — kalau di Rules Console
+    // belum ada tulisan ini, berarti rules lama masih dipakai.
+
     // Data akun siswa: nama panggilan, bio, username/password login custom, role, dll.
     match /accounts/{absen} {
       allow read: if true;
-      allow create, update: if isValidAccount(request.resource.data);
+      allow create, update: if isValidAccount(request.resource.data)
+        && (!('absen' in request.resource.data) || string(request.resource.data.absen) == absen);
       allow delete: if false; // akun nggak pernah dihapus dari app, jadi diblok total
     }
 
     // Akun guru: biodata terpisah dari siswa (absen 33..64) + dipakai main Games.
     match /guru/{guruId} {
       allow read: if true;
-      allow create, update: if isValidGuru(request.resource.data);
-      allow delete: if true; // dipakai Admin/Owner lewat menu Atur Akun Guru
+      allow create, update: if guruId == string(request.resource.data.absen)
+        && isValidGuru(request.resource.data);
+      allow delete: if resource.data.role == 'guru'; // dipakai Admin/Owner lewat menu Atur Akun Guru
     }
 
     // Override jadwal/info harian (mapel, seragam, PR, dll) oleh admin
@@ -182,11 +187,10 @@ service cloud.firestore {
 
     function isValidFishingWorkers(list) {
       return list is list
-        && list.size() <= 4
+        && list.size() <= 3
         && (list.size() < 1 || isValidFishingWorker(list[0]))
         && (list.size() < 2 || isValidFishingWorker(list[1]))
-        && (list.size() < 3 || isValidFishingWorker(list[2]))
-        && (list.size() < 4 || isValidFishingWorker(list[3]));
+        && (list.size() < 3 || isValidFishingWorker(list[2]));
     }
 
     function isValidFishingWorker(w) {
@@ -642,20 +646,28 @@ service cloud.firestore {
                           'bio','username','password','role','eskulWajib','eskulPilihan','notifEskul',
                           'ultah'];
       return d.keys().hasOnly(allowedKeys)
+        && (!('absen' in d) || (d.absen is int && d.absen >= 1 && d.absen <= 64))
         && (!('role' in d) || d.role in ['member','admin','owner'])
-        && (!('eskulPilihan' in d) || d.eskulPilihan is list)
+        && (!('eskulPilihan' in d) || (d.eskulPilihan is list && d.eskulPilihan.size() <= 10))
+        && (!('eskulWajib' in d) || (d.eskulWajib is string && d.eskulWajib.size() <= 40))
         && (!('notifEskul' in d) || d.notifEskul is bool)
-        && (!('username' in d) || d.username is string)
-        && (!('password' in d) || d.password is string)
-        && (!('ultah' in d) || d.ultah is string);
+        && (!('namaPanggilan' in d) || (d.namaPanggilan is string && d.namaPanggilan.size() <= 60))
+        && (!('citaCita' in d) || (d.citaCita is string && d.citaCita.size() <= 120))
+        && (!('laguFavorit' in d) || (d.laguFavorit is string && d.laguFavorit.size() <= 120))
+        && (!('bio' in d) || (d.bio is string && d.bio.size() <= 800))
+        && (!('username' in d) || (d.username is string && d.username.size() <= 40))
+        && (!('password' in d) || (d.password is string && d.password.size() <= 80))
+        && (!('ultah' in d) || (d.ultah is string
+            && (d.ultah == '' || d.ultah.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))));
     }
 
     function isValidGuru(d) {
-      let allowedKeys = ['absen','namaLengkap','namaPanggilan','mapel','bio',
+      let allowedKeys = ['absen','namaLengkap','namaPanggilan','mapel','bio','ultah',
                           'username','password','role','createdAt','updatedAt'];
       return d.keys().hasOnly(allowedKeys)
         && d.keys().hasAll(['absen','namaLengkap','namaPanggilan','username','password','role'])
         && d.absen is number
+        && d.absen is int
         && d.absen >= 33
         && d.absen <= 64
         && d.role == 'guru'
@@ -673,6 +685,8 @@ service cloud.firestore {
         && d.password.size() <= 80
         && (!('mapel' in d) || (d.mapel is string && d.mapel.size() <= 80))
         && (!('bio' in d) || (d.bio is string && d.bio.size() <= 300))
+        && (!('ultah' in d) || (d.ultah is string
+            && (d.ultah == '' || d.ultah.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))))
         && (!('createdAt' in d) || d.createdAt is number)
         && (!('updatedAt' in d) || d.updatedAt is number);
     }
@@ -682,9 +696,13 @@ service cloud.firestore {
                           'kegiatan','editedBy','editedAt',
                           'piketOverride','piketSelesai','piketEditedBy','piketEditedAt'];
       return d.keys().hasOnly(allowedKeys)
-        && (!('eskulLiburList' in d) || d.eskulLiburList is list)
-        && (!('kegiatan' in d) || d.kegiatan is string)
-        && (!('editedBy' in d) || d.editedBy is string)
+        && (!('mapelOverride' in d) || (d.mapelOverride is string && d.mapelOverride.size() <= 300))
+        && (!('seragamOverride' in d) || (d.seragamOverride is string && d.seragamOverride.size() <= 200))
+        && (!('pr' in d) || (d.pr is string && d.pr.size() <= 400))
+        && (!('catatan' in d) || (d.catatan is string && d.catatan.size() <= 400))
+        && (!('eskulLiburList' in d) || (d.eskulLiburList is list && d.eskulLiburList.size() <= 10))
+        && (!('kegiatan' in d) || (d.kegiatan is string && d.kegiatan.size() <= 300))
+        && (!('editedBy' in d) || (d.editedBy is string && d.editedBy.size() <= 60))
         && (!('editedAt' in d) || d.editedAt is timestamp)
         && (!('piketOverride' in d) || (d.piketOverride is list && d.piketOverride.size() <= 12))
         && (!('piketSelesai' in d) || (d.piketSelesai is list && d.piketSelesai.size() <= 64))
@@ -694,16 +712,23 @@ service cloud.firestore {
 
     function isValidAlbum(d) {
       let allowedKeys = ['f1','f2','f3','updatedAt'];
+      let pola = '^data:image/(jpeg|png|webp);base64,.*';
       return d.keys().hasOnly(allowedKeys)
-        && (!('f1' in d) || (d.f1 is string && d.f1.size() < 300000))
-        && (!('f2' in d) || (d.f2 is string && d.f2.size() < 300000))
-        && (!('f3' in d) || (d.f3 is string && d.f3.size() < 300000))
+        && (!('f1' in d) || (d.f1 is string && d.f1.size() < 300000 && d.f1.matches(pola)))
+        && (!('f2' in d) || (d.f2 is string && d.f2.size() < 300000 && d.f2.matches(pola)))
+        && (!('f3' in d) || (d.f3 is string && d.f3.size() < 300000 && d.f3.matches(pola)))
         && (!('updatedAt' in d) || d.updatedAt is timestamp);
     }
 
     function isValidSettings(d) {
       let allowedKeys = ['tiktok','ig'];
-      return d.keys().hasOnly(allowedKeys);
+      return d.keys().hasOnly(allowedKeys)
+        && (!('tiktok' in d) || (d.tiktok is string
+            && d.tiktok.size() <= 60
+            && d.tiktok.matches('^[A-Za-z0-9._]*$')))
+        && (!('ig' in d) || (d.ig is string
+            && d.ig.size() <= 60
+            && d.ig.matches('^[A-Za-z0-9._]*$')));
     }
 
     function isValidAiConfig(d) {
@@ -720,12 +745,51 @@ service cloud.firestore {
         && d.updatedBy <= 64;
     }
 
+    function opsiItemSah(opsi, idx) {
+      return idx >= opsi.size()
+        || (opsi[idx] is string && opsi[idx].size() >= 1 && opsi[idx].size() <= 120);
+    }
+
     function isValidPolling(d) {
       let allowedKeys = ['pertanyaan','opsi','maxPilihan','votes','dibuatOleh','dibuatOlehAbsen','createdAt'];
       return d.keys().hasOnly(allowedKeys)
-        && (!('opsi' in d) || d.opsi is list)
-        && (!('votes' in d) || d.votes is map)
-        && (!('dibuatOlehAbsen' in d) || d.dibuatOlehAbsen is number);
+        && d.keys().hasAll(allowedKeys)
+        && d.pertanyaan is string
+        && d.pertanyaan.size() >= 1
+        && d.pertanyaan.size() <= 200
+        && d.opsi is list
+        && d.opsi.size() >= 2
+        && d.opsi.size() <= 20
+        && opsiItemSah(d.opsi, 0)
+        && opsiItemSah(d.opsi, 1)
+        && opsiItemSah(d.opsi, 2)
+        && opsiItemSah(d.opsi, 3)
+        && opsiItemSah(d.opsi, 4)
+        && opsiItemSah(d.opsi, 5)
+        && opsiItemSah(d.opsi, 6)
+        && opsiItemSah(d.opsi, 7)
+        && opsiItemSah(d.opsi, 8)
+        && opsiItemSah(d.opsi, 9)
+        && opsiItemSah(d.opsi, 10)
+        && opsiItemSah(d.opsi, 11)
+        && opsiItemSah(d.opsi, 12)
+        && opsiItemSah(d.opsi, 13)
+        && opsiItemSah(d.opsi, 14)
+        && opsiItemSah(d.opsi, 15)
+        && opsiItemSah(d.opsi, 16)
+        && opsiItemSah(d.opsi, 17)
+        && opsiItemSah(d.opsi, 18)
+        && opsiItemSah(d.opsi, 19)
+        && (d.maxPilihan == 'semua'
+            || (d.maxPilihan is int && d.maxPilihan >= 1 && d.maxPilihan <= 20))
+        && d.votes is map
+        && d.votes.keys().size() <= 64
+        && d.dibuatOleh is string
+        && d.dibuatOleh.size() <= 60
+        && d.dibuatOlehAbsen is int
+        && d.dibuatOlehAbsen >= 1
+        && d.dibuatOlehAbsen <= 64
+        && (d.createdAt is timestamp || (d.createdAt is int && d.createdAt > 0));
     }
 
     function isValidGame(d) {
