@@ -3770,66 +3770,6 @@ function gameTahapPohon(streak) {
   return 0;
 }
 
-function gameSvgPohon() {
-  return `
-    <svg class="pohon-svg" viewBox="0 0 220 200" role="img" aria-label="Pohon streak kamu">
-      <defs>
-        <linearGradient id="pohonDaun" x1="0" y1="0" x2="0.55" y2="1">
-          <stop offset="0" stop-color="#63cc8e"/>
-          <stop offset="0.55" stop-color="#2f8f5b"/>
-          <stop offset="1" stop-color="#1f6d45"/>
-        </linearGradient>
-        <radialGradient id="pohonDaun2" cx="0.35" cy="0.28" r="0.9">
-          <stop offset="0" stop-color="#74d89e"/>
-          <stop offset="0.6" stop-color="#3aa265"/>
-          <stop offset="1" stop-color="#24784e"/>
-        </radialGradient>
-        <linearGradient id="pohonBatang" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#b07f58"/>
-          <stop offset="0.5" stop-color="#8a5a3b"/>
-          <stop offset="1" stop-color="#6f452b"/>
-        </linearGradient>
-        <radialGradient id="pohonTanah" cx="0.5" cy="0.4" r="0.7">
-          <stop offset="0" stop-color="#bce0ca"/>
-          <stop offset="1" stop-color="#dcefe2"/>
-        </radialGradient>
-      </defs>
-      <ellipse class="pohon-tanah" cx="110" cy="184" rx="60" ry="9"/>
-      <rect class="pohon-batang" x="101" y="96" width="18" height="86" rx="9"/>
-      <ellipse class="pohon-batang-kilau" cx="106" cy="140" rx="3" ry="27"/>
-      <path class="pohon-cabang" d="M110 130 L82 108 M110 120 L138 98"/>
-      <g class="pohon-ayun">
-        <g class="pohon-ranting">
-          <circle cx="110" cy="72" r="42"/>
-          <circle cx="76" cy="100" r="30"/>
-          <circle cx="144" cy="100" r="30"/>
-          <circle cx="92" cy="58" r="22"/>
-          <circle cx="130" cy="58" r="22"/>
-          <ellipse class="pohon-kilau" cx="88" cy="52" rx="17" ry="10" transform="rotate(-16 88 52)"/>
-          <ellipse class="pohon-kilau pohon-kilau-kecil" cx="141" cy="92" rx="9" ry="6" transform="rotate(-20 141 92)"/>
-          <g class="pohon-muka">
-            <ellipse class="pohon-pipi" cx="91" cy="88" rx="7" ry="4.5"/>
-            <ellipse class="pohon-pipi" cx="129" cy="88" rx="7" ry="4.5"/>
-            <circle cx="98" cy="74" r="4"/>
-            <circle cx="122" cy="74" r="4"/>
-            <path d="M102 86 Q110 94 118 86"/>
-          </g>
-        </g>
-        <g class="pohon-bunga">
-          <circle cx="86" cy="63" r="5"/>
-          <circle cx="130" cy="62" r="5"/>
-          <circle cx="110" cy="39" r="5"/>
-          <circle cx="66" cy="98" r="5"/>
-          <circle cx="154" cy="98" r="5"/>
-        </g>
-      </g>
-      <g class="pohon-tunas">
-        <path d="M110 96 C96 90 92 78 94 70 C106 74 112 84 110 96Z"/>
-        <path d="M110 96 C124 90 128 78 126 70 C114 74 108 84 110 96Z"/>
-      </g>
-    </svg>`;
-}
-
 /* ===== Profil Game: nama tampilan & avatar custom ===== */
 function gameProfilCacheKey(absen) {
   return `${GAME_PROFIL_KEY}${absen}`;
@@ -4131,6 +4071,10 @@ const UPDATE_LOG = [
   {
     tanggal: "25/11/26",
     items: [
+      "Version 2.14.2 Pohon Streak Jadi Model 3D yang Bisa Diputar dengan Geser, Lengkap dengan Animasi",
+      "Version 2.14.2 Hewan Peliharaan Streak Juga 3D: Bisa Diputar, Bernapas, dan Bermain dengan Mainannya",
+      "Version 2.14.2 Aksesoris Pet Sekarang Dipakai Pas: Kacamata di Mata, Topi di Kepala, Bandana di Leher",
+      "Version 2.14.2 Tombol Putar Ulang dan Petunjuk Geser Biar Gampang Lihat Pohon dan Pet dari Semua Sisi",
       "Version 2.14.1 AI Chat 7.3 Langsung Aktif Tanpa Siswa Isi API Key Sendiri",
       "Version 2.14.1 Key Gemini dari Pengaturan Kisi Kisi Otomatis Dipakai Semua Perangkat",
       "Version 2.14.1 Admin Cukup Simpan Key Sekali, AI Chat Langsung Bisa Dipakai Teman",
@@ -4832,8 +4776,7 @@ function renderStreakPohon() {
         <span class="scene-grass scene-grass-3">🌿</span>
         ${tahap >= 3 ? `<span class="scene-firefly scene-firefly-1">✨</span><span class="scene-firefly scene-firefly-2">✨</span>` : ""}
       </span>
-      ${gameSvgPohon()}
-      <span class="pohon-kesiram" aria-hidden="true">💧</span>
+      ${Streak3D.pohon({ tahap })}
       ${sudahBersih ? "" : `<span class="daun-gugur daun-gugur-1" aria-hidden="true">🍂</span><span class="daun-gugur daun-gugur-2" aria-hidden="true">🍃</span><span class="daun-gugur daun-gugur-3" aria-hidden="true">🍂</span>`}
     </div>
     <p class="streak-hint">${petunjuk}</p>
@@ -4846,6 +4789,8 @@ function renderStreakPohon() {
       </button>
     </div>
     <p class="streak-hint streak-hint-small">Kesempatan otomatis reset tiap tanggal 1. Pohon makin besar kalau streak makin panjang.</p>`;
+
+  Streak3D.init(el);
 }
 
 function renderStreakHewan() {
@@ -4881,8 +4826,6 @@ function renderStreakHewan() {
   const sudahMakan = track.makan === hariIni;
   const sudahMinum = track.minum === hariIni;
   const lengkap = sudahMakan && sudahMinum;
-  const baju = STREAK_BAJU.find((i) => i.id === track.pakaiBaju);
-  const mainan = STREAK_MAINAN.find((i) => i.id === track.pakaiMainan);
   const mood = lengkap ? "😊" : "🥺";
 
   let petunjuk = "Beri makan + minum setiap hari buat jaga streak.";
@@ -4926,10 +4869,7 @@ function renderStreakHewan() {
         <span class="scene-grass scene-grass-2">🌱</span>
         <span class="scene-grass scene-grass-3">🌿</span>
       </span>
-      <span class="pet-shadow" aria-hidden="true"></span>
-      ${baju ? `<span class="pet-aksesoris" title="${baju.nama}" aria-hidden="true">${baju.emoji}</span>` : ""}
-      <span class="pet-emoji" aria-hidden="true">${info.emoji}</span>
-      ${mainan ? `<span class="pet-mainan" title="${mainan.nama}" aria-hidden="true">${mainan.emoji}</span>` : ""}
+      ${Streak3D.hewan({ jenis: track.jenis, baju: track.pakaiBaju, mainan: track.pakaiMainan })}
       <span class="pet-mood ${lengkap ? "happy" : "sad"}">
         <span class="pet-mood-emoji" aria-hidden="true">${mood}</span>
         <span class="pet-mood-text">${lengkap ? "Sehat!" : "Lapar..."}</span>
@@ -4948,6 +4888,8 @@ function renderStreakHewan() {
         ${sudahMinum ? "✅ Sudah Minum" : "💧 Air Minum · Gratis"}
       </button>
     </div>`;
+
+  Streak3D.init(el);
 }
 
 function setupStreakNamaModal() {
@@ -5068,13 +5010,13 @@ function gameSelesaiAksi(pesan, animasi = null) {
   gameTampilNotice(pesan);
   SoundFX.resultReveal();
 
-  if (animasi === "siram") {
-    const stage = document.querySelector("#streak-pohon .pohon-stage");
-    if (stage) {
-      stage.classList.add("disiram");
-      setTimeout(() => stage.classList.remove("disiram"), 900);
-    }
-  }
+  if (!animasi) return;
+  const pohon = animasi === "siram" || animasi === "bersih";
+  const stage = document.querySelector(pohon ? "#streak-pohon .pohon-stage" : "#streak-hewan .pet-stage");
+  if (!stage) return;
+  const kelas = animasi === "siram" ? "disiram" : "s3d-flash-" + animasi;
+  stage.classList.add(kelas);
+  setTimeout(() => stage.classList.remove(kelas), 1100);
 }
 
 function gameCatatRawat(track, hariIni) {
@@ -5122,7 +5064,7 @@ function gameTanganiAksi(aksi, btn) {
     if (pohon.bersih === hariIni) return;
     pohon.bersih = hariIni;
     gameState.koin += 5;
-    gameSelesaiAksi("+5 coin! Daun-daun pohonmu sudah bersih.");
+    gameSelesaiAksi("+5 coin! Daun-daun pohonmu sudah bersih.", "bersih");
     return;
   }
 
@@ -5155,7 +5097,7 @@ function gameTanganiAksi(aksi, btn) {
     let pesanMakan = `Makanan habis, -${harga} coin. Tinggal kasih minum gratis ya.`;
     if (baruRawat) pesanMakan = `Makanan habis, -${harga} coin. Hari ini hewanmu sudah dirawat, streak jadi ${hewan.streak} hari!`;
     else if (lengkapMakan) pesanMakan = `Makanan habis, -${harga} coin. Rawatan hari ini sudah lengkap.`;
-    gameSelesaiAksi(pesanMakan);
+    gameSelesaiAksi(pesanMakan, "makan");
     return;
   }
 
@@ -5167,7 +5109,7 @@ function gameTanganiAksi(aksi, btn) {
     let pesanMinum = "Air minum gratis sudah diberikan. Jangan lupa beri makan juga ya.";
     if (baruRawat) pesanMinum = `Hewanmu segar! Hari ini sudah dirawat, streak jadi ${hewan.streak} hari.`;
     else if (lengkapMinum) pesanMinum = "Hewanmu segar! Rawatan hari ini sudah lengkap.";
-    gameSelesaiAksi(pesanMinum);
+    gameSelesaiAksi(pesanMinum, "minum");
     return;
   }
 
