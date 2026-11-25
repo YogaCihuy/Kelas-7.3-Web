@@ -1,7 +1,8 @@
 // kisi-kisi.js
 // Tab Kisi Kisi: kategori + materi PDF, rangkuman & kuis AI (Gemini).
 // PDF disimpan di Firestore per potongan (tanpa Storage/Blaze).
-// API key Gemini hanya disimpan di localStorage perangkat admin (absen 29).
+// Key Gemini disimpan di perangkat admin dan dibagikan lewat aiConfig/kelas73
+// supaya AI Chat bisa dipakai semua siswa tanpa isi key sendiri.
 (() => {
   "use strict";
 
@@ -11,6 +12,8 @@
   const KEY_STORE = "kelas73-kisi-gemini-key";
   const MODEL_STORE = "kelas73-kisi-gemini-model";
   const DEFAULT_MODEL = "gemini-flash-latest";
+  const AI_COL = "aiConfig";
+  const AI_DOC = "kelas73";
 
   const state = {
     panel: null,
@@ -40,6 +43,12 @@
   };
 
   const el = {};
+
+  // Key bersama: perangkat admin jadi sumber, siswa cuma membaca.
+  let publikKey = "";
+  let publikModel = "";
+  let publikDimuat = false;
+  let publikProses = null;
 
   /* ---------------- util ---------------- */
 
@@ -768,12 +777,95 @@
     return String(teks == null ? "" : teks).replace(/\s+/g, "");
   }
 
-  function apiKey() {
+  function keyLokal() {
     try { return bersihKey(localStorage.getItem(KEY_STORE)); } catch (err) { return ""; }
   }
 
+  function modelLokal() {
+    try { return localStorage.getItem(MODEL_STORE) || ""; } catch (err) { return ""; }
+  }
+
+  function apiKey() {
+    // Admin pakai key perangkatnya; siswa selalu pakai key bersama dari Kisi Kisi.
+    if (isAdmin()) return keyLokal() || publikKey;
+    return publikKey;
+  }
+
   function modelAI() {
-    try { return localStorage.getItem(MODEL_STORE) || DEFAULT_MODEL; } catch (err) { return DEFAULT_MODEL; }
+    if (isAdmin()) return modelLokal() || publikModel || DEFAULT_MODEL;
+    return publikModel || DEFAULT_MODEL;
+  }
+
+  function refPublik() {
+    const store = fs();
+    return store ? store.collection(AI_COL).doc(AI_DOC) : null;
+  }
+
+  // Siswa memanggil ini sekali sebelum AI Chat dipakai.
+  function muatPublik(paksa) {
+    if (publikProses && !paksa) return publikProses;
+    const ref = refPublik();
+    if (!ref) {
+      publikDimuat = true;
+      return Promise.resolve(false);
+    }
+    publikProses = (async () => {
+      try {
+        const snap = await ref.get();
+        const data = snap && snap.exists ? snap.data() || {} : {};
+        publikKey = bersihKey(data.geminiKey);
+        publikModel = String(data.geminiModel || "");
+        publikDimuat = true;
+        return !!apiKey();
+      } catch (err) {
+        publikDimuat = true;
+        return !!apiKey();
+      } finally {
+        publikProses = null;
+      }
+    })();
+    return publikProses;
+  }
+
+  async function kirimPublik() {
+    if (!isAdmin()) return false;
+    const key = keyLokal() || publikKey;
+    const ref = refPublik();
+    if (!key || !ref) return false;
+    try {
+      await ref.set({
+        geminiKey: key,
+        geminiModel: modelAI(),
+        updatedAt: Date.now(),
+        updatedBy: ADMIN_ABSEN,
+      });
+      publikKey = key;
+      publikModel = modelAI();
+      publikDimuat = true;
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async function matikanPublik() {
+    if (!isAdmin()) return false;
+    const ref = refPublik();
+    if (!ref) return false;
+    try {
+      await ref.set({
+        geminiKey: "",
+        geminiModel: modelLokal() || DEFAULT_MODEL,
+        updatedAt: Date.now(),
+        updatedBy: ADMIN_ABSEN,
+      });
+      publikKey = "";
+      publikModel = modelLokal() || DEFAULT_MODEL;
+      publikDimuat = true;
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 
   function pesanGemini(status, data) {
@@ -799,8 +891,9 @@
   }
 
   async function panggilGemini(parts, opsi) {
+    if (!apiKey() && !publikDimuat) await muatPublik();
     const key = apiKey();
-    if (!key) throw new Error("API key Gemini belum diisi.");
+    if (!key) throw new Error("AI belum aktif. Admin belum memasang key Gemini di Kisi Kisi.");
     const contents = [];
     if (opsi && Array.isArray(opsi.riwayat)) {
       opsi.riwayat.forEach((m) => {
@@ -1012,7 +1105,7 @@
     bukaModal(`
       <div class="kisi-form">
         <h3>Pengaturan AI</h3>
-        <p class="kisi-note">Key Gemini cuma disimpan di browser ini (perangkatmu). Tidak dikirim ke Firestore dan tidak bisa dilihat siswa.</p>
+        <p class="kisi-note">Key Gemini disimpan di perangkat admin dan dibagikan ke semua siswa lewat Firestore. AI Chat 7.3 langsung aktif tanpa siswa isi key sendiri.</p>
         <label class="kisi-field">
           <span>Gemini API key <span class="kisi-key-status" data-kisi-key-status>${key ? `${key.length} karakter tersimpan` : "belum ada"}</span></span>
           <span class="kisi-key-wrap">
@@ -1030,6 +1123,7 @@
           </select>
         </label>
         <p class="kisi-note">Key dari AI Studio sekarang bisa diawali <strong>AQ.</strong> atau <strong>AIza</strong> — dua-duanya bisa. Kalau angka di atas cuma beberapa karakter, paste-nya kepotong, ulangi paste.</p>
+        <p class="kisi-note">Setelah disimpan, AI Chat semua siswa ikut pakai key ini. Kalau gagal dibagikan, pastikan rules Firestore sudah dipublish.</p>
         <p class="kisi-note">Buat key di aistudio.google.com/apikey.</p>
         <p class="kisi-warn" data-kisi-ai-test hidden></p>
         <div class="kisi-form-actions kisi-form-actions-3">
@@ -1040,7 +1134,7 @@
       </div>`);
   }
 
-  function simpanPengaturanAI() {
+  async function simpanPengaturanAI() {
     const root = state.modalRoot;
     const input = root.querySelector("[name=ai-key]");
     const model = root.querySelector("[name=ai-model]").value || DEFAULT_MODEL;
@@ -1056,9 +1150,16 @@
       toastK("Browser menolak menyimpan key.", "error");
       return;
     }
+    const dibagi = (keyLokal() || publikKey) ? await kirimPublik() : false;
     tutupModal();
     const panjang = apiKey().length;
-    toastK(panjang ? `Pengaturan AI tersimpan (key ${panjang} karakter).` : "Model disimpan, tapi key masih kosong.", panjang ? "ok" : "warn");
+    if (!panjang) {
+      toastK("Model disimpan, tapi key masih kosong.", "warn");
+    } else if (!dibagi) {
+      toastK(`Key tersimpan (${panjang} karakter), tapi gagal dibagikan. Cek rules Firestore.`, "warn");
+    } else {
+      toastK(`Pengaturan AI tersimpan. AI Chat semua siswa pakai key ini (${panjang} karakter).`, "ok");
+    }
     render();
   }
 
@@ -1075,10 +1176,11 @@
       return;
     }
     const asli = apiKey();
+    if (!asli && !publikDimuat) await muatPublik();
     if (baru) {
       try { localStorage.setItem(KEY_STORE, baru); } catch (err) { /* abaikan */ }
     }
-    const key = baru || asli;
+    const key = baru || apiKey();
     if (!key) {
       tampilHasilAI(hasil, "warn", "API key masih kosong. Tempel key dulu.");
       return;
@@ -1114,6 +1216,7 @@
         pilih.value = dipakai;
       }
       try { localStorage.setItem(MODEL_STORE, dipakai); } catch (err) { /* abaikan */ }
+      if (keyLokal()) await kirimPublik();
       tampilHasilAI(hasil, "ok", `Berhasil (${dipakai}) · ${daftar.length} model tersedia`);
       if (status) status.textContent = `${key.length} karakter tersimpan`;
     } catch (err) {
@@ -1122,6 +1225,19 @@
         try { localStorage.setItem(KEY_STORE, asli); } catch (e2) { /* abaikan */ }
       }
     }
+  }
+
+  async function hapusKeyAI() {
+    try { localStorage.removeItem(KEY_STORE); } catch (err) { /* abaikan */ }
+    const mati = await matikanPublik();
+    tutupModal();
+    toastK(
+      mati
+        ? "Key Gemini dihapus dan AI Chat dimatikan untuk semua siswa."
+        : "Key di HP ini dihapus, tapi key bersama gagal dimatikan. Cek rules Firestore.",
+      mati ? "ok" : "warn"
+    );
+    render();
   }
 
   /* ---------------- event ---------------- */
@@ -1207,13 +1323,7 @@
       return;
     }
     if (e.target.closest("[data-kisi-ai-simpan]")) { simpanPengaturanAI(); return; }
-    if (e.target.closest("[data-kisi-ai-hapus]")) {
-      try { localStorage.removeItem(KEY_STORE); } catch (err) { /* abaikan */ }
-      tutupModal();
-      toastK("Key Gemini dihapus dari perangkat ini.", "ok");
-      render();
-      return;
-    }
+    if (e.target.closest("[data-kisi-ai-hapus]")) { hapusKeyAI(); return; }
     if (e.target.closest("[data-kisi-ai-tes]")) { tesAI(); return; }
     if (e.target.closest("[data-kisi-ai-jalan]")) {
       jalankanAI(e.target.closest("[data-kisi-ai-jalan]").getAttribute("data-kisi-ai-jalan"));
@@ -1276,6 +1386,7 @@
   }
 
   window.kisiKisiBuka = function () {
+    muatPublik().then(() => { if (el.panel) render(); });
     if (!state.terakhirMuat) muatData();
     else if (Date.now() - state.terakhirMuat > 15000) muatData(true);
     else render();
@@ -1289,19 +1400,9 @@
 
   // Dipakai juga oleh AI Chat 7.3 di chat.js (key & model yang sama).
   window.geminiKelas73 = {
+    muatPublik: muatPublik,
     tersedia: function () {
       return !!apiKey();
-    },
-    panjangKey: function () {
-      return apiKey().length;
-    },
-    simpanKey: function (teks) {
-      try {
-        localStorage.setItem(KEY_STORE, bersihKey(teks));
-        return true;
-      } catch (err) {
-        return false;
-      }
     },
     panggil: panggilGemini,
   };

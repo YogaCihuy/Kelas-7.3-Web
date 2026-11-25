@@ -4129,6 +4129,15 @@ async function simpanGameProfil(e) {
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
   {
+    tanggal: "25/11/26",
+    items: [
+      "Version 2.14.1 AI Chat 7.3 Langsung Aktif Tanpa Siswa Isi API Key Sendiri",
+      "Version 2.14.1 Key Gemini dari Pengaturan Kisi Kisi Otomatis Dipakai Semua Perangkat",
+      "Version 2.14.1 Admin Cukup Simpan Key Sekali, AI Chat Langsung Bisa Dipakai Teman",
+      "Version 2.14.1 Tampilan Ramah Saat AI Belum Aktif, Tinggal Minta Admin Menyalakan",
+    ],
+  },
+  {
     tanggal: "22/11/26",
     items: [
       "Version 2.14.0 Game Baru Island Tycoon: Bangun Pulau Pribadi 1:1 dengan Kamera Geser dan Zoom",

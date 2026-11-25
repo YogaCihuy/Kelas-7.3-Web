@@ -30,6 +30,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Key Gemini bersama supaya AI Chat jalan di semua siswa tanpa isi key.
+    match /aiConfig/{docId} {
+      allow read: if true;
+      allow create, update: if isValidAiConfig(request.resource.data);
+      allow delete: if false;
+    }
+
     // Like biodata siswa di Home (satu dokumen per siswa, isi users = map absen)
     match /profilLikes/{absenSiswa} {
       allow read: if true;
@@ -663,6 +670,20 @@ service cloud.firestore {
     function isValidSettings(d) {
       let allowedKeys = ['tiktok','ig'];
       return d.keys().hasOnly(allowedKeys);
+    }
+
+    function isValidAiConfig(d) {
+      return d.keys().hasOnly(['geminiKey','geminiModel','updatedAt','updatedBy'])
+        && d.keys().hasAll(['geminiKey','geminiModel','updatedAt','updatedBy'])
+        && d.geminiKey is string
+        && d.geminiKey.size() <= 300
+        && d.geminiModel is string
+        && d.geminiModel.size() <= 80
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.updatedBy is number
+        && d.updatedBy >= 1
+        && d.updatedBy <= 64;
     }
 
     function isValidPolling(d) {

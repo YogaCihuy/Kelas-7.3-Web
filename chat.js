@@ -25,7 +25,7 @@
   let chatAktif = null;
   let chatAiAktif = false;
   let chatAiSibuk = false;
-  let chatAiSetup = false;
+  let chatAiMemuat = false;
   let chatAiError = "";
   let chatAiPesan = [];
   let chatUnsubThreads = null;
@@ -378,6 +378,28 @@
     return !!(api && api.tersedia());
   }
 
+  async function aiSiapkan(paksa) {
+    if (aiSiap()) return true;
+    const api = aiApi();
+    if (!api || typeof api.muatPublik !== "function") return false;
+    if (chatAiMemuat) return false;
+    chatAiMemuat = true;
+    chatAiError = "";
+    renderRoomHead();
+    renderAi();
+    try {
+      await api.muatPublik(paksa === true);
+    } catch (err) {}
+    chatAiMemuat = false;
+    if (chatAiAktif) {
+      const input = el("chat-input");
+      if (input) input.disabled = !aiSiap();
+    }
+    renderRoomHead();
+    renderAi();
+    return aiSiap();
+  }
+
   function aiMuat() {
     try {
       const raw = localStorage.getItem(AI_RIWAYAT_STORE);
@@ -421,18 +443,13 @@
     ].join("\n");
   }
 
-  function aiSetupHtml() {
+  function aiBelumAktifHtml() {
     return `
       <div class="chat-ai-setup">
-        <h4>Hubungkan AI dulu</h4>
-        <p>AI Chat 7.3 pakai Gemini. Tempel API key Gemini kamu (gratis). Key yang sama dengan Kisi Kisi otomatis kepakai dan cuma disimpan di HP ini.</p>
-        <label class="chat-ai-key">
-          <input id="chat-ai-key" type="password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Tempel API key Gemini...">
-        </label>
-        <p class="chat-ai-warn" id="chat-ai-key-warn" hidden></p>
+        <h4>AI Chat belum aktif</h4>
+        <p>AI Chat 7.3 otomatis pakai key dari pengaturan Kisi Kisi. Kamu nggak perlu isi API key apa pun — tinggal tunggu admin menyalakan AI-nya.</p>
         <div class="chat-ai-actions">
-          <a class="chat-ai-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Dapat key gratis</a>
-          <button type="button" class="btn-primary" id="chat-ai-key-simpan">Simpan key</button>
+          <button type="button" class="btn-primary" id="chat-ai-coba">Coba lagi</button>
         </div>
       </div>`;
   }
@@ -443,9 +460,13 @@
     const dekatBawah = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 110;
     let html = "";
 
-    if (chatAiSetup || !aiSiap()) html += aiSetupHtml();
+    if (chatAiMemuat) {
+      html += `<p class="chat-room-empty">Menghubungkan AI…</p>`;
+    } else if (!aiSiap()) {
+      html += aiBelumAktifHtml();
+    }
 
-    if (!chatAiPesan.length && aiSiap() && !chatAiSetup) {
+    if (!chatAiPesan.length && aiSiap() && !chatAiMemuat) {
       html += `<p class="chat-room-empty">Halo! Aku AI Chat 7.3. Kamu bisa tanya soal kelas 7.3 atau curhat apa aja. Obrolan ini cuma tersimpan di HP kamu.</p>`;
     }
 
@@ -473,7 +494,7 @@
     }
   }
 
-  function bukaAi() {
+  async function bukaAi() {
     if (!chatUser) {
       tampilkanChat();
       return;
@@ -481,7 +502,6 @@
     hentikanPesan();
     chatAktif = null;
     chatAiAktif = true;
-    chatAiSetup = !aiSiap();
     chatAiError = "";
 
     const list = el("chat-list-view");
@@ -498,7 +518,7 @@
     if (input) {
       input.value = "";
       input.placeholder = "Tanya soal kelas atau curhat...";
-      input.disabled = !aiSiap();
+      input.disabled = true;
       autoTinggi(input);
       try {
         input.focus({ preventScroll: true });
@@ -507,64 +527,23 @@
       }
     }
     bunyi("buttonClick");
-  }
-
-  function simpanKeyAi() {
-    const inp = el("chat-ai-key");
-    const warn = el("chat-ai-key-warn");
-    const api = aiApi();
-    const salah = (pesan) => {
-      if (warn) {
-        warn.hidden = false;
-        warn.textContent = pesan;
-      }
-    };
-    if (!api) {
-      salah("Modul AI belum siap. Refresh halaman dulu.");
-      return;
-    }
-    const key = String((inp && inp.value) || "").replace(/\s+/g, "");
-    if (!key) {
-      salah("Tempel key-nya dulu ya.");
-      return;
-    }
-    if (key.length < 30) {
-      salah(`Key cuma ${key.length} karakter, sepertinya kepotong. Paste ulang ya.`);
-      return;
-    }
-    if (!api.simpanKey(key)) {
-      salah("Browser menolak menyimpan key.");
-      return;
-    }
-    chatAiSetup = false;
-    chatAiError = "";
-    renderRoomHead();
-    renderAi();
-    const input = el("chat-input");
-    if (input) {
-      input.disabled = false;
-      try {
-        input.focus({ preventScroll: true });
-      } catch (err) {
-        input.focus();
-      }
-    }
-    bunyi("buttonClick");
+    await aiSiapkan();
   }
 
   async function kirimAi(e) {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
-    if (!chatAiAktif || chatAiSibuk) return;
+    if (!chatAiAktif || chatAiSibuk || chatAiMemuat) return;
     const input = el("chat-input");
     const teks = String((input && input.value) || "").trim().slice(0, CHAT_PESAN_MAKS);
     if (!teks) return;
 
-    const api = aiApi();
-    if (!api || !api.tersedia()) {
-      chatAiSetup = true;
+    if (!aiSiap() && !(await aiSiapkan(true))) {
+      chatAiError = "AI Chat belum aktif. Minta admin memasang key Gemini di menu Kisi Kisi.";
       renderAi();
       return;
     }
+    const api = aiApi();
+    if (!api) return;
 
     chatAiPesan.push({ role: "user", teks, at: Date.now() });
     chatAiPesan = chatAiPesan.slice(-AI_RIWAYAT_MAKS);
@@ -594,7 +573,6 @@
       aiSimpan();
     } catch (err) {
       chatAiError = String((err && err.message) || err || "AI gagal membalas. Coba lagi.");
-      if (/api key/i.test(chatAiError)) chatAiSetup = true;
       bunyi("errorSound");
     } finally {
       chatAiSibuk = false;
@@ -745,7 +723,6 @@
   }
 
   function renderRoomHead() {
-    const ganti = el("btn-chat-ai-key");
     if (chatAiAktif) {
       const av = el("chat-room-avatar");
       if (av) {
@@ -755,11 +732,15 @@
       const judul = el("chat-room-nama");
       if (judul) judul.textContent = "AI Chat 7.3";
       const status = el("chat-room-status");
-      if (status) status.textContent = aiSiap() ? "Asisten kelas · siap bantu" : "Asisten kelas · belum dihubungkan";
-      if (ganti) ganti.hidden = false;
+      if (status) {
+        status.textContent = chatAiMemuat
+          ? "Asisten kelas · menghubungkan..."
+          : aiSiap()
+            ? "Asisten kelas · siap bantu"
+            : "Asisten kelas · belum aktif";
+      }
       return;
     }
-    if (ganti) ganti.hidden = true;
     if (!chatAktif) return;
     const nama = namaSiswa(chatAktif.absen);
     const av = el("chat-room-avatar");
@@ -802,7 +783,6 @@
 
     hentikanPesan();
     chatAiAktif = false;
-    chatAiSetup = false;
     chatAiError = "";
     chatAktif = { absen: lawan };
     const list = el("chat-list-view");
@@ -835,7 +815,6 @@
     hentikanPesan();
     chatAktif = null;
     chatAiAktif = false;
-    chatAiSetup = false;
     chatAiError = "";
     const input = el("chat-input");
     if (input) {
@@ -1010,7 +989,6 @@
       chatThreads = [];
       chatAktif = null;
       chatAiAktif = false;
-      chatAiSetup = false;
       chatAiError = "";
       chatTahu.clear();
       chatTahuSiap = false;
@@ -1031,7 +1009,6 @@
       hentikanPesan();
       chatAktif = null;
       chatAiAktif = false;
-      chatAiSetup = false;
       chatAiError = "";
       chatTahu.clear();
       chatTahuSiap = false;
@@ -1070,13 +1047,8 @@
           bukaAi();
           return;
         }
-        if (target.closest("#chat-ai-key-simpan")) {
-          simpanKeyAi();
-          return;
-        }
-        if (target.closest("#btn-chat-ai-key")) {
-          chatAiSetup = true;
-          renderAi();
+        if (target.closest("#chat-ai-coba")) {
+          aiSiapkan(true);
           return;
         }
         const thread = target.closest("[data-chat-thread]");
@@ -1090,12 +1062,6 @@
           return;
         }
         if (target.closest("#btn-chat-back")) tutupRuang();
-      });
-      app.addEventListener("keydown", (e) => {
-        if (e.target && e.target.id === "chat-ai-key" && e.key === "Enter") {
-          e.preventDefault();
-          simpanKeyAi();
-        }
       });
     }
 
