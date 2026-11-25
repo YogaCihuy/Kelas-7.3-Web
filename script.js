@@ -4071,6 +4071,11 @@ const UPDATE_LOG = [
   {
     tanggal: "25/11/26",
     items: [
+      "Version 2.15.0 Pengaturan Tema Sekarang Punya Bagian Design: Normal, Modern Design, Hand Drawn, Cartoon, dan Manga",
+      "Version 2.15.0 Semua Design Tetap Putih-Hijau Seperti Normal, Jadi Enak Dibaca",
+      "Version 2.15.0 Hand Drawn Gaya Gambar Pensil, Cartoon Garis Tebal, Manga Tinta Hitam Screentone",
+      "Version 2.15.0 Pilihan Design Tersimpan Otomatis di Perangkat dan Langsung Dipakai Saat Web Dibuka",
+      "Version 2.15.0 Rules Fishing Dirilis Ulang, Worker & Potion Dipastikan Bisa Dipakai",
       "Version 2.14.2 Pohon Streak Jadi Model 3D yang Bisa Diputar dengan Geser, Lengkap dengan Animasi",
       "Version 2.14.2 Hewan Peliharaan Streak Juga 3D: Bisa Diputar, Bernapas, dan Bermain dengan Mainannya",
       "Version 2.14.2 Aksesoris Pet Sekarang Dipakai Pas: Kacamata di Mata, Topi di Kepala, Bandana di Leher",
@@ -4262,7 +4267,7 @@ function setupUpdatesModal() {
   setupModalDismiss(modal);
 }
 
-/* ===== Pengaturan tema ===== */
+/* ===== Pengaturan tema & design ===== */
 const THEME_KEY = "kelas73-theme";
 const DAFTAR_TEMA = [
   { id: "light", nama: "Light", ket: "Terang & bersih, tampilan bawaan", bar: "#14392A", warna: ["#FBFCFA", "#E8F5EC", "#2F8F5B", "#17392A"] },
@@ -4272,14 +4277,27 @@ const DAFTAR_TEMA = [
   { id: "dark-forest", nama: "Dark Forest", ket: "Hutan malam, hijau pekat", bar: "#050F09", warna: ["#071009", "#152A1D", "#3FAF77", "#A9D9BE"] },
 ];
 
+const DESIGN_KEY = "kelas73-design";
+const DAFTAR_DESAIN = [
+  { id: "normal", nama: "Normal", ket: "Tampilan bawaan web sekarang" },
+  { id: "modern", nama: "Modern Design", ket: "Garis tipis, bersih, serba geometris" },
+  { id: "hand-drawn", nama: "Hand Drawn", ket: "Gaya gambar pensil, kotak agak miring" },
+  { id: "cartoon", nama: "Cartoon", ket: "Garis tebal, warna cerah, sudut bulat" },
+  { id: "manga", nama: "Manga", ket: "Tinta hitam, screentone, panel komik" },
+];
+
 function setupThemeSettings() {
   const modal = document.getElementById("modal-theme");
   const list = document.getElementById("theme-list");
+  const designList = document.getElementById("design-list");
   const btn = document.getElementById("btn-theme-settings");
-  if (!modal || !list || !btn) return;
+  if (!modal || !list || !designList || !btn) return;
 
-  const simpan = (id) => {
+  const simpanTema = (id) => {
     try { localStorage.setItem(THEME_KEY, id); } catch (e) {}
+  };
+  const simpanDesain = (id) => {
+    try { localStorage.setItem(DESIGN_KEY, id); } catch (e) {}
   };
 
   list.innerHTML = DAFTAR_TEMA.map((t) => `
@@ -4289,29 +4307,74 @@ function setupThemeSettings() {
       <span class="theme-check" aria-hidden="true">&#10003;</span>
     </button>`).join("");
 
-  function terapkan(id) {
-    const tema = DAFTAR_TEMA.find((t) => t.id === id) || DAFTAR_TEMA[0];
-    document.documentElement.dataset.theme = tema.id;
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", tema.bar);
-    simpan(tema.id);
-    list.querySelectorAll(".theme-option").forEach((el) => {
-      const aktif = el.dataset.themeId === tema.id;
+  designList.innerHTML = DAFTAR_DESAIN.map((d) => `
+    <button class="theme-option design-option" type="button" role="radio" aria-checked="false" data-design-id="${d.id}">
+      <span class="design-preview design-preview-${d.id}" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="theme-copy"><strong>${d.nama}</strong><small>${d.ket}</small></span>
+      <span class="theme-check" aria-hidden="true">&#10003;</span>
+    </button>`).join("");
+
+  function sorotTema(id) {
+    list.querySelectorAll("[data-theme-id]").forEach((el) => {
+      const aktif = el.dataset.themeId === id;
       el.classList.toggle("is-active", aktif);
       el.setAttribute("aria-checked", aktif ? "true" : "false");
     });
   }
 
+  function sorotDesain(id) {
+    designList.querySelectorAll("[data-design-id]").forEach((el) => {
+      const aktif = el.dataset.designId === id;
+      el.classList.toggle("is-active", aktif);
+      el.setAttribute("aria-checked", aktif ? "true" : "false");
+    });
+  }
+
+  function pasangTema(id) {
+    const tema = DAFTAR_TEMA.find((t) => t.id === id) || DAFTAR_TEMA[0];
+    document.documentElement.dataset.theme = tema.id;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", tema.bar);
+    simpanTema(tema.id);
+    sorotTema(tema.id);
+    return tema;
+  }
+
+  function pasangDesain(id) {
+    const desain = DAFTAR_DESAIN.find((d) => d.id === id) || DAFTAR_DESAIN[0];
+    document.documentElement.dataset.design = desain.id;
+    simpanDesain(desain.id);
+    sorotDesain(desain.id);
+    /* Semua design pakai warna putih-hijau seperti Normal. */
+    if (desain.id !== "normal" && document.documentElement.dataset.theme !== "light") pasangTema("light");
+  }
+
   list.addEventListener("click", (e) => {
-    const opsi = e.target.closest(".theme-option");
+    const opsi = e.target.closest("[data-theme-id]");
     if (!opsi) return;
-    terapkan(opsi.dataset.themeId);
+    /* Pilih warna = balik ke design Normal. */
+    pasangDesain("normal");
+    pasangTema(opsi.dataset.themeId);
     SoundFX.buttonClick();
   });
 
-  let awal = "light";
-  try { awal = localStorage.getItem(THEME_KEY) || document.documentElement.dataset.theme || "light"; } catch (e) {}
-  terapkan(awal);
+  designList.addEventListener("click", (e) => {
+    const opsi = e.target.closest("[data-design-id]");
+    if (!opsi) return;
+    pasangDesain(opsi.dataset.designId);
+    SoundFX.buttonClick();
+  });
+
+  let temaAwal = "light";
+  let desainAwal = "normal";
+  try {
+    temaAwal = localStorage.getItem(THEME_KEY) || document.documentElement.dataset.theme || "light";
+    desainAwal = localStorage.getItem(DESIGN_KEY) || document.documentElement.dataset.design || "normal";
+  } catch (e) {}
+  if (!DAFTAR_TEMA.some((t) => t.id === temaAwal)) temaAwal = "light";
+  if (!DAFTAR_DESAIN.some((d) => d.id === desainAwal)) desainAwal = "normal";
+  pasangTema(temaAwal);
+  pasangDesain(desainAwal);
 
   btn.addEventListener("click", () => {
     openModal(modal);

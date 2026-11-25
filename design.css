@@ -1,0 +1,1124 @@
+/* ===================================================
+   DESIGN (gaya tampilan)
+   Semua design memakai warna putih-hijau seperti Normal.
+   Normal = tampilan bawaan (tanpa file ini).
+   Modern Design / Hand Drawn / Cartoon / Manga.
+=================================================== */
+
+/* ---------- token dasar: tetap putih-hijau ---------- */
+html[data-design]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #17392A;
+  --emerald: #2F8F5B;
+  --mint: #E8F5EC;
+  --paper: #FBFCFA;
+  --ink: #16241C;
+  --muted: #5C7268;
+  --line: #D8E8DE;
+  --white: #FFFFFF;
+  --shadow: 0 14px 30px -18px rgba(23, 57, 42, 0.35);
+}
+
+/* ---------- pilihan design di modal tema ---------- */
+.theme-divider {
+  height: 1px;
+  margin: 1.15rem 0 1rem;
+  background: var(--line);
+}
+
+.theme-subhead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.theme-subhead-badge {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  background: var(--mint);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+}
+
+.theme-subhead-copy { display: flex; flex-direction: column; gap: 0.05rem; }
+.theme-subhead-copy strong { font-size: 0.95rem; color: var(--forest); }
+.theme-subhead-copy small { font-size: 0.74rem; color: var(--muted); line-height: 1.35; }
+
+.theme-list-design { gap: 0.5rem; }
+
+.design-preview {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px;
+  background: var(--white);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+}
+
+.design-preview i { display: block; height: 4px; border-radius: 2px; background: #CDE7D8; }
+.design-preview i:nth-child(1) { width: 68%; background: var(--emerald); }
+.design-preview i:nth-child(2) { width: 100%; }
+.design-preview i:nth-child(3) { width: 82%; }
+
+.design-preview-modern { border-radius: 4px; border-color: #BBD9C8; }
+.design-preview-modern i { height: 3px; border-radius: 1px; }
+
+.design-preview-hand-drawn {
+  border: 2px solid #4D6B59;
+  border-radius: 12px 16px 10px 15px / 15px 10px 16px 11px;
+  transform: rotate(-4deg);
+  background: #FFFDF7;
+}
+.design-preview-hand-drawn i { background: #9CB6A5; height: 3px; }
+.design-preview-hand-drawn i:nth-child(1) { background: #3E6B51; }
+
+.design-preview-cartoon {
+  border: 2.5px solid #14392A;
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 #14392A;
+  background: #EFFAF2;
+}
+.design-preview-cartoon i { height: 5px; border-radius: 999px; background: #BFE6CF; }
+.design-preview-cartoon i:nth-child(1) { background: #2F8F5B; }
+
+.design-preview-manga {
+  border: 2.5px solid #101613;
+  border-radius: 3px;
+  background-image: radial-gradient(rgba(16, 22, 19, 0.22) 0.8px, transparent 1px);
+  background-size: 4px 4px;
+}
+.design-preview-manga i { height: 3px; border-radius: 0; background: #101613; }
+.design-preview-manga i:nth-child(1) { width: 60%; background: #2F8F5B; }
+
+/* =====================================================================
+   1. MODERN DESIGN
+   Garis tipis, bersih, geometris, bayangan halus.
+===================================================================== */
+html[data-design="modern"] {
+  --font-display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 18px;
+}
+
+html[data-design="modern"] body {
+  background-color: #FAFCFB;
+  background-image:
+    linear-gradient(rgba(47, 143, 91, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 143, 91, 0.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+html[data-design="modern"] h1,
+html[data-design="modern"] h2,
+html[data-design="modern"] h3 {
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+html[data-design="modern"] .hero {
+  background: linear-gradient(135deg, #14392A 0%, #1F4D37 62%, #2F8F5B 140%);
+  padding: 4.75rem 1.5rem 4.25rem;
+}
+
+html[data-design="modern"] .hero-leaf {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1.4;
+}
+
+html[data-design="modern"] .hero-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+html[data-design="modern"] .hero-title {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+html[data-design="modern"] .stat-number { font-weight: 700; }
+
+html[data-design="modern"] .page-nav {
+  border: 1px solid #E1EEE7;
+  border-radius: 14px;
+  box-shadow: 0 14px 26px -22px rgba(23, 57, 42, 0.6);
+}
+
+html[data-design="modern"] .page-tab-btn { border-radius: 10px; }
+
+html[data-design="modern"] .tab-indicator { border-radius: 10px; }
+
+html[data-design="modern"] .section-head h2 {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+  padding-bottom: 0.65rem;
+  position: relative;
+}
+
+html[data-design="modern"] .section-head h2::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 42px;
+  height: 3px;
+  margin-left: -21px;
+  background: var(--emerald);
+}
+
+html[data-design="modern"] .section-sub {
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="modern"] .siswa-card,
+html[data-design="modern"] .info-card {
+  border-radius: 10px;
+  border: 1px solid #DFECE5;
+  box-shadow: none;
+}
+
+html[data-design="modern"] .siswa-card:hover,
+html[data-design="modern"] .siswa-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--emerald);
+  box-shadow: 0 10px 22px -18px rgba(23, 57, 42, 0.55);
+}
+
+html[data-design="modern"] .siswa-absen {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+html[data-design="modern"] .picker-card {
+  background: var(--white);
+  border: 1px solid #DFECE5;
+  border-radius: 16px;
+  box-shadow: 0 18px 34px -30px rgba(23, 57, 42, 0.6);
+}
+
+html[data-design="modern"] .btn-primary,
+html[data-design="modern"] .btn-secondary {
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="modern"] .game-card {
+  border-radius: 12px;
+  border: 1px solid #DFECE5;
+  background: var(--white);
+  box-shadow: 0 1px 0 #EDF5F0, 0 16px 30px -28px rgba(23, 57, 42, 0.65);
+}
+
+html[data-design="modern"] .game-card::before { display: none; }
+
+html[data-design="modern"] .game-card::after {
+  width: 150px;
+  height: 150px;
+  right: -60px;
+  top: -80px;
+  background: radial-gradient(circle, rgba(47, 143, 91, 0.1), transparent 70%);
+}
+
+html[data-design="modern"] .game-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 32px -26px rgba(23, 57, 42, 0.6);
+}
+
+html[data-design="modern"] .game-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: #F1FAF4;
+  border: 1px solid #D8EBDF;
+  box-shadow: none;
+  font-size: 1.85rem;
+}
+
+html[data-design="modern"] .game-card:hover .game-icon { transform: scale(1.05); }
+
+html[data-design="modern"] .game-info strong {
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+
+html[data-design="modern"] .game-progress {
+  background: #F1FAF4;
+  border: 1px solid #D8EBDF;
+  box-shadow: none;
+}
+
+html[data-design="modern"] .game-play {
+  border-radius: 8px;
+  background: var(--emerald);
+  border: 1px solid var(--emerald);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+html[data-design="modern"] .game-card:hover .game-play {
+  transform: none;
+  background: #267A4C;
+  box-shadow: none;
+}
+
+html[data-design="modern"] .modal-box {
+  border-radius: 14px;
+  border: 1px solid #E4F0E9;
+  box-shadow: 0 30px 60px -32px rgba(15, 34, 24, 0.5);
+}
+
+html[data-design="modern"] .theme-option { border-radius: 10px; }
+
+html[data-design="modern"] .theme-toggle,
+html[data-design="modern"] .sound-toggle,
+html[data-design="modern"] .apk-download {
+  border-radius: 12px;
+  border: 1px solid #E1EEE7;
+  box-shadow: 0 10px 20px -16px rgba(23, 57, 42, 0.55);
+}
+
+html[data-design="modern"] .footer {
+  border-top: 1px solid #E1EEE7;
+  letter-spacing: 0.02em;
+}
+
+html[data-design="modern"] .footer-link { letter-spacing: 0.02em; }
+
+/* =====================================================================
+   2. HAND DRAWN
+   Gaya gambar pensil anak SD: garis miring, kotak kurang simetris.
+===================================================================== */
+html[data-design="hand-drawn"] {
+  --font-display: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  --font-body: "Segoe Print", "Comic Sans MS", "Chalkboard SE", cursive;
+  --radius-s: 14px;
+  --radius-m: 20px;
+  --radius-l: 26px;
+  --shadow: 4px 5px 0 rgba(23, 57, 42, 0.14);
+}
+
+html[data-design="hand-drawn"] body {
+  background-color: #FFFDF6;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(66, 102, 79, 0.09) 27px 28px),
+    radial-gradient(rgba(66, 102, 79, 0.05) 0.7px, transparent 1px);
+  background-size: auto, 19px 19px;
+}
+
+html[data-design="hand-drawn"] h1,
+html[data-design="hand-drawn"] h2,
+html[data-design="hand-drawn"] h3 {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="hand-drawn"] .hero {
+  background-color: #F2FBF4;
+  background-image:
+    repeating-linear-gradient(-3deg, transparent 0 34px, rgba(47, 143, 91, 0.1) 34px 35px);
+  border-bottom: 3px solid #43664F;
+  padding: 4rem 1.5rem 3.5rem;
+}
+
+html[data-design="hand-drawn"] .hero-inner::before {
+  content: "";
+  position: absolute;
+  inset: -1.4rem -1rem -1.2rem;
+  border: 2px solid #5E7E69;
+  border-radius: 26px 34px 22px 30px / 30px 22px 34px 24px;
+  transform: rotate(-0.8deg);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+html[data-design="hand-drawn"] .hero-eyebrow { color: #4B6B57; }
+
+html[data-design="hand-drawn"] .hero-title {
+  color: var(--forest);
+  text-decoration: underline wavy rgba(47, 143, 91, 0.5);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 10px;
+}
+
+html[data-design="hand-drawn"] .stat-number { color: var(--forest); }
+
+html[data-design="hand-drawn"] .stat-label { color: #4B6B57; }
+
+html[data-design="hand-drawn"] .stat-divider { background: rgba(23, 57, 42, 0.25); }
+
+html[data-design="hand-drawn"] .hero-leaf {
+  fill: rgba(47, 143, 91, 0.1);
+  stroke: #43664F;
+  stroke-width: 1.2;
+}
+
+html[data-design="hand-drawn"] .page-nav {
+  background: #FFFDF6;
+  border: 2px solid #43664F;
+  border-radius: 18px 22px 16px 24px / 22px 16px 24px 18px;
+  box-shadow: 4px 5px 0 rgba(23, 57, 42, 0.18);
+}
+
+html[data-design="hand-drawn"] .tab-indicator {
+  border-radius: 14px 18px 12px 20px / 18px 12px 20px 14px;
+}
+
+html[data-design="hand-drawn"] .section-head h2 {
+  text-decoration: underline wavy rgba(47, 143, 91, 0.45);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+
+html[data-design="hand-drawn"] .section-sub { color: #4B6B57; }
+
+html[data-design="hand-drawn"] .siswa-card,
+html[data-design="hand-drawn"] .info-card {
+  background: #FFFEF9;
+  border: 2px solid #5E7E69;
+  border-radius: 18px 24px 16px 26px / 24px 16px 26px 18px;
+  box-shadow: 4px 5px 0 rgba(23, 57, 42, 0.16);
+}
+
+html[data-design="hand-drawn"] .grid-siswa .siswa-card:nth-child(3n+1) { transform: rotate(-0.7deg); }
+html[data-design="hand-drawn"] .grid-siswa .siswa-card:nth-child(3n+2) { transform: rotate(0.6deg); }
+html[data-design="hand-drawn"] .grid-siswa .siswa-card:nth-child(3n) { transform: rotate(-0.3deg); }
+
+html[data-design="hand-drawn"] .grid-siswa .siswa-card:hover,
+html[data-design="hand-drawn"] .grid-siswa .siswa-card:focus-visible {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: 6px 7px 0 rgba(23, 57, 42, 0.2);
+}
+
+html[data-design="hand-drawn"] .siswa-absen {
+  color: #3E6B51;
+  text-decoration: underline wavy rgba(62, 107, 81, 0.45);
+  text-underline-offset: 4px;
+}
+
+html[data-design="hand-drawn"] .info-card:hover { box-shadow: 6px 7px 0 rgba(23, 57, 42, 0.2); }
+
+html[data-design="hand-drawn"] .picker-card {
+  background: #F6FCF2;
+  border: 2px dashed #5E7E69;
+  border-radius: 22px 30px 20px 32px / 30px 20px 32px 22px;
+  box-shadow: 4px 5px 0 rgba(23, 57, 42, 0.14);
+}
+
+html[data-design="hand-drawn"] .btn-primary,
+html[data-design="hand-drawn"] .btn-secondary {
+  border-radius: 16px 22px 14px 24px / 22px 14px 24px 16px;
+  font-weight: 700;
+}
+
+html[data-design="hand-drawn"] .btn-primary {
+  border: 2px solid #1F4D37;
+  box-shadow: 3px 4px 0 rgba(23, 57, 42, 0.25);
+}
+
+html[data-design="hand-drawn"] .btn-secondary {
+  border: 2px solid #43664F;
+  background: #FFFEF9;
+  box-shadow: 3px 4px 0 rgba(23, 57, 42, 0.15);
+}
+
+html[data-design="hand-drawn"] .game-card {
+  background: #FFFEF9;
+  border: 2px solid #5E7E69;
+  border-radius: 20px 26px 18px 28px / 26px 18px 28px 20px;
+  box-shadow: 4px 5px 0 rgba(23, 57, 42, 0.16);
+}
+
+html[data-design="hand-drawn"] .game-card::before { display: none; }
+
+html[data-design="hand-drawn"] .game-card::after {
+  background: radial-gradient(circle, rgba(47, 143, 91, 0.09), transparent 70%);
+}
+
+html[data-design="hand-drawn"] .games-list .game-card:nth-child(2n) { transform: rotate(0.4deg); }
+html[data-design="hand-drawn"] .games-list .game-card:nth-child(2n+1) { transform: rotate(-0.4deg); }
+
+html[data-design="hand-drawn"] .game-card:hover {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: 6px 7px 0 rgba(23, 57, 42, 0.2);
+}
+
+html[data-design="hand-drawn"] .game-icon {
+  background: #F2FBF4;
+  border: 2px solid #5E7E69;
+  border-radius: 16px 20px 14px 22px / 20px 14px 22px 16px;
+  box-shadow: none;
+}
+
+html[data-design="hand-drawn"] .game-info strong {
+  font-weight: 700;
+  text-decoration: underline wavy rgba(47, 143, 91, 0.35);
+  text-underline-offset: 5px;
+}
+
+html[data-design="hand-drawn"] .game-progress {
+  background: #F6FCF2;
+  border: 1.5px dashed #7B9986;
+  box-shadow: none;
+  font-size: 0.72rem;
+}
+
+html[data-design="hand-drawn"] .game-play {
+  border-radius: 14px 18px 12px 20px / 18px 12px 20px 14px;
+  border: 2px solid #1F4D37;
+  box-shadow: 2px 3px 0 #1B5A37;
+  font-weight: 700;
+}
+
+html[data-design="hand-drawn"] .game-card:hover .game-play {
+  transform: none;
+  box-shadow: 2px 3px 0 #1B5A37;
+}
+
+html[data-design="hand-drawn"] .modal-box {
+  background: #FFFEF9;
+  border: 2.5px solid #43664F;
+  border-radius: 22px 30px 18px 32px / 30px 18px 32px 22px;
+  box-shadow: 6px 8px 0 rgba(23, 57, 42, 0.18);
+}
+
+html[data-design="hand-drawn"] .theme-option {
+  border: 1.5px solid #7B9986;
+  border-radius: 14px 18px 12px 20px / 18px 12px 20px 14px;
+  background: #FFFEF9;
+}
+
+html[data-design="hand-drawn"] .theme-option.is-active {
+  background: #F2FBF4;
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 2px rgba(47, 143, 91, 0.18);
+}
+
+html[data-design="hand-drawn"] .theme-toggle,
+html[data-design="hand-drawn"] .sound-toggle,
+html[data-design="hand-drawn"] .apk-download {
+  background: #FFFEF9;
+  border: 2px solid #43664F;
+  border-radius: 14px 18px 12px 20px / 18px 12px 20px 14px;
+  box-shadow: 3px 4px 0 rgba(23, 57, 42, 0.18);
+}
+
+html[data-design="hand-drawn"] .footer {
+  border-top: 2px dashed #7B9986;
+  color: #4B6B57;
+}
+
+html[data-design="hand-drawn"] .games-search,
+html[data-design="hand-drawn"] .games-settings-open {
+  border: 1.5px solid #7B9986;
+  border-radius: 14px 18px 12px 20px / 18px 12px 20px 14px;
+  background: #FFFEF9;
+}
+
+html[data-design="hand-drawn"] input,
+html[data-design="hand-drawn"] select,
+html[data-design="hand-drawn"] textarea {
+  font-family: inherit;
+}
+
+/* =====================================================================
+   3. CARTOON
+   Garis tebal, warna cerah, sudut bulat, bayangan blok.
+===================================================================== */
+html[data-design="cartoon"] {
+  --font-display: "Trebuchet MS", "Comic Sans MS", "Verdana", sans-serif;
+  --font-body: "Trebuchet MS", "Comic Sans MS", "Verdana", sans-serif;
+  --radius-s: 14px;
+  --radius-m: 22px;
+  --radius-l: 30px;
+  --shadow: 6px 6px 0 #17392A;
+}
+
+html[data-design="cartoon"] body {
+  background-color: #EFFAF2;
+  background-image:
+    radial-gradient(rgba(47, 143, 91, 0.16) 2.2px, transparent 2.6px);
+  background-size: 26px 26px;
+}
+
+html[data-design="cartoon"] h1,
+html[data-design="cartoon"] h2,
+html[data-design="cartoon"] h3 {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="cartoon"] .hero {
+  background: linear-gradient(165deg, #37A368 0%, #2F8F5B 55%, #1F4D37 130%);
+  border-bottom: 6px solid #14392A;
+  padding: 4.5rem 1.5rem 4rem;
+}
+
+html[data-design="cartoon"] .hero-eyebrow {
+  color: #DDF6E5;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+html[data-design="cartoon"] .hero-title {
+  color: var(--white);
+  font-weight: 800;
+  text-shadow: 3px 3px 0 #14392A, -2px -2px 0 #14392A, 2px -2px 0 #14392A, -2px 2px 0 #14392A;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="cartoon"] .stat {
+  background: rgba(255, 255, 255, 0.94);
+  border: 3px solid #14392A;
+  border-radius: 18px;
+  padding: 0.5rem 0.9rem;
+  box-shadow: 4px 4px 0 #14392A;
+}
+
+html[data-design="cartoon"] .stat-number { color: var(--forest); font-weight: 800; }
+
+html[data-design="cartoon"] .stat-label { color: #3E6B51; font-weight: 700; }
+
+html[data-design="cartoon"] .stat-divider { background: rgba(23, 57, 42, 0.35); }
+
+html[data-design="cartoon"] .hero-leaf {
+  fill: rgba(255, 255, 255, 0.16);
+  stroke: #14392A;
+  stroke-width: 3;
+}
+
+html[data-design="cartoon"] .page-nav {
+  background: #FFFFFF;
+  border: 3px solid #14392A;
+  border-radius: 20px;
+  box-shadow: 5px 5px 0 #14392A;
+}
+
+html[data-design="cartoon"] .page-tab-btn {
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+html[data-design="cartoon"] .tab-indicator { border-radius: 14px; background: var(--forest); }
+
+html[data-design="cartoon"] .section-head h2 {
+  font-size: 2rem;
+  color: var(--forest);
+  text-shadow: 2px 2px 0 #BFE6CF;
+}
+
+html[data-design="cartoon"] .section-sub { font-weight: 600; color: #4B6B57; }
+
+html[data-design="cartoon"] .siswa-card,
+html[data-design="cartoon"] .info-card {
+  background: var(--white);
+  border: 3px solid #14392A;
+  border-radius: 20px;
+  box-shadow: 5px 5px 0 #14392A;
+}
+
+html[data-design="cartoon"] .siswa-card:hover,
+html[data-design="cartoon"] .siswa-card:focus-visible {
+  transform: translate(-2px, -3px) rotate(-0.6deg);
+  box-shadow: 8px 8px 0 #14392A;
+  border-color: #14392A;
+}
+
+html[data-design="cartoon"] .siswa-absen {
+  display: inline-block;
+  background: #DDF6E5;
+  border: 2px solid #14392A;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  color: var(--forest);
+  font-weight: 800;
+}
+
+html[data-design="cartoon"] .siswa-nama { font-weight: 800; }
+
+html[data-design="cartoon"] .info-card:hover { transform: translate(-1px, -2px); box-shadow: 7px 7px 0 #14392A; }
+
+html[data-design="cartoon"] .info-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: #DDF6E5;
+  border: 2.5px solid #14392A;
+  border-radius: 14px;
+  box-shadow: 2px 2px 0 #14392A;
+}
+
+html[data-design="cartoon"] .picker-card {
+  background: var(--white);
+  border: 3px solid #14392A;
+  border-radius: 26px;
+  box-shadow: 7px 7px 0 #14392A;
+}
+
+html[data-design="cartoon"] .btn-primary,
+html[data-design="cartoon"] .btn-secondary {
+  border-radius: 16px;
+  font-weight: 800;
+  border: 3px solid #14392A;
+  box-shadow: 4px 4px 0 #14392A;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+html[data-design="cartoon"] .btn-primary { background: var(--emerald); }
+
+html[data-design="cartoon"] .btn-primary:hover,
+html[data-design="cartoon"] .btn-secondary:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #14392A;
+}
+
+html[data-design="cartoon"] .btn-primary:active,
+html[data-design="cartoon"] .btn-secondary:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 #14392A;
+}
+
+html[data-design="cartoon"] .btn-secondary { background: var(--white); }
+
+html[data-design="cartoon"] .game-card {
+  background: var(--white);
+  border: 3px solid #14392A;
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 #14392A;
+}
+
+html[data-design="cartoon"] .game-card::before { display: none; }
+
+html[data-design="cartoon"] .game-card::after {
+  background: radial-gradient(circle, rgba(47, 143, 91, 0.16), transparent 70%);
+}
+
+html[data-design="cartoon"] .game-card:hover {
+  transform: translate(-2px, -4px) rotate(-0.5deg);
+  box-shadow: 9px 9px 0 #14392A;
+  border-color: #14392A;
+}
+
+html[data-design="cartoon"] .game-icon {
+  background: #DDF6E5;
+  border: 3px solid #14392A;
+  border-radius: 18px;
+  box-shadow: 3px 3px 0 #14392A;
+}
+
+html[data-design="cartoon"] .game-card:hover .game-icon { transform: rotate(-6deg) scale(1.06); }
+
+html[data-design="cartoon"] .game-info strong { font-weight: 800; }
+
+html[data-design="cartoon"] .game-progress {
+  background: #DDF6E5;
+  border: 2px solid #14392A;
+  box-shadow: 2px 2px 0 #14392A;
+  color: #1F6A42;
+}
+
+html[data-design="cartoon"] .game-play {
+  background: var(--emerald);
+  border: 2.5px solid #14392A;
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 #14392A;
+  font-weight: 800;
+}
+
+html[data-design="cartoon"] .game-card:hover .game-play {
+  transform: none;
+  box-shadow: 3px 3px 0 #14392A;
+}
+
+html[data-design="cartoon"] .modal-box {
+  background: var(--white);
+  border: 3px solid #14392A;
+  border-radius: 26px;
+  box-shadow: 8px 8px 0 #14392A;
+}
+
+html[data-design="cartoon"] .theme-option {
+  border: 2.5px solid #14392A;
+  border-radius: 16px;
+  box-shadow: 3px 3px 0 #14392A;
+}
+
+html[data-design="cartoon"] .theme-option.is-active {
+  background: #DDF6E5;
+  border-color: #14392A;
+  box-shadow: 3px 3px 0 #14392A;
+}
+
+html[data-design="cartoon"] .theme-toggle,
+html[data-design="cartoon"] .sound-toggle,
+html[data-design="cartoon"] .apk-download {
+  background: var(--white);
+  border: 2.5px solid #14392A;
+  box-shadow: 3px 3px 0 #14392A;
+}
+
+html[data-design="cartoon"] .games-search,
+html[data-design="cartoon"] .games-settings-open {
+  background: var(--white);
+  border: 2.5px solid #14392A;
+  border-radius: 14px;
+  box-shadow: 2px 2px 0 #14392A;
+}
+
+html[data-design="cartoon"] .footer {
+  border-top: 3px solid #14392A;
+  color: #3E6B51;
+  font-weight: 600;
+}
+
+/* =====================================================================
+   4. MANGA
+   Tinta hitam, screentone, panel komik, aksen hijau.
+===================================================================== */
+html[data-design="manga"] {
+  --font-display: "Arial Black", "Trebuchet MS", Arial, sans-serif;
+  --font-body: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --radius-s: 2px;
+  --radius-m: 4px;
+  --radius-l: 6px;
+  --shadow: 4px 4px 0 #101613;
+}
+
+html[data-design="manga"] body {
+  background-color: #FCFCFA;
+  background-image:
+    radial-gradient(rgba(16, 22, 19, 0.11) 0.8px, transparent 1.1px);
+  background-size: 6px 6px;
+}
+
+html[data-design="manga"] h1,
+html[data-design="manga"] h2,
+html[data-design="manga"] h3 {
+  letter-spacing: 0.02em;
+  font-weight: 900;
+}
+
+html[data-design="manga"] .hero {
+  background-color: var(--white);
+  background-image:
+    repeating-linear-gradient(115deg, rgba(16, 22, 19, 0.09) 0 2px, transparent 2px 15px),
+    radial-gradient(rgba(16, 22, 19, 0.12) 0.8px, transparent 1.1px);
+  background-size: auto, 6px 6px;
+  border-bottom: 5px solid #101613;
+  padding: 4.25rem 1.5rem 3.75rem;
+}
+
+html[data-design="manga"] .hero-eyebrow {
+  color: #2F5D44;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+html[data-design="manga"] .hero-title {
+  color: #101613;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  -webkit-text-stroke: 1px #101613;
+}
+
+html[data-design="manga"] .hero-title::after {
+  content: "";
+  display: block;
+  width: 88px;
+  height: 7px;
+  margin: 1rem auto 0;
+  background: var(--emerald);
+  transform: skewX(-18deg);
+}
+
+html[data-design="manga"] .stat-number { color: #101613; font-weight: 900; }
+
+html[data-design="manga"] .stat-label {
+  color: #2F5D44;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+html[data-design="manga"] .stat-divider { background: #101613; width: 2px; }
+
+html[data-design="manga"] .hero-leaf {
+  fill: rgba(47, 143, 91, 0.14);
+  stroke: #101613;
+  stroke-width: 2;
+}
+
+html[data-design="manga"] .page-nav {
+  background: var(--white);
+  border: 2.5px solid #101613;
+  border-radius: 4px;
+  box-shadow: 4px 4px 0 #101613;
+}
+
+html[data-design="manga"] .page-tab-btn {
+  border-radius: 2px;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+html[data-design="manga"] .tab-indicator {
+  border-radius: 2px;
+  background: var(--forest);
+  border: 2px solid #101613;
+}
+
+html[data-design="manga"] .section-head h2 {
+  text-transform: uppercase;
+  font-size: 1.65rem;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.4rem;
+}
+
+html[data-design="manga"] .section-head h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 4px;
+  background: #101613;
+  transform: skewX(-20deg);
+}
+
+html[data-design="manga"] .section-sub { color: #3E6B51; }
+
+html[data-design="manga"] .siswa-card,
+html[data-design="manga"] .info-card {
+  background: var(--white);
+  border: 2px solid #101613;
+  border-radius: 3px;
+  box-shadow: 4px 4px 0 #101613;
+}
+
+html[data-design="manga"] .siswa-card:hover,
+html[data-design="manga"] .siswa-card:focus-visible {
+  transform: translate(-2px, -2px);
+  border-color: #101613;
+  box-shadow: 6px 6px 0 var(--emerald);
+}
+
+html[data-design="manga"] .siswa-absen {
+  display: inline-block;
+  background: #101613;
+  color: var(--white);
+  padding: 0.1rem 0.4rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+html[data-design="manga"] .siswa-nama { font-weight: 800; text-transform: uppercase; font-size: 0.95rem; }
+
+html[data-design="manga"] .info-card:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--emerald); }
+
+html[data-design="manga"] .info-card h4 { text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.92rem; }
+
+html[data-design="manga"] .picker-card {
+  position: relative;
+  background: var(--white);
+  border: 3px solid #101613;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 #101613;
+}
+
+html[data-design="manga"] .picker-card::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  width: 26px;
+  height: 16px;
+  margin-left: -13px;
+  background: var(--white);
+  border-left: 3px solid #101613;
+  border-right: 3px solid #101613;
+  border-bottom: 3px solid #101613;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+html[data-design="manga"] .btn-primary,
+html[data-design="manga"] .btn-secondary {
+  border-radius: 3px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.86rem;
+  border: 2.5px solid #101613;
+  box-shadow: 4px 4px 0 #101613;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+html[data-design="manga"] .btn-primary { background: var(--emerald); }
+
+html[data-design="manga"] .btn-secondary { background: var(--white); }
+
+html[data-design="manga"] .btn-primary:hover,
+html[data-design="manga"] .btn-secondary:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #101613;
+}
+
+html[data-design="manga"] .btn-primary:active,
+html[data-design="manga"] .btn-secondary:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 #101613;
+}
+
+html[data-design="manga"] .game-card {
+  background: var(--white);
+  border: 2.5px solid #101613;
+  border-radius: 4px;
+  box-shadow: 5px 5px 0 #101613;
+}
+
+html[data-design="manga"] .game-card::before { display: none; }
+
+html[data-design="manga"] .game-card::after {
+  width: 150px;
+  height: 150px;
+  right: -70px;
+  top: -90px;
+  background-image: radial-gradient(rgba(16, 22, 19, 0.22) 0.9px, transparent 1.2px);
+  background-size: 6px 6px;
+  border-radius: 0;
+}
+
+html[data-design="manga"] .game-card:hover {
+  transform: translate(-2px, -2px);
+  border-color: #101613;
+  box-shadow: 7px 7px 0 var(--emerald);
+}
+
+html[data-design="manga"] .game-icon {
+  background-color: var(--white);
+  background-image: radial-gradient(rgba(47, 143, 91, 0.28) 1px, transparent 1.3px);
+  background-size: 7px 7px;
+  border: 2.5px solid #101613;
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 #101613;
+}
+
+html[data-design="manga"] .game-card:hover .game-icon { transform: rotate(-5deg) scale(1.04); }
+
+html[data-design="manga"] .game-info strong {
+  text-transform: uppercase;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="manga"] .game-progress {
+  background: var(--white);
+  border: 1.5px solid #101613;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 #101613;
+  color: #1F6A42;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+html[data-design="manga"] .game-play {
+  background: var(--emerald);
+  border: 2px solid #101613;
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 #101613;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+html[data-design="manga"] .game-card:hover .game-play {
+  transform: none;
+  box-shadow: 3px 3px 0 #101613;
+}
+
+html[data-design="manga"] .modal-box {
+  background: var(--white);
+  border: 3px solid #101613;
+  border-radius: 6px;
+  box-shadow: 8px 8px 0 #101613;
+}
+
+html[data-design="manga"] .theme-option {
+  border: 2px solid #101613;
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 #101613;
+}
+
+html[data-design="manga"] .theme-option.is-active {
+  background: #E4F6EA;
+  border-color: #101613;
+  box-shadow: 3px 3px 0 var(--emerald);
+}
+
+html[data-design="manga"] .theme-toggle,
+html[data-design="manga"] .sound-toggle,
+html[data-design="manga"] .apk-download {
+  background: var(--white);
+  border: 2.5px solid #101613;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #101613;
+}
+
+html[data-design="manga"] .games-search,
+html[data-design="manga"] .games-settings-open {
+  background: var(--white);
+  border: 2px solid #101613;
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 #101613;
+}
+
+html[data-design="manga"] .footer {
+  border-top: 3px solid #101613;
+  color: #3E6B51;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+
+/* ---------- perangkat kecil ---------- */
+@media (max-width: 460px) {
+  .design-preview { width: 34px; height: 34px; padding: 5px; }
+  html[data-design="cartoon"] .hero-title { font-size: clamp(2.4rem, 13vw, 3.4rem); }
+  html[data-design="manga"] .section-head h2 { font-size: 1.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-design] .siswa-card,
+  html[data-design] .game-card,
+  html[data-design] .game-card:hover,
+  html[data-design] .grid-siswa .siswa-card:hover,
+  html[data-design] .btn-primary,
+  html[data-design] .btn-secondary {
+    transition: none;
+  }
+}

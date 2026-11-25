@@ -97,7 +97,7 @@ service cloud.firestore {
     // ── FISHING GAME (tanpa Blaze) ────────────────────────────
     // Ditulis langsung dari browser lewat transaksi Firestore. RNG & aturan
     // main ada di fishing-local.js, bentuk dokumen dijaga rules di bawah.
-    // PENANDA VERSI: "fishing-v4-worker-potion" — kalau di Rules Console
+    // PENANDA VERSI: "fishing-v4-worker-potion-2026-11-25" — kalau di Rules Console
     // tidak ada tulisan ini, berarti rules lama masih yang dipakai.
     match /fishing/{absen} {
       allow read: if true;
