@@ -4188,6 +4188,9 @@ const UPDATE_LOG = [
   {
     tanggal: "27/11/26",
     items: [
+      "Version 2.19.0 Karakter Survival Arena Sekarang Voxel 3D Kotak-Kotak dengan Animasi Jalan, Berlaku Juga untuk Semua Zombie",
+      "Version 2.19.0 Zombie Lebih Kuat dan Lebih Pintar: Mencari Rute Terpendek serta Menghindari Tembok dan Peti",
+      "Version 2.19.0 Jangkauan Lightning Orb Dikecilkan supaya Terasa Lebih Dekat ke Karakter",
       "Version 2.18.1 Pilihan Skill di HP Tidak Lagi Terpilih Sendiri Saat Jempol Masih Menahan Joystick atau Tombol Tembak",
       "Version 2.18.1 Petunjuk Keyboard Disembunyikan di Layar Sentuh, Termasuk Saat HP Diputar Mendatar",
       "Version 2.18.0 Game Baru Survival Arena: Bertahan dari Gelombang Zombie di Arena",

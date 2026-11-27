@@ -85,29 +85,29 @@
 
   const ZOMBIES = {
     normal: {
-      id: "normal", nama: "Walker", hp: 34, speed: 56, dmg: 9, r: 15,
+      id: "normal", nama: "Walker", hp: 40, speed: 61, dmg: 11, r: 15,
       xp: 8, uang: 5, warna: "#69b56f", gelap: "#3f7a48", unlock: 1, bobot: 100,
     },
     runner: {
-      id: "runner", nama: "Runner", hp: 20, speed: 112, dmg: 6, r: 13,
+      id: "runner", nama: "Runner", hp: 24, speed: 122, dmg: 8, r: 13,
       xp: 7, uang: 4, warna: "#a8e07a", gelap: "#5f9a3d", unlock: 2, bobot: 55,
     },
     tank: {
-      id: "tank", nama: "Tank", hp: 180, speed: 34, dmg: 17, r: 21,
+      id: "tank", nama: "Tank", hp: 215, speed: 37, dmg: 20, r: 21,
       xp: 26, uang: 16, warna: "#7f9360", gelap: "#4d5c39", unlock: 4, bobot: 22,
     },
     explosive: {
-      id: "explosive", nama: "Bomber", hp: 46, speed: 62, dmg: 8, r: 16,
+      id: "explosive", nama: "Bomber", hp: 52, speed: 64, dmg: 9, r: 16,
       xp: 14, uang: 9, warna: "#c9a05a", gelap: "#7d5f2e", unlock: 6, bobot: 18,
-      ledakan: { radius: 100, dmg: 26 },
+      ledakan: { radius: 104, dmg: 30 },
     },
     ranged: {
-      id: "ranged", nama: "Spitter", hp: 40, speed: 44, dmg: 10, r: 15,
+      id: "ranged", nama: "Spitter", hp: 46, speed: 48, dmg: 12, r: 15,
       xp: 16, uang: 11, warna: "#8fc2a0", gelap: "#4f7a5c", unlock: 8, bobot: 14,
-      tembak: { range: 330, jeda: 2.3, dmg: 9, speed: 240 },
+      tembak: { range: 340, jeda: 2.1, dmg: 11, speed: 250 },
     },
     boss: {
-      id: "boss", nama: "Boss", hp: 900, speed: 40, dmg: 24, r: 32,
+      id: "boss", nama: "Boss", hp: 1050, speed: 44, dmg: 28, r: 32,
       xp: 220, uang: 140, warna: "#b06a6a", gelap: "#6e3636", unlock: 5, bobot: 0,
       boss: true,
     },
@@ -121,7 +121,7 @@
     },
     {
       id: "orbs", nama: "Lightning Orb", icon: "⚡", max: 5, warna: "#c792ff",
-      desc: (lv) => `${lv} bola petir mengorbit dan menyambar zombie terdekat secara otomatis.`,
+      desc: (lv) => `${lv} bola petir mengorbit dekat karakter dan menyambar zombie yang sangat dekat.`,
       gain: (lv) => `Bola ${lv} · sambar ${9 + lv * 7}`,
     },
     {
@@ -804,9 +804,9 @@
 
   function waveSkala(w) {
     return {
-      hp: 1 + (w - 1) * 0.18,
-      dmg: Math.min(3, 1 + (w - 1) * 0.06),
-      spd: Math.min(1.5, 1 + (w - 1) * 0.013),
+      hp: 1 + (w - 1) * 0.2,
+      dmg: Math.min(3.2, 1 + (w - 1) * 0.065),
+      spd: Math.min(1.6, 1 + (w - 1) * 0.014),
     };
   }
 
@@ -886,6 +886,9 @@
       flash: 0,
       bob: rand(0, TAU),
       boss: !!base.boss,
+      navT: rand(0, 0.3),
+      navA: null,
+      moving: true,
     };
     if (base.tembak) z.tembak = Object.assign({}, base.tembak);
     if (base.ledakan) z.ledakan = Object.assign({}, base.ledakan);
@@ -1281,11 +1284,11 @@
       const dmg = (9 + sk.orbs * 7) * st.dmg;
       for (let i = 0; i < jumlah; i++) {
         const a = -run.player.arahSkill * 1.7 + (TAU / jumlah) * i;
-        const ox = p.x + Math.cos(a) * 106;
-        const oy = p.y + Math.sin(a) * 106;
+        const ox = p.x + Math.cos(a) * 76;
+        const oy = p.y + Math.sin(a) * 76;
         run.player.orbA = run.player.orbA || 0;
         if ((run.player.orbCd || 0) <= 0) {
-          const target = zombieTerdekat(ox, oy, 165);
+          const target = zombieTerdekat(ox, oy, 112);
           if (target) {
             run.arcs.push({ jenis: "petir", x1: ox, y1: oy, x2: target.x, y2: target.y, life: 0.16, max: 0.16 });
             lukaZombie(target, dmg, false, "orbs");
@@ -1373,6 +1376,12 @@
     if (p.hurtCd > 0) p.hurtCd -= dt;
     if (p.invuln > 0) p.invuln -= dt;
 
+    run.navT = (run.navT || 0) - dt;
+    if (run.navT <= 0) {
+      navBangun();
+      run.navT = 0.3;
+    }
+
     // Gerak
     let mx = 0;
     let my = 0;
@@ -1386,6 +1395,7 @@
     p.x += mx * st.speed * dt;
     p.y += my * st.speed * dt;
     halangiLingkungan(p, 15);
+    p.moving = panjang > 0.1;
     if (panjang > 0.1) p.arah = Math.atan2(my, mx);
 
     // Senjata
@@ -1423,6 +1433,11 @@
       const dy = p.y - z.y;
       const jarak = Math.hypot(dx, dy) || 1;
       z.arah = Math.atan2(dy, dx);
+      z.navT = (z.navT || 0) - dt;
+      if (z.navT <= 0) {
+        z.navT = rand(0.2, 0.34);
+        z.navA = navCari(z, p);
+      }
       let mengejar = true;
       if (z.tembak) {
         if (jarak < 235) mengejar = false;
@@ -1458,12 +1473,14 @@
         }
       }
       if (mengejar) {
-        z.vx = (dx / jarak) * z.speed;
-        z.vy = (dy / jarak) * z.speed;
+        const arahJalan = z.navA == null ? z.arah : z.navA;
+        z.vx = Math.cos(arahJalan) * z.speed;
+        z.vy = Math.sin(arahJalan) * z.speed;
       } else {
         z.vx *= 0.85;
         z.vy *= 0.85;
       }
+      z.moving = mengejar || Math.hypot(z.vx, z.vy) > 8;
       z.x += z.vx * dt;
       z.y += z.vy * dt;
       halangiLingkungan(z, z.r);
@@ -1496,6 +1513,9 @@
             b.y += ny * push;
           }
         }
+      }
+      for (const z of run.zombies) {
+        if (!z.mati) halangiLingkungan(z, z.r);
       }
     }
     run.zombies = run.zombies.filter((z) => !z.mati);
@@ -1710,6 +1730,152 @@
         e.y = c.y + ((e.y - c.y) / dd) * min;
       }
     }
+  }
+
+  /* ================= NAVIGASI ZOMBIE ================= */
+  // Flow field BFS: tiap sel tahu jarak terpendek ke pemain, jadi zombie memutari
+  // tembok dan peti alih-alih menabraknya.
+  const NAVK = 30;
+  const NAV = { x0: 0, y0: 0, n: 0, blocked: null, dist: null, queue: null, siap: false };
+
+  function navSiapkan() {
+    if (NAV.blocked) return;
+    const half = ARENA_R + 60;
+    const n = Math.ceil((half * 2) / NAVK);
+    NAV.x0 = -half;
+    NAV.y0 = -half;
+    NAV.n = n;
+    NAV.blocked = new Uint8Array(n * n);
+    NAV.dist = new Int16Array(n * n);
+    NAV.queue = new Int32Array(n * n);
+  }
+
+  function navSel(x, y) {
+    const i = Math.floor((x - NAV.x0) / NAVK);
+    const j = Math.floor((y - NAV.y0) / NAVK);
+    if (i < 0 || j < 0 || i >= NAV.n || j >= NAV.n) return -1;
+    return j * NAV.n + i;
+  }
+
+  function navBangun() {
+    navSiapkan();
+    const n = NAV.n;
+    const x0 = NAV.x0;
+    const y0 = NAV.y0;
+    const blocked = NAV.blocked;
+    const dist = NAV.dist;
+    const queue = NAV.queue;
+    blocked.fill(0);
+    const tandai = (minX, minY, maxX, maxY) => {
+      const i0 = Math.max(0, Math.floor((minX - x0) / NAVK));
+      const i1 = Math.min(n - 1, Math.floor((maxX - x0) / NAVK));
+      const j0 = Math.max(0, Math.floor((minY - y0) / NAVK));
+      const j1 = Math.min(n - 1, Math.floor((maxY - y0) / NAVK));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) blocked[j * n + i] = 1;
+    };
+    for (const w of run.walls) tandai(w.x - w.w / 2 - 14, w.y - w.h / 2 - 14, w.x + w.w / 2 + 14, w.y + w.h / 2 + 14);
+    for (const c of run.crates) {
+      if (c.rusak) continue;
+      tandai(c.x - c.r - 12, c.y - c.r - 12, c.x + c.r + 12, c.y + c.r + 12);
+    }
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const x = x0 + (i + 0.5) * NAVK;
+        const y = y0 + (j + 0.5) * NAVK;
+        if (Math.hypot(x, y) > ARENA_R - 20) blocked[j * n + i] = 1;
+      }
+    }
+    dist.fill(-1);
+    let mulai = navSel(run.player.x, run.player.y);
+    if (mulai < 0) { NAV.siap = false; return; }
+    if (blocked[mulai]) {
+      const ci = mulai % n;
+      const cj = (mulai / n) | 0;
+      let ketemu = -1;
+      for (let r = 1; r <= 5 && ketemu < 0; r++) {
+        for (let j = cj - r; j <= cj + r && ketemu < 0; j++) {
+          for (let i = ci - r; i <= ci + r; i++) {
+            if (i < 0 || j < 0 || i >= n || j >= n) continue;
+            if (Math.abs(i - ci) !== r && Math.abs(j - cj) !== r) continue;
+            if (!blocked[j * n + i]) { ketemu = j * n + i; break; }
+          }
+        }
+      }
+      mulai = ketemu;
+    }
+    if (mulai < 0) { NAV.siap = false; return; }
+    dist[mulai] = 0;
+    let kepala = 0;
+    let ekor = 0;
+    queue[ekor++] = mulai;
+    while (kepala < ekor) {
+      const cur = queue[kepala++];
+      const ci = cur % n;
+      const cj = (cur / n) | 0;
+      const dc = dist[cur] + 1;
+      if (ci > 0 && !blocked[cur - 1] && dist[cur - 1] < 0) { dist[cur - 1] = dc; queue[ekor++] = cur - 1; }
+      if (ci < n - 1 && !blocked[cur + 1] && dist[cur + 1] < 0) { dist[cur + 1] = dc; queue[ekor++] = cur + 1; }
+      if (cj > 0 && !blocked[cur - n] && dist[cur - n] < 0) { dist[cur - n] = dc; queue[ekor++] = cur - n; }
+      if (cj < n - 1 && !blocked[cur + n] && dist[cur + n] < 0) { dist[cur + n] = dc; queue[ekor++] = cur + n; }
+    }
+    NAV.siap = true;
+  }
+
+  function navBebas(x0, y0, x1, y1, clear) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const jarak = Math.hypot(dx, dy);
+    const n = Math.max(1, Math.ceil(jarak / 16));
+    for (let i = 1; i < n; i++) {
+      const f = i / n;
+      const x = x0 + dx * f;
+      const y = y0 + dy * f;
+      for (const w of run.walls) {
+        if (Math.abs(x - w.x) < w.w / 2 + clear && Math.abs(y - w.y) < w.h / 2 + clear) return false;
+      }
+      for (const c of run.crates) {
+        if (c.rusak) continue;
+        if (dist2(x, y, c.x, c.y) < (c.r + clear) * (c.r + clear)) return false;
+      }
+    }
+    return true;
+  }
+
+  function navCari(z, p) {
+    const dx = p.x - z.x;
+    const dy = p.y - z.y;
+    const jarak = Math.hypot(dx, dy) || 1;
+    const langsung = Math.atan2(dy, dx);
+    const bebas = Math.max(8, z.r * 0.6);
+    if (jarak < 36 || navBebas(z.x, z.y, p.x, p.y, bebas)) return langsung;
+    if (!NAV.siap) return langsung;
+    const n = NAV.n;
+    const idx = navSel(z.x, z.y);
+    if (idx < 0) return langsung;
+    const ci = idx % n;
+    const cj = (idx / n) | 0;
+    const kini = NAV.dist[idx];
+    let best = kini >= 0 ? kini : 9999;
+    let bx = -1;
+    let by = -1;
+    for (let j = -1; j <= 1; j++) {
+      for (let i = -1; i <= 1; i++) {
+        if (!i && !j) continue;
+        const ni = ci + i;
+        const nj = cj + j;
+        if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+        const q = nj * n + ni;
+        if (NAV.blocked[q]) continue;
+        const dv = NAV.dist[q];
+        if (dv < 0) continue;
+        if (i && j && (NAV.blocked[cj * n + ni] || NAV.blocked[nj * n + ci])) continue;
+        if (dv < best) { best = dv; bx = ni; by = nj; }
+      }
+    }
+    if (bx < 0) return langsung;
+    const tx = NAV.x0 + (bx + 0.5) * NAVK;
+    const ty = NAV.y0 + (by + 0.5) * NAVK;
+    return Math.atan2(ty - z.y, tx - z.x);
   }
 
   function pakaiMedkit() {
@@ -2238,91 +2404,297 @@
     g.restore();
   }
 
-  function gambarZombie(g, z, t) {
-    const bob = Math.sin(z.bob) * 1.6;
-    g.save();
-    g.translate(z.x, z.y);
+  /* ================= KARAKTER VOXEL 3D ================= */
+  // Model kotak bergaya voxel dirender sekali per sudut & frame animasi,
+  // lalu digambar sebagai sprite supaya tetap ringan walau zombie banyak.
+  const VOX_ANG = 16;
+  const VOX_FRM = 4;
+  const VOX_BAYANG = 0.22;
+  const voxCache = new Map();
 
-    g.fillStyle = "rgba(0,0,0,0.3)";
+  function vxRgb(warna, f) {
+    const s = String(warna || "#888888").trim();
+    const m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    let r;
+    let g;
+    let b;
+    if (m) {
+      r = Number(m[1]);
+      g = Number(m[2]);
+      b = Number(m[3]);
+    } else {
+      let h = s.replace("#", "");
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      r = parseInt(h.slice(0, 2), 16);
+      g = parseInt(h.slice(2, 4), 16);
+      b = parseInt(h.slice(4, 6), 16);
+    }
+    if (!isFinite(r)) r = 136;
+    if (!isFinite(g)) g = 136;
+    if (!isFinite(b)) b = 136;
+    if (f >= 0) {
+      r += (255 - r) * f;
+      g += (255 - g) * f;
+      b += (255 - b) * f;
+    } else {
+      r *= 1 + f;
+      g *= 1 + f;
+      b *= 1 + f;
+    }
+    return `rgb(${r | 0},${g | 0},${b | 0})`;
+  }
+
+  function vxB(x0, x1, y0, y1, z0, z1, c) {
+    return { x0, x1, y0, y1, z0, z1, c, atas: vxRgb(c, 0.34), gelap: vxRgb(c, -0.28) };
+  }
+
+  function voxTitik(x, y, z, cos, sin) {
+    const rx = x * cos - z * sin;
+    const rz = x * sin + z * cos;
+    return [rx, -y + rz * VOX_BAYANG];
+  }
+
+  function voxWajah(g, pts, c, cos, sin) {
+    g.fillStyle = c;
     g.beginPath();
-    g.ellipse(0, z.r * 0.9, z.r * 0.85, z.r * 0.32, 0, 0, TAU);
+    for (let i = 0; i < 4; i++) {
+      const q = voxTitik(pts[i][0], pts[i][1], pts[i][2], cos, sin);
+      if (i === 0) g.moveTo(q[0], q[1]);
+      else g.lineTo(q[0], q[1]);
+    }
+    g.closePath();
     g.fill();
+  }
 
-    const dasar = z.flash > 0 ? "#f1fff5" : z.warna;
-    const gelap = z.flash > 0 ? "#dcebe1" : z.gelap;
+  function voxGambar(g, kotak, cos, sin) {
+    const urut = [];
+    for (const b of kotak) {
+      const rz = ((b.x0 + b.x1) / 2) * sin + ((b.z0 + b.z1) / 2) * cos;
+      urut.push({ b, rz });
+    }
+    urut.sort((a, c) => a.rz - c.rz);
+    for (const it of urut) {
+      const b = it.b;
+      voxWajah(g, [[b.x0, b.y1, b.z0], [b.x1, b.y1, b.z0], [b.x1, b.y1, b.z1], [b.x0, b.y1, b.z1]], b.atas, cos, sin);
+      if (cos >= 0) voxWajah(g, [[b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [b.x0, b.y1, b.z1]], b.c, cos, sin);
+      else voxWajah(g, [[b.x1, b.y0, b.z0], [b.x0, b.y0, b.z0], [b.x0, b.y1, b.z0], [b.x1, b.y1, b.z0]], b.gelap, cos, sin);
+      if (sin < 0) voxWajah(g, [[b.x1, b.y0, b.z1], [b.x1, b.y0, b.z0], [b.x1, b.y1, b.z0], [b.x1, b.y1, b.z1]], b.gelap, cos, sin);
+      else voxWajah(g, [[b.x0, b.y0, b.z0], [b.x0, b.y0, b.z1], [b.x0, b.y1, b.z1], [b.x0, b.y1, b.z0]], b.gelap, cos, sin);
+    }
+  }
 
-    g.fillStyle = gelap;
-    g.fillRect(-z.r * 0.5, z.r * 0.35, z.r * 0.34, z.r * 0.5);
-    g.fillRect(z.r * 0.16, z.r * 0.35, z.r * 0.34, z.r * 0.5);
+  function voxSprite(kunci, buatModel) {
+    const ada = voxCache.get(kunci);
+    if (ada) return ada;
+    let maxR = 6;
+    let maxY = 10;
+    for (let fr = 0; fr < VOX_FRM; fr++) {
+      for (const b of buatModel(fr)) {
+        maxY = Math.max(maxY, b.y1);
+        maxR = Math.max(maxR, Math.hypot(Math.max(Math.abs(b.x0), Math.abs(b.x1)), Math.max(Math.abs(b.z0), Math.abs(b.z1))));
+      }
+    }
+    const pad = Math.max(3, Math.ceil(maxR * VOX_BAYANG) + 2);
+    const lw = Math.ceil(maxR * 2 + pad * 2);
+    const lh = Math.ceil(maxY + maxR * VOX_BAYANG + pad * 2);
+    const c = document.createElement("canvas");
+    c.width = lw * VOX_ANG;
+    c.height = lh * VOX_FRM;
+    const g = c.getContext("2d");
+    if (!g) return null;
+    for (let a = 0; a < VOX_ANG; a++) {
+      const th = (a / VOX_ANG) * TAU;
+      const cos = Math.cos(th);
+      const sin = Math.sin(th);
+      for (let fr = 0; fr < VOX_FRM; fr++) {
+        g.save();
+        g.beginPath();
+        g.rect(a * lw, fr * lh, lw, lh);
+        g.clip();
+        g.translate(a * lw + lw / 2, fr * lh + lh - pad);
+        voxGambar(g, buatModel(fr), cos, sin);
+        g.restore();
+      }
+    }
+    const spr = { c, lw, lh, pad };
+    if (kunci.indexOf("p:") === 0) {
+      for (const k of voxCache.keys()) if (k.indexOf("p:") === 0) voxCache.delete(k);
+    }
+    voxCache.set(kunci, spr);
+    return spr;
+  }
 
+  function voxGambarSprite(g, spr, x, yFeet, skala, arah, fase, alpha) {
+    if (!spr) return;
+    let a = Math.round(((arah - Math.PI / 2) / TAU) * VOX_ANG) % VOX_ANG;
+    if (a < 0) a += VOX_ANG;
+    const w = spr.lw * skala;
+    const h = spr.lh * skala;
     g.save();
-    g.rotate(z.arah || 0);
-    g.fillStyle = dasar;
-    g.fillRect(z.r * 0.2, -z.r * 0.72, z.r * 0.9, z.r * 0.3);
-    g.fillRect(z.r * 0.2, z.r * 0.42, z.r * 0.9, z.r * 0.3);
+    if (alpha != null) g.globalAlpha *= alpha;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(spr.c, a * spr.lw, fase * spr.lh, spr.lw, spr.lh, x - w / 2, yFeet - (spr.lh - spr.pad) * skala, w, h);
     g.restore();
+  }
 
-    g.fillStyle = dasar;
-    g.beginPath();
-    g.arc(0, bob * 0.2, z.r * 0.78, 0, TAU);
-    g.fill();
-    g.fillStyle = gelap;
-    g.beginPath();
-    g.arc(0, bob * 0.2 + z.r * 0.3, z.r * 0.66, 0, TAU);
-    g.fill();
+  function modelPlayer(ch, fr) {
+    const warna = opsiHex(CHARS.color, ch.color);
+    const kulit = opsiHex(CHARS.skin, ch.skin);
+    const ph = (fr / VOX_FRM) * TAU;
+    const ayun = Math.sin(ph);
+    const bob = Math.abs(Math.sin(ph)) * 1.1;
+    const k = 1;
+    const kotak = [];
+    const bajuGelap = vxRgb(warna, -0.35);
+    // Kaki & sepatu
+    kotak.push(vxB(-8 * k, -2 * k, 2 * k, 11 * k, ayun * 2.6 * k - 2.5 * k, ayun * 2.6 * k + 2.5 * k, "#3d5348"));
+    kotak.push(vxB(2 * k, 8 * k, 2 * k, 11 * k, -ayun * 2.6 * k - 2.5 * k, -ayun * 2.6 * k + 2.5 * k, "#3d5348"));
+    kotak.push(vxB(-8 * k, -2 * k, 0, 2 * k, ayun * 2.6 * k - 3 * k, ayun * 2.6 * k + 3 * k, "#24332c"));
+    kotak.push(vxB(2 * k, 8 * k, 0, 2 * k, -ayun * 2.6 * k - 3 * k, -ayun * 2.6 * k + 3 * k, "#24332c"));
+    // Badan
+    const y0 = 11 * k + bob;
+    const y1 = 23 * k + bob;
+    kotak.push(vxB(-8.5 * k, 8.5 * k, y0, y1, -4.5 * k, 4.5 * k, warna));
+    if (ch.outfit === "lab") {
+      kotak.push(vxB(-6 * k, 6 * k, y0, y1, 4.5 * k, 4.9 * k, "#eef7f0"));
+      kotak.push(vxB(-0.6 * k, 0.6 * k, y0, y1, 4.9 * k, 5.2 * k, "#c9d8d0"));
+    } else if (ch.outfit === "jaket") {
+      kotak.push(vxB(-8.6 * k, 8.6 * k, y1 - 3 * k, y1, 4.5 * k, 5 * k, bajuGelap));
+      kotak.push(vxB(-0.8 * k, 0.8 * k, y0, y1, 4.5 * k, 5.1 * k, "#e8f3ec"));
+    } else if (ch.outfit === "rompi") {
+      kotak.push(vxB(-8.6 * k, 8.6 * k, y0 + 4 * k, y1 - 4 * k, 4.5 * k, 5 * k, vxRgb(warna, -0.55)));
+    }
+    // Lengan
+    const ax = ayun * 3 * k;
+    kotak.push(vxB(-12.5 * k, -8.5 * k, 12 * k + bob, 22 * k + bob, ax - 2 * k, ax + 2 * k, warna));
+    kotak.push(vxB(8.5 * k, 12.5 * k, 12 * k + bob, 22 * k + bob, -ax - 2 * k, -ax + 2 * k, warna));
+    kotak.push(vxB(-12.5 * k, -8.5 * k, 9 * k + bob, 12 * k + bob, ax - 2 * k, ax + 2 * k, kulit));
+    kotak.push(vxB(8.5 * k, 12.5 * k, 9 * k + bob, 12 * k + bob, -ax - 2 * k, -ax + 2 * k, kulit));
+    // Kepala
+    const hy = 23 * k + bob;
+    kotak.push(vxB(-5.5 * k, 5.5 * k, hy, hy + 11 * k, -4.5 * k, 4.5 * k, kulit));
+    const hz = hy + 11 * k;
+    if (ch.hair === "pendek") {
+      kotak.push(vxB(-5.9 * k, 5.9 * k, hz, hz + 2.2 * k, -4.9 * k, 4.9 * k, "#3a2a20"));
+    } else if (ch.hair === "spiky") {
+      kotak.push(vxB(-5.9 * k, 5.9 * k, hz, hz + 1.6 * k, -4.9 * k, 4.9 * k, "#4a3226"));
+      for (let i = -1; i <= 1; i++) kotak.push(vxB(i * 3.6 * k - 1 * k, i * 3.6 * k + 1 * k, hz + 1.4 * k, hz + 4 * k, -1.8 * k, 1.8 * k, "#4a3226"));
+    } else if (ch.hair === "jabrik") {
+      kotak.push(vxB(-5.9 * k, 5.9 * k, hz, hz + 1.4 * k, -4.9 * k, 4.9 * k, "#342821"));
+      kotak.push(vxB(-5.6 * k, -2.6 * k, hz + 1 * k, hz + 4.4 * k, -1.8 * k, 1.8 * k, "#342821"));
+      kotak.push(vxB(0.6 * k, 3.6 * k, hz + 1 * k, hz + 3.6 * k, -2.2 * k, 1.4 * k, "#342821"));
+    }
+    // Wajah di sisi depan (+z)
+    const ez = 4.5 * k;
+    if (ch.face === "mata-satu") {
+      kotak.push(vxB(-1.4 * k, 1.4 * k, hy + 5 * k, hy + 7 * k, ez, ez + 0.5 * k, "#17211b"));
+    } else {
+      kotak.push(vxB(-3.4 * k, -1.4 * k, hy + 5 * k, hy + 7 * k, ez, ez + 0.5 * k, "#17211b"));
+      kotak.push(vxB(1.4 * k, 3.4 * k, hy + 5 * k, hy + 7 * k, ez, ez + 0.5 * k, "#17211b"));
+    }
+    if (ch.face === "serius") {
+      kotak.push(vxB(-4.4 * k, -0.6 * k, hy + 7.6 * k, hy + 8.4 * k, ez, ez + 0.4 * k, "#2a1d15"));
+      kotak.push(vxB(0.6 * k, 4.4 * k, hy + 7.6 * k, hy + 8.4 * k, ez, ez + 0.4 * k, "#2a1d15"));
+    } else if (ch.face === "senyum") {
+      kotak.push(vxB(-2.2 * k, 2.2 * k, hy + 3 * k, hy + 3.8 * k, ez, ez + 0.4 * k, "#8a5348"));
+    }
+    // Aksesoris
+    if (ch.acc === "topi") {
+      kotak.push(vxB(-6 * k, 6 * k, hz + 0.4 * k, hz + 2.4 * k, -5 * k, 5 * k, vxRgb(warna, -0.15)));
+      kotak.push(vxB(-5.6 * k, 5.6 * k, hz + 0.2 * k, hz + 1.2 * k, 5 * k, 7.6 * k, vxRgb(warna, -0.3)));
+    } else if (ch.acc === "kacamata") {
+      kotak.push(vxB(-5.5 * k, 5.5 * k, hy + 5.8 * k, hy + 7.4 * k, ez + 0.2 * k, ez + 0.8 * k, "#1d2924"));
+      kotak.push(vxB(-4.6 * k, -1.8 * k, hy + 6 * k, hy + 7.2 * k, ez + 0.8 * k, ez + 1.1 * k, "#a9d8c4"));
+      kotak.push(vxB(1.8 * k, 4.6 * k, hy + 6 * k, hy + 7.2 * k, ez + 0.8 * k, ez + 1.1 * k, "#a9d8c4"));
+    } else if (ch.acc === "masker") {
+      kotak.push(vxB(-4.4 * k, 4.4 * k, hy + 2.2 * k, hy + 4.6 * k, ez + 0.2 * k, ez + 0.8 * k, "#dfeee5"));
+    }
+    return kotak;
+  }
 
-    g.fillStyle = z.flash > 0 ? "#ffffff" : "#cfe8b8";
-    g.beginPath();
-    g.arc(0, -z.r * 0.62 + bob * 0.35, z.r * 0.55, 0, TAU);
-    g.fill();
-
-    g.fillStyle = z.tipe === "ranged" ? "#ff5c5c" : "#1d2a20";
-    g.fillRect(-z.r * 0.34, -z.r * 0.74 + bob * 0.35, z.r * 0.2, z.r * 0.2);
-    g.fillRect(z.r * 0.14, -z.r * 0.74 + bob * 0.35, z.r * 0.2, z.r * 0.2);
-
+  function modelZombie(z, fr, k) {
+    const ph = (fr / VOX_FRM) * TAU;
+    const ayun = Math.sin(ph);
+    const bob = Math.abs(Math.cos(ph)) * 1.3 * k;
+    const kain = z.gelap;
+    const kepala = vxRgb(z.warna, 0.55);
+    const kotak = [];
+    // Kaki
+    kotak.push(vxB(-7 * k, -2 * k, 2 * k, 10 * k, ayun * 3 * k - 2.5 * k, ayun * 3 * k + 2.5 * k, vxRgb(kain, 0.04)));
+    kotak.push(vxB(2 * k, 7 * k, 2 * k, 10 * k, -ayun * 3 * k - 2.5 * k, -ayun * 3 * k + 2.5 * k, vxRgb(kain, 0.04)));
+    kotak.push(vxB(-7 * k, -2 * k, 0, 2 * k, ayun * 3 * k - 2.8 * k, ayun * 3 * k + 2.8 * k, vxRgb(kain, -0.3)));
+    kotak.push(vxB(2 * k, 7 * k, 0, 2 * k, -ayun * 3 * k - 2.8 * k, -ayun * 3 * k + 2.8 * k, vxRgb(kain, -0.3)));
+    // Badan bungkuk
+    kotak.push(vxB(-8 * k, 8 * k, 9 * k + bob, 22 * k + bob, -5 * k, 5 * k, kain));
+    kotak.push(vxB(-5 * k, 5 * k, 11 * k + bob, 19 * k + bob, 5 * k, 5.4 * k, vxRgb(kain, 0.14)));
+    // Lengan menjulur ke depan (+z)
+    const ly = 15 * k + bob + ayun * 1.2 * k;
+    kotak.push(vxB(-11 * k, -7 * k, ly, ly + 4 * k, 4 * k, 13 * k, vxRgb(z.warna, -0.12)));
+    kotak.push(vxB(7 * k, 11 * k, ly, ly + 4 * k, 4 * k, 13 * k, vxRgb(z.warna, -0.12)));
+    kotak.push(vxB(-11 * k, -7 * k, ly - 1 * k, ly + 3 * k, 13 * k, 16 * k, kepala));
+    kotak.push(vxB(7 * k, 11 * k, ly - 1 * k, ly + 3 * k, 13 * k, 16 * k, kepala));
+    // Kepala
+    const hy = 21 * k + bob;
+    kotak.push(vxB(-6 * k, 6 * k, hy, hy + 11 * k, -5 * k, 5 * k, kepala));
+    const mata = z.tipe === "ranged" ? "#ff5c5c" : "#1d2a20";
+    kotak.push(vxB(-3.4 * k, -1.4 * k, hy + 5 * k, hy + 7 * k, 5 * k, 5.5 * k, mata));
+    kotak.push(vxB(1.4 * k, 3.4 * k, hy + 5 * k, hy + 7 * k, 5 * k, 5.5 * k, mata));
+    kotak.push(vxB(-2.4 * k, 2.4 * k, hy + 2 * k, hy + 3 * k, 5 * k, 5.5 * k, "#3a2c22"));
+    // Ciri tipe
     if (z.tipe === "tank") {
-      g.fillStyle = "#5e6b4c";
-      g.fillRect(-z.r * 0.8, -z.r * 0.1, z.r * 0.34, z.r * 0.7);
-      g.fillRect(z.r * 0.46, -z.r * 0.1, z.r * 0.34, z.r * 0.7);
-      g.fillStyle = "rgba(255,255,255,0.14)";
-      g.fillRect(-z.r * 0.55, -z.r * 0.5, z.r * 1.1, 3);
+      kotak.push(vxB(-12 * k, -7 * k, 20 * k + bob, 25 * k + bob, -6 * k, 6 * k, "#5e6b4c"));
+      kotak.push(vxB(7 * k, 12 * k, 20 * k + bob, 25 * k + bob, -6 * k, 6 * k, "#5e6b4c"));
     }
     if (z.tipe === "explosive") {
-      g.fillStyle = "#3a2c18";
-      g.fillRect(z.r * 0.2, -z.r * 0.3, z.r * 0.7, z.r * 0.7);
-      g.fillStyle = z.fuse > 0 && Math.sin(t * 30) > 0 ? "#ffe08a" : "#ff6b4a";
-      g.fillRect(z.r * 0.7, -z.r * 0.55, 4, 4);
-      if (z.fuse > 0) {
-        g.strokeStyle = `rgba(255,107,74,${0.3 + 0.5 * Math.abs(Math.sin(t * 16))})`;
-        g.lineWidth = 2.5;
-        g.beginPath();
-        g.arc(0, 0, z.r + 7, 0, TAU);
-        g.stroke();
-      }
+      kotak.push(vxB(-4 * k, 4 * k, 11 * k + bob, 20 * k + bob, -9 * k, -5 * k, "#5b4a2c"));
+      kotak.push(vxB(-1.4 * k, 1.4 * k, 20 * k + bob, 22 * k + bob, -8 * k, -6 * k, "#d8ad3a"));
     }
     if (z.tipe === "ranged") {
-      g.fillStyle = "rgba(140,220,160,0.55)";
-      g.beginPath();
-      g.arc(0, z.r * 0.2, z.r * 0.34, 0, TAU);
-      g.fill();
+      kotak.push(vxB(-2.6 * k, 2.6 * k, hy + 1.2 * k, hy + 2.8 * k, 5 * k, 5.6 * k, "#8ce696"));
     }
     if (z.boss) {
-      g.fillStyle = "#ffcf5c";
-      for (let i = -1; i <= 1; i++) {
-        g.beginPath();
-        g.moveTo(i * 12 - 6, -z.r * 1.1);
-        g.lineTo(i * 12, -z.r * 1.45);
-        g.lineTo(i * 12 + 6, -z.r * 1.1);
-        g.closePath();
-        g.fill();
-      }
+      kotak.push(vxB(-6 * k, 6 * k, hy + 10.6 * k, hy + 12 * k, -5 * k, 5 * k, "#8c2f2f"));
+      for (let i = -1; i <= 1; i++) kotak.push(vxB(i * 4 * k - 1.2 * k, i * 4 * k + 1.2 * k, hy + 11 * k, hy + 15 * k, -1.4 * k, 1.4 * k, "#ffcf5c"));
+    }
+    return kotak;
+  }
+
+  function spritePlayerKey(ch) {
+    return "p:" + ch.hair + "|" + ch.face + "|" + ch.outfit + "|" + ch.color + "|" + ch.skin + "|" + ch.acc;
+  }
+
+  function gambarZombie(g, z, t) {
+    const k = z.r / 15;
+    const spr = voxSprite("z:" + z.tipe, (fr) => modelZombie(z, fr, k));
+    g.save();
+    g.fillStyle = "rgba(0,0,0,0.3)";
+    g.beginPath();
+    g.ellipse(z.x, z.y + z.r * 0.85, z.r * 0.92, z.r * 0.34, 0, 0, TAU);
+    g.fill();
+    g.restore();
+    const fase = z.moving ? Math.floor((z.bob % TAU) / (TAU / VOX_FRM)) % VOX_FRM : 0;
+    const hadap = z.moving && z.navA != null ? z.navA : z.arah;
+    const lunge = z.sentuhCd > 0.72 ? 2.5 : 0;
+    const fx = z.x + Math.cos(hadap) * lunge;
+    const fy = z.y + z.r * 0.85 + Math.sin(hadap) * lunge;
+    g.save();
+    if (z.flash > 0 && typeof g.filter === "string") g.filter = "brightness(2.1) saturate(0.45)";
+    voxGambarSprite(g, spr, fx, fy, 1.1, hadap, fase, 1);
+    g.restore();
+    if (z.tipe === "explosive" && z.fuse > 0) {
+      g.strokeStyle = `rgba(255,107,74,${0.3 + 0.5 * Math.abs(Math.sin(t * 16))})`;
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.arc(z.x, z.y, z.r + 7, 0, TAU);
+      g.stroke();
+    }
+    if (z.boss) {
       const w = z.r * 2.2;
       g.fillStyle = "rgba(0,0,0,0.55)";
-      g.fillRect(-w / 2, -z.r - 26, w, 6);
+      g.fillRect(z.x - w / 2, z.y - z.r - 26, w, 6);
       g.fillStyle = "#ff6b6b";
-      g.fillRect(-w / 2, -z.r - 26, w * Math.max(0, z.hp / z.maxHp), 6);
+      g.fillRect(z.x - w / 2, z.y - z.r - 26, w * Math.max(0, z.hp / z.maxHp), 6);
     }
-    g.restore();
   }
 
   function opsiHex(pool, id) {
@@ -2331,112 +2703,19 @@
   }
 
   function gambarKarakter(g, x, y, s, ch, arah, jalan, alpha) {
-    const warna = opsiHex(CHARS.color, ch.color);
-    const kulit = opsiHex(CHARS.skin, ch.skin);
-    const bob = Math.sin(jalan || 0) * 1.2;
+    const spr = voxSprite(spritePlayerKey(ch), (fr) => modelPlayer(ch, fr));
     g.save();
     g.translate(x, y);
     g.scale(s, s);
-    g.globalAlpha = alpha == null ? 1 : alpha;
-
     g.fillStyle = "rgba(0,0,0,0.32)";
     g.beginPath();
-    g.ellipse(0, 16, 14, 5.5, 0, 0, TAU);
+    g.ellipse(0, 16, 13.5, 4.6, 0, 0, TAU);
     g.fill();
-
-    const langkah = Math.sin(jalan || 0) * 2.4;
-    g.fillStyle = "#17261e";
-    g.fillRect(-8 + langkah * 0.5, 8, 6, 8);
-    g.fillRect(2 - langkah * 0.5, 8, 6, 8);
-
-    g.fillStyle = warna;
-    g.fillRect(-11, -6 + bob * 0.3, 22, 16);
-    if (ch.outfit === "lab") {
-      g.fillStyle = "#eef7f0";
-      g.fillRect(-7, -6 + bob * 0.3, 14, 16);
-      g.fillStyle = "rgba(0,0,0,0.08)";
-      g.fillRect(-1, -6 + bob * 0.3, 2, 16);
-    } else if (ch.outfit === "jaket") {
-      g.fillStyle = "rgba(0,0,0,0.22)";
-      g.fillRect(-11, -6 + bob * 0.3, 22, 4);
-      g.fillStyle = "rgba(255,255,255,0.18)";
-      g.fillRect(-2, -2 + bob * 0.3, 4, 12);
-    } else if (ch.outfit === "rompi") {
-      g.fillStyle = "rgba(0,0,0,0.3)";
-      g.fillRect(-11, -1 + bob * 0.3, 22, 7);
-    }
-
-    g.fillStyle = kulit;
-    g.fillRect(-14, -4 + bob * 0.3, 4, 10);
-    g.fillRect(10, -4 + bob * 0.3, 4, 10);
-    g.fillRect(-8, -20 + bob * 0.3, 16, 14);
-
-    if (ch.hair === "pendek") {
-      g.fillStyle = "#3a2a20";
-      g.fillRect(-9, -22 + bob * 0.3, 18, 5);
-      g.fillRect(-9, -18 + bob * 0.3, 3, 5);
-      g.fillRect(6, -18 + bob * 0.3, 3, 5);
-    } else if (ch.hair === "spiky") {
-      g.fillStyle = "#4a3226";
-      for (let i = 0; i < 4; i++) {
-        g.beginPath();
-        g.moveTo(-9 + i * 5, -20 + bob * 0.3);
-        g.lineTo(-6 + i * 5, -26 + bob * 0.3);
-        g.lineTo(-3 + i * 5, -20 + bob * 0.3);
-        g.closePath();
-        g.fill();
-      }
-    } else if (ch.hair === "jabrik") {
-      g.fillStyle = "#342821";
-      g.fillRect(-9, -22 + bob * 0.3, 18, 4);
-      g.fillRect(-10, -24 + bob * 0.3, 3, 4);
-      g.fillRect(-2, -26 + bob * 0.3, 3, 5);
-      g.fillRect(6, -24 + bob * 0.3, 3, 4);
-    }
-
-    const mx = Math.cos(arah || 0) * 1.6;
-    const my = Math.sin(arah || 0) * 1.2;
-    g.fillStyle = "#17211b";
-    if (ch.face === "mata-satu") {
-      g.fillRect(-2 + mx, -15 + bob * 0.3 + my, 4, 3);
-    } else {
-      g.fillRect(-5 + mx, -15 + bob * 0.3 + my, 2, 3);
-      g.fillRect(3 + mx, -15 + bob * 0.3 + my, 2, 3);
-    }
-    if (ch.face === "serius") {
-      g.fillStyle = "#17211b";
-      g.fillRect(-6 + mx, -18 + bob * 0.3, 4, 1);
-      g.fillRect(2 + mx, -18 + bob * 0.3, 4, 1);
-    } else if (ch.face === "senyum") {
-      g.fillStyle = "#8a5348";
-      g.fillRect(-3, -9 + bob * 0.3, 6, 1.5);
-    }
-
-    if (ch.acc === "topi") {
-      g.fillStyle = warna;
-      g.fillRect(-10, -25 + bob * 0.3, 20, 5);
-      g.fillStyle = "rgba(0,0,0,0.3)";
-      g.fillRect(-12, -21 + bob * 0.3, 24, 2);
-    } else if (ch.acc === "kacamata") {
-      g.fillStyle = "rgba(20,30,25,0.85)";
-      g.fillRect(-7 + mx, -16 + bob * 0.3 + my, 14, 3.5);
-      g.fillStyle = "rgba(255,255,255,0.35)";
-      g.fillRect(-6 + mx, -15.6 + bob * 0.3 + my, 3, 1);
-    } else if (ch.acc === "masker") {
-      g.fillStyle = "#dfeee5";
-      g.fillRect(-6, -11 + bob * 0.3, 12, 4);
-    }
-
-    g.save();
-    g.rotate(arah || 0);
-    g.fillStyle = "#25342c";
-    g.fillRect(11, -2.5, 10, 5);
-    g.fillStyle = "#93ab9e";
-    g.fillRect(18, -1.5, 4, 3);
     g.restore();
-
-    g.restore();
+    const fase = Math.floor((((jalan || 0) % TAU) + TAU) % TAU / (TAU / VOX_FRM)) % VOX_FRM;
+    voxGambarSprite(g, spr, x, y + 16 * s, s, arah, fase, alpha);
   }
+
 
   function gambarPlayer(g) {
     const p = run.player;
@@ -2460,7 +2739,18 @@
       g.stroke();
     }
     const blink = p.invuln > 0 ? 0.4 + 0.6 * Math.abs(Math.sin(t * 30)) : 1;
-    gambarKarakter(g, p.x, p.y, 1.06, run.char, p.arah, t * 9, blink);
+    gambarKarakter(g, p.x, p.y, 1.16, run.char, p.arah, p.moving ? t * 9 : 0, blink);
+
+    g.save();
+    g.translate(p.x, p.y - 14);
+    g.rotate(p.arah);
+    g.fillStyle = "#25342c";
+    g.fillRect(9, -2.4, 12, 4.8);
+    g.fillStyle = "#93ab9e";
+    g.fillRect(19, -1.4, 4, 2.8);
+    g.fillStyle = "#4d6559";
+    g.fillRect(10, 1.4, 4, 2);
+    g.restore();
 
     const blades = lvSkill("blades");
     if (blades) {
@@ -2482,8 +2772,8 @@
     if (orbs) {
       for (let i = 0; i < orbs; i++) {
         const a = -(p.arahSkill || 0) * 1.7 + (TAU / orbs) * i;
-        const ox = p.x + Math.cos(a) * 106;
-        const oy = p.y + Math.sin(a) * 106;
+        const ox = p.x + Math.cos(a) * 76;
+        const oy = p.y + Math.sin(a) * 76;
         g.fillStyle = "rgba(199,146,255,0.22)";
         g.beginPath(); g.arc(ox, oy, 10, 0, TAU); g.fill();
         g.fillStyle = "#c792ff";
@@ -3040,9 +3330,9 @@
     g.fillRect(0, 0, c.width, c.height);
     g.fillStyle = "rgba(79,213,138,0.10)";
     g.beginPath();
-    g.ellipse(128, 210, 74, 22, 0, 0, TAU);
+    g.ellipse(128, 220, 86, 25, 0, 0, TAU);
     g.fill();
-    gambarKarakter(g, 128, 150, 3.4, charEdit, 0.35, 0, 1);
+    gambarKarakter(g, 128, 152, 4.35, charEdit, Math.PI / 2 - 0.42, 0, 1);
   }
 
   function grupOpsi(label, key, pool) {
