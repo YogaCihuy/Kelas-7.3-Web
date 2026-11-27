@@ -546,7 +546,7 @@ service cloud.firestore {
         && d.name.size() <= 30
         && d.bestTime is number
         && d.bestTime >= 0
-        && d.bestTime <= 180
+        && d.bestTime <= 300
         && d.wins is number
         && d.wins >= 0
         && d.wins <= 1000000
@@ -619,10 +619,14 @@ service cloud.firestore {
     }
 
     function isValidHauntedPlayer(d) {
-      return d.keys().hasOnly(['absen','name','slot','alive','hp','doorHp','doorLv',
-                               'bedLv','turrets','status','joinedAt','updatedAt','version'])
-        && d.keys().hasAll(['absen','name','slot','alive','hp','doorHp','doorLv',
-                            'bedLv','turrets','status','joinedAt','updatedAt','version'])
+      return d.keys().hasOnly(['absen','name','slot','alive','hp','gold','energy',
+                               'doorTier','doorHp','doorLv','bedLv','graveLv','konsolLv',
+                               'tambang','bengkel','turrets','status','joinedAt',
+                               'updatedAt','version'])
+        && d.keys().hasAll(['absen','name','slot','alive','hp','gold','energy',
+                            'doorTier','doorHp','doorLv','bedLv','graveLv','konsolLv',
+                            'tambang','bengkel','turrets','status','joinedAt',
+                            'updatedAt','version'])
         && d.absen is number
         && d.absen >= 1
         && d.absen <= 64
@@ -636,18 +640,45 @@ service cloud.firestore {
         && d.hp is number
         && d.hp >= 0
         && d.hp <= 100
-        && d.doorHp is number
-        && d.doorHp >= 0
-        && d.doorHp <= (d.doorLv == 1 ? 160 : (d.doorLv == 2 ? 280 : 430))
+        && d.gold is number
+        && d.gold >= 0
+        && d.gold <= 99999
+        && d.energy is number
+        && d.energy >= 0
+        && d.energy <= 999
+        && d.doorTier is number
+        && d.doorTier >= 1
+        && d.doorTier <= 4
         && d.doorLv is number
         && d.doorLv >= 1
         && d.doorLv <= 3
+        && d.doorHp is number
+        && d.doorHp >= 0
+        && d.doorHp <= (
+          d.doorTier == 1
+            ? (d.doorLv == 1 ? 160 : d.doorLv == 2 ? 200 : 240)
+            : d.doorTier == 2
+              ? (d.doorLv == 1 ? 300 : d.doorLv == 2 ? 375 : 450)
+              : d.doorTier == 3
+                ? (d.doorLv == 1 ? 480 : d.doorLv == 2 ? 600 : 720)
+                : (d.doorLv == 1 ? 760 : d.doorLv == 2 ? 950 : 1140)
+        )
         && d.bedLv is number
         && d.bedLv >= 1
-        && d.bedLv <= 3
+        && d.bedLv <= 8
+        && d.graveLv is number
+        && d.graveLv >= 1
+        && d.graveLv <= 3
+        && d.konsolLv is number
+        && d.konsolLv >= 1
+        && d.konsolLv <= 3
+        && d.tambang is number
+        && d.tambang >= 0
+        && d.tambang <= 3
+        && d.bengkel is bool
         && d.turrets is string
-        && d.turrets.size() <= 48
-        && d.turrets.matches('^$|^[0-9]{1,2}:[0-9]{1,2}:[0-9](,[0-9]{1,2}:[0-9]{1,2}:[0-9]){0,3}$')
+        && d.turrets.size() <= 96
+        && d.turrets.matches('^$|^[0-9]{1,2}:[0-9]{1,2}:[1-4](,[0-9]{1,2}:[0-9]{1,2}:[1-4]){0,8}$')
         && d.status in ['siap','aman','tidur','diserang','gugur']
         && d.joinedAt is number
         && d.joinedAt > 0

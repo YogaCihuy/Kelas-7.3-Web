@@ -4,14 +4,15 @@
 
   const $ = (id) => document.getElementById(id);
   const TAU = Math.PI * 2;
-  const MW = 21;
-  const MH = 14;
+  const MW = 14;
+  const MH = 22;
   const T = 30;
   const WORLD_W = MW * T;
   const WORLD_H = MH * T;
   const KAPASITAS = 8;
-  const MALAM_DETIK = 180;
-  const JEDA_HANTU = 5;
+  const MALAM_DETIK = 300;
+  const PREP_DETIK = 30;
+  const JEDA_HANTU = 0;
   const COL_REKOR = "haunted";
   const COL_ROOM = "hauntedRooms";
   const VOX_ANG = 16;
@@ -20,6 +21,7 @@
   const voxCache = new Map();
   const REKOR_KEY = "kelas73-haunted-ringkas";
   const PREFS_KEY = "kelas73-haunted-prefs";
+  const TUTOR_KEY = "kelas73-haunted-tutor";
 
   const WALL = 1;
   const LOR = 2;
@@ -29,39 +31,68 @@
   const WARNA_SLOT = ["#4f8f68", "#6f9a52", "#4f8f98", "#a08a4a", "#7679a8", "#a26666", "#5f9a86", "#8a6f9e"];
   const NAMA_BOT = ["Bima", "Nadia", "Raka", "Sinta", "Dewa", "Laras", "Fajar", "Kirana"];
   const KEPRIBADIAN = ["rajin", "rajin", "normal", "normal", "normal", "kalem"];
+  const NAMA_HANTU = ["Bandage Man", "Big Head", "Red Girl", "Pink Auntie", "Speedy Drifter", "Kuntilanak"];
+  const DOOR_TIER = ["Kayu", "Besi", "Baja", "Vibranium"];
+  const DOOR_HP = [
+    [160, 200, 240],
+    [300, 375, 450],
+    [480, 600, 720],
+    [760, 950, 1140],
+  ];
+  const BED_INCOME = [0, 4, 8, 16, 32, 64, 128, 256, 512];
+  const BED_UP = [0, 30, 55, 90, 160, 280, 480, 800, 0];
+  const GRAVE_INCOME = [0, 1, 2, 4];
+  const GRAVE_UP = [0, 45, 90, 160];
+  const KONSOL_ENERGI = [0, 1, 2, 3];
+  const KONSOL_UP = [0, 50, 110, 200];
+  const TURRET_NAMA = ["", "Sapu", "Sekop", "Selang", "Bubble"];
+  const TURRET_DMG = [0, 9, 15, 23, 33];
+  const TURRET_CD = [0, 0.7, 0.65, 0.6, 0.55];
+  const TURRET_RANGE = [0, 3.4, 3.7, 4.0, 4.4];
 
-  /* ================= PETA ASRAMA ================= */
-  // 8 kamar: 4 di atas, 4 di bawah, koridor di tengah.
+  /* ================= PETA ASRAMA (REPLIKA VERTIKAL) ================= */
+  // Koridor vertikal di tengah (x=6,7), 4 kamar kiri + 4 kamar kanan.
+  // Tiap kamar 4x4 dengan kasur/kuburan/konsol di baris atas dan pintu ke koridor.
   const ROOM_DEFS = [];
   (function susunKamar() {
     for (let i = 0; i < 4; i++) {
-      const x0 = 1 + i * 5;
+      const y0 = 1 + i * 4;
       ROOM_DEFS.push({
         slot: i,
-        x0,
-        y0: 1,
-        sisi: "atas",
-        doorX: x0 + 1,
-        doorY: 5,
-        bedX: x0,
-        bedY: 2,
-        spawnX: x0 + 2.8,
-        spawnY: 3.4,
+        x0: 1,
+        y0,
+        sisi: "kiri",
+        doorX: 5,
+        doorY: y0 + 2,
+        corridorX: 6,
+        bedX: 1,
+        bedY: y0,
+        graveX: 2,
+        graveY: y0,
+        konsolX: 3,
+        konsolY: y0,
+        spawnX: 2.5,
+        spawnY: y0 + 2.9,
       });
     }
     for (let i = 0; i < 4; i++) {
-      const x0 = 1 + i * 5;
+      const y0 = 1 + i * 4;
       ROOM_DEFS.push({
         slot: 4 + i,
-        x0,
-        y0: 9,
-        sisi: "bawah",
-        doorX: x0 + 1,
-        doorY: 8,
-        bedX: x0,
-        bedY: 11,
-        spawnX: x0 + 2.8,
-        spawnY: 10.2,
+        x0: 9,
+        y0,
+        sisi: "kanan",
+        doorX: 8,
+        doorY: y0 + 2,
+        corridorX: 7,
+        bedX: 9,
+        bedY: y0,
+        graveX: 10,
+        graveY: y0,
+        konsolX: 11,
+        konsolY: y0,
+        spawnX: 10.5,
+        spawnY: y0 + 2.9,
       });
     }
   })();
@@ -69,9 +100,14 @@
   function buatGrid() {
     const g = [];
     for (let y = 0; y < MH; y++) g.push(new Array(MW).fill(WALL));
-    for (let x = 0; x < MW; x++) {
-      g[6][x] = LOR;
-      g[7][x] = LOR;
+    // Koridor vertikal
+    for (let y = 1; y <= MH - 2; y++) {
+      g[y][6] = LOR;
+      g[y][7] = LOR;
+    }
+    // Aula bawah tempat hantu masuk/ mundur
+    for (let y = 17; y <= MH - 2; y++) {
+      for (let x = 4; x <= 9; x++) g[y][x] = LOR;
     }
     for (const r of ROOM_DEFS) {
       for (let y = r.y0; y < r.y0 + 4; y++) {
@@ -100,7 +136,37 @@
   }
 
   function tileKasur(r, x, y) {
-    return y === r.bedY && (x === r.bedX || x === r.bedX + 1);
+    return x === r.bedX && y === r.bedY;
+  }
+
+  function tileFurnitur(r, x, y) {
+    return (
+      (x === r.bedX && y === r.bedY) ||
+      (x === r.graveX && y === r.graveY) ||
+      (x === r.konsolX && y === r.konsolY)
+    );
+  }
+
+  function tileTambang(r) {
+    return [
+      { x: r.x0 + 3, y: r.y0 },
+      { x: r.x0 + 3, y: r.y0 + 3 },
+      { x: r.x0, y: r.y0 + 3 },
+    ];
+  }
+
+  function tileBengkel(r) {
+    return { x: r.x0 + 1, y: r.y0 + 3 };
+  }
+
+  function tileBolehTurret(room, x, y) {
+    if (tileFurnitur(room.def, x, y)) return false;
+    const b = tileBengkel(room.def);
+    if (b.x === x && b.y === y) return false;
+    for (const p of tileTambang(room.def)) {
+      if (p.x === x && p.y === y) return false;
+    }
+    return true;
   }
 
   function tilePintu(x, y) {
@@ -318,6 +384,13 @@
       (snap) => {
         if (!snap.exists) {
           if (mp.aktif) {
+            const sisaAbsen = absenAkun();
+            if (sisaAbsen) {
+              try {
+                db.collection(COL_ROOM).doc(kode).collection("players")
+                  .doc(String(sisaAbsen)).delete().catch(() => {});
+              } catch (e) { /* ignore */ }
+            }
             hentikanMabar();
             if (aktif) {
               layar = "menu";
@@ -393,9 +466,16 @@
         slot: 0,
         alive: true,
         hp: 100,
+        gold: 30,
+        energy: 0,
+        doorTier: 1,
         doorHp: 160,
         doorLv: 1,
         bedLv: 1,
+        graveLv: 1,
+        konsolLv: 1,
+        tambang: 0,
+        bengkel: false,
         turrets: "",
         status: "siap",
         joinedAt: now,
@@ -452,9 +532,16 @@
         slot,
         alive: true,
         hp: 100,
+        gold: 30,
+        energy: 0,
+        doorTier: 1,
         doorHp: 160,
         doorLv: 1,
         bedLv: 1,
+        graveLv: 1,
+        konsolLv: 1,
+        tambang: 0,
+        bengkel: false,
         turrets: "",
         status: "siap",
         joinedAt: now,
@@ -506,7 +593,7 @@
         {
           status: "playing",
           seed,
-          startAt: Date.now() + 4500,
+          startAt: Date.now(),
           updatedAt: Date.now(),
         },
         { merge: true }
@@ -539,19 +626,26 @@
     const r = run.rooms[run.slotLokal];
     if (!r) return;
     const turretStr = r.turrets
-      .slice(0, 4)
+      .slice(0, 9)
       .map((t) => `${t.tx}:${t.ty}:${t.lv}`)
       .join(",")
-      .slice(0, 48);
+      .slice(0, 96);
     const status = !r.alive ? "gugur" : r.sleeping ? "tidur" : run.ghost && run.ghost.slot === r.slot && run.ghost.state !== "hilang" ? "diserang" : "aman";
     try {
       db.collection(COL_ROOM).doc(mp.kode).collection("players").doc(String(a)).set(
         {
           alive: !!r.alive,
           hp: Math.round(clamp(r.hp, 0, 100)),
+          gold: Math.round(clamp(r.gold, 0, 99999)),
+          energy: Math.round(clamp(r.energy, 0, 999)),
+          doorTier: clamp(r.door.tier + 1, 1, 4),
           doorHp: Math.round(clamp(r.door.hp, 0, r.door.max || 160)),
           doorLv: clamp(r.door.lv, 1, 3),
-          bedLv: clamp(r.bedLv, 1, 3),
+          bedLv: clamp(r.bedLv, 1, 8),
+          graveLv: clamp(r.graveLv, 1, 3),
+          konsolLv: clamp(r.konsolLv, 1, 3),
+          tambang: clamp(r.tambang.length, 0, 3),
+          bengkel: !!r.bengkel,
           turrets: turretStr,
           status,
           updatedAt: Date.now(),
@@ -590,21 +684,29 @@
       }
       if (r.alive) {
         if (Number.isFinite(Number(p.hp)) && Number(p.hp) < 100) r.hp = clamp(Number(p.hp), 1, 100);
-        if (Number.isFinite(Number(p.doorHp))) r.door.hp = clamp(Number(p.doorHp), 0, 430);
-        const lv = Number(p.doorLv);
-        if (lv >= 1 && lv <= 3) {
-          r.door.lv = lv;
-          r.door.max = r.door.ada ? batasPintu(lv) : r.door.max;
-        }
+        if (Number.isFinite(Number(p.gold))) r.gold = clamp(Number(p.gold), 0, 99999);
+        if (Number.isFinite(Number(p.energy))) r.energy = clamp(Number(p.energy), 0, 999);
+        const tier = clamp(Math.round(Number(p.doorTier) || 1), 1, 4) - 1;
+        const lv = clamp(Math.round(Number(p.doorLv) || 1), 1, 3);
+        r.door.tier = tier;
+        r.door.lv = lv;
+        r.door.max = DOOR_HP[tier][lv - 1];
         if (Number(p.doorHp) > 0) {
           r.door.ada = true;
-          r.door.hp = clamp(Number(p.doorHp), 1, r.door.max || 160);
+          r.door.hp = clamp(Number(p.doorHp), 1, r.door.max);
         } else if (Number(p.doorHp) <= 0) {
           r.door.ada = false;
           r.door.hp = 0;
         }
-        const bl = Number(p.bedLv);
-        if (bl >= 1 && bl <= 3) r.bedLv = bl;
+        r.bedLv = clamp(Math.round(Number(p.bedLv) || 1), 1, 8);
+        r.graveLv = clamp(Math.round(Number(p.graveLv) || 1), 1, 3);
+        r.konsolLv = clamp(Math.round(Number(p.konsolLv) || 1), 1, 3);
+        r.bengkel = !!p.bengkel;
+        const nTambang = clamp(Math.round(Number(p.tambang) || 0), 0, 3);
+        if (r.tambang.length !== nTambang) {
+          r.tambang = [];
+          for (let i = 0; i < nTambang; i++) r.tambang.push(i);
+        }
         r.sleeping = p.status === "tidur";
         if (typeof p.turrets === "string") {
           const arr = [];
@@ -613,8 +715,8 @@
             if (bag.length === 3 && bag.every((n) => Number.isFinite(n))) {
               const tx = clamp(Math.round(bag[0]), 0, MW - 1);
               const ty = clamp(Math.round(bag[1]), 0, MH - 1);
-              const lv2 = clamp(Math.round(bag[2]), 1, 3);
-              if (arr.length < 4) arr.push({ tx, ty, lv: lv2, cd: 0, arah: 0 });
+              const lv2 = clamp(Math.round(bag[2]), 1, 4);
+              if (arr.length < 9) arr.push({ tx, ty, lv: lv2, cd: 0, arah: 0 });
             }
           });
           r.turrets = arr;
@@ -714,22 +816,23 @@
 
   /* ================= ATURAN MAIN ================= */
   const HARGA = {
-    turret: 45,
-    turretUp: [0, 60, 95],
-    pintuBaru: 70,
-    pintuUp: [0, 85, 140],
-    perbaiki: 10,
-    kasurUp: [0, 65, 120],
+    turret: 25,
+    turretUp: [0, 40, 70, 110],
+    perbaiki: 15,
+    tambang: 60,
+    bengkel: 80,
   };
-  const BATAS_PINTU = [0, 160, 280, 430];
-  const LAJU_KASUR = [0, 3, 5, 8];
-  const RANGE_TURRET = [0, 4.2, 4.7, 5.2];
-  const RANGE_SENTER = 3.6;
-  const MAKS_TURRET = 4;
-  const CEPAT_PEMAIN = 3.2;
+  const RANGE_SENTER = 4.6;
+  const MAKS_TURRET = 9;
+  const MAKS_TAMBANG = 3;
+  const CEPAT_PEMAIN = 3.3;
 
-  function batasPintu(lv) {
-    return BATAS_PINTU[clamp(Math.round(lv) || 1, 1, 3)];
+  function tutorSudahSelesai() {
+    try { return localStorage.getItem(TUTOR_KEY) === "1"; } catch (e) { return false; }
+  }
+
+  function simpanTutorSelesai() {
+    try { localStorage.setItem(TUTOR_KEY, "1"); } catch (e) { /* ignore */ }
   }
 
   function buatKamar(slot, nama, bot, remote) {
@@ -743,16 +846,21 @@
       warna: WARNA_SLOT[slot],
       alive: true,
       hp: 100,
-      gold: 70,
+      gold: 30,
+      energy: 0,
       goldTotal: 0,
       sleeping: false,
-      door: { ada: true, lv: 1, hp: BATAS_PINTU[1], max: BATAS_PINTU[1], goyang: 0 },
+      door: { ada: true, tier: 0, lv: 1, hp: DOOR_HP[0][0], max: DOOR_HP[0][0], goyang: 0 },
       bedLv: 1,
+      graveLv: 1,
+      konsolLv: 1,
+      tambang: [],
+      bengkel: false,
       turrets: [],
       player: {
         x: def.spawnX,
         y: def.spawnY,
-        arah: def.sisi === "atas" ? Math.PI / 2 : -Math.PI / 2,
+        arah: def.sisi === "kiri" ? 0 : Math.PI,
         moving: false,
         bob: 0,
         hurt: 0,
@@ -763,6 +871,7 @@
       remoteAt: 0,
       statusTeks: "",
       hitung: 0,
+      energiTick: 0,
     };
   }
 
@@ -797,21 +906,35 @@
     }
     const now = Date.now();
     const t0 = mode === "mabar" && mulaiAt ? (now - mulaiAt) / 1000 : 0;
+    const tutor = {
+      langkah: 0,
+      selesai: tutorSudahSelesai(),
+      turret: false,
+      tidur: false,
+      kasur: false,
+      pintu: false,
+      tambang: false,
+    };
+    const namaHantu = NAMA_HANTU[Math.floor(rng() * NAMA_HANTU.length)] || NAMA_HANTU[0];
     return {
       mode,
       seed: seed || 1,
       rng,
       _absen: absenAkun(),
-      t: Math.max(-9, t0),
+      t: clamp(t0 - PREP_DETIK, -PREP_DETIK, MALAM_DETIK),
       mulaiEpoch: mulaiAt || now,
       rooms,
       slotLokal: lokal,
       ghost: {
-        x: 0.6,
-        y: 6.5,
-        arah: 0,
+        nama: namaHantu,
+        level: 1,
+        hp: 650,
+        maxHp: 650,
+        x: 6.5,
+        y: 1.6,
+        arah: Math.PI / 2,
         state: "tunggu",
-        timer: JEDA_HANTU,
+        timer: 0,
         visible: false,
         slot: -1,
         slotTerakhir: -1,
@@ -825,18 +948,30 @@
         pukulT: 0,
         kejarT: 0,
         pijak: 0,
+        buffT: 0,
+        buffJenis: "",
+        skillT: 20,
+        kaburMaxT: 0,
+        kaburLagi: 0,
       },
       fx: [],
       over: false,
       menang: false,
+      tutor,
       goldTotal: 0,
       doorRusak: 0,
       stunHantu: 0,
+      hantuKalah: 0,
       hpKena: 0,
       mulaiBunyi: false,
       syncAt: 0,
       hasil: null,
     };
+  }
+
+  function gulirKePapan() {
+    const app = $("hd-app");
+    if (app && app.scrollIntoView) app.scrollIntoView({ block: "start", behavior: "smooth" });
   }
 
   function mulaiSolo() {
@@ -845,8 +980,9 @@
     run = buatRun("solo", (Math.random() * 1e9) | 0, 0);
     layar = "play";
     tampilLayar();
+    gulirKePapan();
     lastT = 0;
-    toast("Dream Hunter datang dalam 5 detik. Siapkan kamar!");
+    toast("Persiapan 30 detik. Bangun turret, naikkan kasur, tidur untuk menabung!");
     bunyi("klik");
   }
 
@@ -855,10 +991,11 @@
     run = buatRun("mabar", mp.seed || 1, mp.mulaiAt);
     layar = "play";
     tampilLayar();
+    gulirKePapan();
     terapkanPemainRemote();
     lastT = 0;
-    const sisa = Math.max(0, Math.ceil((mp.mulaiAt - Date.now()) / 1000));
-    toast(sisa > 0 ? `Mabar dimulai dalam ${sisa} detik!` : "Mabar dimulai!");
+    toast("Mabar dimulai! Persiapan 30 detik sebelum Dream Hunter datang.");
+    kilat("MABAR DIMULAI", "green");
     if (mp.syncTimer) clearInterval(mp.syncTimer);
     mp.syncTimer = setInterval(kirimStatusMabar, 1000);
     kirimStatusMabar();
@@ -867,24 +1004,28 @@
   /* ================= GERAK & KAMAR ================= */
   function kenaKasur(room, x, y) {
     const d = room.def;
-    const bx0 = d.bedX + 0.1;
-    const bx1 = d.bedX + 1.9;
-    const by0 = d.bedY + 0.16;
-    const by1 = d.bedY + 0.88;
-    const r = 0.2;
-    return x > bx0 - r && x < bx1 + r && y > by0 - r && y < by1 + r;
+    const r = 0.24;
+    const tiles = [
+      [d.bedX, d.bedY],
+      [d.graveX, d.graveY],
+      [d.konsolX, d.konsolY],
+    ];
+    for (const [tx, ty] of tiles) {
+      if (x > tx + 0.06 - r && x < tx + 0.94 + r && y > ty + 0.06 - r && y < ty + 0.94 + r) return true;
+    }
+    return false;
   }
 
   function gerakKamar(room, nx, ny) {
     const d = room.def;
     const p = room.player;
-    const minX = d.x0 + 0.3;
-    const maxX = d.x0 + 3.7;
-    const minY = d.y0 + 0.3;
-    const maxY = d.y0 + 3.7;
-    let cx = clamp(nx, minX, maxX);
+    const minX = d.x0 + 0.28;
+    const maxX = d.x0 + 3.72;
+    const minY = d.y0 + 0.28;
+    const maxY = d.y0 + 3.72;
+    const cx = clamp(nx, minX, maxX);
     if (!kenaKasur(room, cx, p.y)) p.x = cx;
-    let cy = clamp(ny, minY, maxY);
+    const cy = clamp(ny, minY, maxY);
     if (!kenaKasur(room, p.x, cy)) p.y = cy;
   }
 
@@ -955,7 +1096,7 @@
     }
     if (t === ROOM) {
       const slot = kamarDariTile(x, y);
-      if (slot >= 0 && tileKasur(ROOM_DEFS[slot], x, y)) return false;
+      if (slot >= 0 && tileFurnitur(ROOM_DEFS[slot], x, y)) return false;
     }
     return true;
   }
@@ -963,15 +1104,42 @@
   /* ================= EKONOMI & AKSI KAMAR ================= */
   function tambahUang(room, n) {
     if (!room || !room.alive) return;
-    room.gold = clamp(room.gold + n, 0, 999);
+    room.gold = clamp(room.gold + n, 0, 99999);
     room.goldTotal += n;
     if (run && room.slot === run.slotLokal) run.goldTotal += n;
+  }
+
+  function tambahEnergi(room, n) {
+    room.energy = clamp(room.energy + n, 0, 999);
   }
 
   function belanja(room, n) {
     if (room.gold < n) return false;
     room.gold -= n;
     return true;
+  }
+
+  function tandaiTutor(room, kunci) {
+    if (!run || !run.tutor || run.tutor.selesai) return;
+    if (room.slot !== run.slotLokal) return;
+    if (run.tutor[kunci]) return;
+    run.tutor[kunci] = true;
+    const urut = ["turret", "tidur", "kasur", "pintu", "tambang"];
+    while (run.tutor.langkah < urut.length && run.tutor[urut[run.tutor.langkah]]) run.tutor.langkah += 1;
+    if (run.tutor.langkah >= urut.length) {
+      run.tutor.selesai = true;
+      simpanTutorSelesai();
+      toast("Tutorial selesai! Kamar siap dipertahankan sampai pagi.", "good");
+    }
+  }
+
+  function infoPintu(room) {
+    const d = room.door;
+    if (!d.ada) return { jenis: "rusak", biaya: 0 };
+    if (d.hp < d.max - 0.5) return { jenis: "perbaiki", biaya: HARGA.perbaiki };
+    if (d.lv < 3) return { jenis: "naik", biaya: 35 * (d.tier + 1) * d.lv };
+    if (d.tier < 3) return { jenis: "tier", biaya: 180 * (d.tier + 1) };
+    return { jenis: "max", biaya: 0 };
   }
 
   function bangunTurret(room, tx, ty) {
@@ -981,8 +1149,8 @@
       toast("Turret cuma bisa di kamarmu sendiri.", "bad");
       return false;
     }
-    if (tileKasur(room.def, tx, ty)) {
-      toast("Kasur tidak bisa dipasangi turret.");
+    if (!tileBolehTurret(room, tx, ty)) {
+      toast("Kasur, kuburan, konsol, tambang, dan bengkel tidak bisa dipasangi turret.");
       return false;
     }
     const ada = room.turrets.find((t) => t.tx === tx && t.ty === ty);
@@ -998,12 +1166,13 @@
     belanja(room, HARGA.turret);
     room.turrets.push({ tx, ty, lv: 1, cd: 0, arah: Math.PI });
     bunyi("bangun");
-    toast("Sapu turret dipasang! Dia menembak otomatis.", "good");
+    tandaiTutor(room, "turret");
+    toast("Turret terpasang! Dia menembak Dream Hunter otomatis.", "good");
     return true;
   }
 
   function upTurret(room, turret) {
-    if (turret.lv >= 3) {
+    if (turret.lv >= 4) {
       toast("Turret ini sudah level maksimal.");
       return false;
     }
@@ -1015,51 +1184,49 @@
     belanja(room, biaya);
     turret.lv += 1;
     bunyi("bangun");
-    toast(`Turret naik ke level ${turret.lv}!`, "good");
+    toast(`Turret jadi ${TURRET_NAMA[turret.lv]} level ${turret.lv}!`, "good");
     return true;
   }
 
   function aksiPintu(room) {
     if (!room || !room.alive) return;
-    if (!room.door.ada) {
-      if (room.gold < HARGA.pintuBaru) {
-        toast(`Bangun pintu baru butuh 💰${HARGA.pintuBaru}.`, "bad");
-        return;
-      }
-      belanja(room, HARGA.pintuBaru);
-      room.door.ada = true;
-      room.door.lv = 1;
-      room.door.max = BATAS_PINTU[1];
-      room.door.hp = BATAS_PINTU[1];
+    const d = room.door;
+    if (!d.ada) {
+      toast("Pintu sudah hancur total dan tidak bisa dibangun ulang. Andalkan turret!", "bad");
+      return;
+    }
+    const info = infoPintu(room);
+    if (info.jenis === "max") {
+      toast("Pintu sudah level maksimal (Vibranium Lv.3).");
+      return;
+    }
+    if (room.gold < info.biaya) {
+      toast(`Butuh 💰${info.biaya} untuk pintu.`, "bad");
+      return;
+    }
+    if (info.jenis === "perbaiki") {
+      belanja(room, info.biaya);
+      d.hp = Math.min(d.max, d.hp + d.max * 0.4);
       bunyi("pintu");
-      toast("Pintu baru terpasang. Kunci lagi!", "good");
+      toast(`Pintu diperbaiki +${Math.round(d.max * 0.4)} HP.`, "good");
       return;
     }
-    if (room.door.hp < room.door.max) {
-      if (room.gold < HARGA.perbaiki) {
-        toast(`Perbaiki pintu butuh 💰${HARGA.perbaiki}.`, "bad");
-        return;
-      }
-      belanja(room, HARGA.perbaiki);
-      room.door.hp = Math.min(room.door.max, room.door.hp + 45);
-      bunyi("pintu");
-      return;
+    belanja(room, info.biaya);
+    if (info.jenis === "naik") {
+      d.lv += 1;
+      d.max = DOOR_HP[d.tier][d.lv - 1];
+      d.hp = d.max;
+      toast(`Pintu ${DOOR_TIER[d.tier]} Lv.${d.lv} terpasang!`, "good");
+    } else {
+      d.tier += 1;
+      d.lv = 1;
+      d.max = DOOR_HP[d.tier][0];
+      d.hp = d.max;
+      toast(`Pintu naik tingkat: ${DOOR_TIER[d.tier]}!`, "good");
+      kilat("PINTU " + DOOR_TIER[d.tier].toUpperCase(), "green");
     }
-    if (room.door.lv >= 3) {
-      toast("Pintu sudah level 3 (maksimal).");
-      return;
-    }
-    const biaya = HARGA.pintuUp[room.door.lv];
-    if (room.gold < biaya) {
-      toast(`Upgrade pintu butuh 💰${biaya}.`, "bad");
-      return;
-    }
-    belanja(room, biaya);
-    room.door.lv += 1;
-    room.door.max = BATAS_PINTU[room.door.lv];
-    room.door.hp = room.door.max;
     bunyi("pintu");
-    toast(`Pintu jadi level ${room.door.lv}!`, "good");
+    tandaiTutor(room, "pintu");
   }
 
   function aksiKasur(room) {
@@ -1071,26 +1238,27 @@
       return;
     }
     const d = room.def;
-    const bx = d.bedX + 1;
-    const by = d.bedY + 0.5;
+    const bx = d.bedX + 0.5;
+    const by = d.bedY + 0.7;
     const jarak = Math.hypot(room.player.x - bx, room.player.y - by);
-    if (jarak > 2.2) {
+    if (jarak > 2.1) {
       toast("Dekati kasur dulu buat tidur.");
       return;
     }
     room.sleeping = true;
     room.player.moving = false;
     bunyi("klik");
-    toast(`Tidur: +${LAJU_KASUR[room.bedLv]} uang/detik. Bangun kalau hantu datang!`);
+    tandaiTutor(room, "tidur");
+    toast(`Tidur: +${BED_INCOME[room.bedLv]} uang/detik. Bangun kalau hantu datang!`);
   }
 
   function aksiKasurUp(room) {
     if (!room || !room.alive) return;
-    if (room.bedLv >= 3) {
-      toast("Kasur sudah level 3 (maksimal).");
+    if (room.bedLv >= 8) {
+      toast("Kasur sudah level maksimal (Gadis Kasur Lv.8).");
       return;
     }
-    const biaya = HARGA.kasurUp[room.bedLv];
+    const biaya = BED_UP[room.bedLv];
     if (room.gold < biaya) {
       toast(`Upgrade kasur butuh 💰${biaya}.`, "bad");
       return;
@@ -1098,7 +1266,75 @@
     belanja(room, biaya);
     room.bedLv += 1;
     bunyi("bangun");
-    toast(`Kasur level ${room.bedLv}: +${LAJU_KASUR[room.bedLv]} uang/detik.`, "good");
+    tandaiTutor(room, "kasur");
+    toast(`Kasur level ${room.bedLv}: +${BED_INCOME[room.bedLv]} uang/detik saat tidur.`, "good");
+  }
+
+  function aksiKuburan(room) {
+    if (!room || !room.alive) return;
+    if (room.graveLv >= 3) {
+      toast("Kuburan sudah level maksimal.");
+      return;
+    }
+    const biaya = GRAVE_UP[room.graveLv];
+    if (room.gold < biaya) {
+      toast(`Upgrade kuburan butuh 💰${biaya}.`, "bad");
+      return;
+    }
+    belanja(room, biaya);
+    room.graveLv += 1;
+    bunyi("bangun");
+    toast(`Kuburan level ${room.graveLv}: +${GRAVE_INCOME[room.graveLv]} uang/detik.`, "good");
+  }
+
+  function aksiKonsol(room) {
+    if (!room || !room.alive) return;
+    if (room.konsolLv >= 3) {
+      toast("Konsol sudah level maksimal.");
+      return;
+    }
+    const biaya = KONSOL_UP[room.konsolLv];
+    if (room.gold < biaya) {
+      toast(`Upgrade konsol butuh 💰${biaya}.`, "bad");
+      return;
+    }
+    belanja(room, biaya);
+    room.konsolLv += 1;
+    bunyi("bangun");
+    toast(`Konsol level ${room.konsolLv}: +${KONSOL_ENERGI[room.konsolLv]} energi / 2 detik.`, "good");
+  }
+
+  function aksiTambang(room) {
+    if (!room || !room.alive) return;
+    if (room.tambang.length >= MAKS_TAMBANG) {
+      toast("Tambang sudah maksimal (3).");
+      return;
+    }
+    if (room.gold < HARGA.tambang) {
+      toast(`Bangun tambang butuh 💰${HARGA.tambang}.`, "bad");
+      return;
+    }
+    belanja(room, HARGA.tambang);
+    room.tambang.push(room.tambang.length);
+    bunyi("bangun");
+    tandaiTutor(room, "tambang");
+    toast("Tambang emas dibangun: mengubah energi jadi uang.", "good");
+  }
+
+  function aksiBengkel(room) {
+    if (!room || !room.alive) return;
+    if (room.bengkel) {
+      toast("Bengkel sudah ada.");
+      return;
+    }
+    if (room.gold < HARGA.bengkel) {
+      toast(`Bangun bengkel butuh 💰${HARGA.bengkel}.`, "bad");
+      return;
+    }
+    belanja(room, HARGA.bengkel);
+    room.bengkel = true;
+    bunyi("bangun");
+    toast("Bengkel berdiri: pintu diperbaiki otomatis 2,5%/detik.", "good");
   }
 
   function aksiSenter(room) {
@@ -1128,9 +1364,25 @@
     }
     room.flashCd = 2.2;
     run.fx.push({ jenis: "sinar", x1: room.player.x, y1: room.player.y - 0.4, x2: g.x, y2: g.y - 0.9, life: 0.22, max: 0.22 });
-    tambahStagger(room.slot, 26);
+    tambahStagger(room.slot, 30);
+    lukaiHantu(12);
     bunyi("senter");
     getar(18);
+  }
+
+  function lukaiHantu(dmg) {
+    if (!run) return;
+    const g = run.ghost;
+    if (!g.visible || g.state === "tunggu" || g.state === "hilang") return;
+    g.hp = Math.max(0, g.hp - dmg);
+    g.staggerIdle = 0;
+    if (g.hp <= 0) {
+      g.visible = false;
+      run.hantuKalah += 1;
+      run.fx.push({ jenis: "teks", x: g.x, y: g.y - 1.4, teks: "DREAM HUNTER KALAH", life: 2, max: 2, warna: "#9cf0bd" });
+      bunyi("menang");
+      akhiriMatch(true, "hantu");
+    }
   }
 
   function tambahStagger(slotSumber, n) {
@@ -1161,11 +1413,14 @@
 
   function lukaiPemain(room, dmg) {
     if (!room || !room.alive) return;
+    const tidur = room.sleeping;
     room.hp = clamp(room.hp - dmg, 0, 100);
+    room.sleeping = false;
     room.player.hurt = 0.35;
     room.hitung = (room.hitung || 0) + 1;
     if (room.slot === run.slotLokal) {
       run.hpKena += 1;
+      if (tidur) toast("Kamu terbangun! Hantu menyerang.", "bad");
       const hurt = $("hd-hurt");
       if (hurt) {
         hurt.classList.remove("is-show");
@@ -1181,7 +1436,7 @@
       room.sleeping = false;
       run.fx.push({ jenis: "teks", x: room.player.x, y: room.player.y - 2, teks: "GUGUR", life: 1.4, max: 1.4, warna: "#ff9a9a" });
       if (room.slot === run.slotLokal) {
-        akhiriMatch(false);
+        akhiriMatch(false, "gugur");
       } else if (!room.remote) {
         toast(`${room.nama} gugur di kamarnya.`, "bad");
       }
@@ -1189,21 +1444,31 @@
   }
 
   function perbaruiKamarEkonomi(room, dt) {
-    if (!room.alive) return;
+    if (!room.alive || room.remote) return;
     if (room.flashCd > 0) room.flashCd = Math.max(0, room.flashCd - dt);
     if (room.door.goyang > 0) room.door.goyang = Math.max(0, room.door.goyang - dt);
     if (room.player.hurt > 0) room.player.hurt = Math.max(0, room.player.hurt - dt);
     if (room.sleeping) {
-      const lokal = room.slot === run.slotLokal;
       if (hantuDalamKamar(room)) {
         room.sleeping = false;
-        if (lokal) {
+        if (room.slot === run.slotLokal) {
           toast("Hantu masuk! Kamu terbangun.", "bad");
           getar(40);
         }
       } else {
-        tambahUang(room, LAJU_KASUR[room.bedLv] * dt);
+        tambahUang(room, BED_INCOME[room.bedLv] * dt);
       }
+    }
+    tambahUang(room, GRAVE_INCOME[room.graveLv] * dt);
+    if (KONSOL_ENERGI[room.konsolLv] > 0) tambahEnergi(room, KONSOL_ENERGI[room.konsolLv] * 0.5 * dt);
+    for (let i = 0; i < room.tambang.length; i++) {
+      if (room.energy >= 3 * dt) {
+        room.energy -= 3 * dt;
+        tambahUang(room, 7 * dt);
+      }
+    }
+    if (room.bengkel && room.door.ada) {
+      room.door.hp = Math.min(room.door.max, room.door.hp + room.door.max * 0.025 * dt);
     }
   }
 
@@ -1237,7 +1502,7 @@
     let jarak = Infinity;
     for (let y = d.y0; y < d.y0 + 4; y++) {
       for (let x = d.x0; x < d.x0 + 4; x++) {
-        if (tileKasur(room.def, x, y)) continue;
+        if (!tileBolehTurret(room, x, y)) continue;
         if (room.turrets.some((t) => t.tx === x && t.ty === y)) continue;
         const j = Math.hypot(x + 0.5 - room.player.x, y + 0.5 - room.player.y);
         if (j < jarak) { jarak = j; terbaik = { x, y }; }
@@ -1256,7 +1521,7 @@
   }
 
   function botUpgradeTurret(room) {
-    const kandidat = room.turrets.filter((t) => t.lv < 3).sort((a, b) => a.lv - b.lv);
+    const kandidat = room.turrets.filter((t) => t.lv < 4).sort((a, b) => a.lv - b.lv);
     if (!kandidat.length) return false;
     const t = kandidat[0];
     const biaya = HARGA.turretUp[t.lv];
@@ -1267,42 +1532,70 @@
   }
 
   function botPerbaiki(room) {
-    if (!room.door.ada) {
-      if (room.gold >= HARGA.pintuBaru) {
-        belanja(room, HARGA.pintuBaru);
-        room.door.ada = true;
-        room.door.lv = 1;
-        room.door.max = BATAS_PINTU[1];
-        room.door.hp = BATAS_PINTU[1];
-        return true;
-      }
-      return false;
-    }
+    if (!room.door.ada) return false;
     if (room.door.hp < room.door.max && room.gold >= HARGA.perbaiki) {
       belanja(room, HARGA.perbaiki);
-      room.door.hp = Math.min(room.door.max, room.door.hp + 45);
+      room.door.hp = Math.min(room.door.max, room.door.hp + room.door.max * 0.4);
       return true;
     }
     return false;
   }
 
   function botUpgradePintu(room) {
-    if (!room.door.ada || room.door.lv >= 3) return false;
-    const biaya = HARGA.pintuUp[room.door.lv];
-    if (room.gold < biaya) return false;
-    belanja(room, biaya);
-    room.door.lv += 1;
-    room.door.max = BATAS_PINTU[room.door.lv];
-    room.door.hp = room.door.max;
+    const info = infoPintu(room);
+    if (info.jenis !== "naik" && info.jenis !== "tier") return false;
+    if (room.gold < info.biaya) return false;
+    belanja(room, info.biaya);
+    const d = room.door;
+    if (info.jenis === "naik") {
+      d.lv += 1;
+    } else {
+      d.tier += 1;
+      d.lv = 1;
+    }
+    d.max = DOOR_HP[d.tier][d.lv - 1];
+    d.hp = d.max;
     return true;
   }
 
   function botUpgradeKasur(room) {
-    if (room.bedLv >= 3) return false;
-    const biaya = HARGA.kasurUp[room.bedLv];
+    if (room.bedLv >= 8) return false;
+    const biaya = BED_UP[room.bedLv];
     if (room.gold < biaya) return false;
     belanja(room, biaya);
     room.bedLv += 1;
+    return true;
+  }
+
+  function botUpgradeGrave(room) {
+    if (room.graveLv >= 3) return false;
+    const biaya = GRAVE_UP[room.graveLv];
+    if (room.gold < biaya) return false;
+    belanja(room, biaya);
+    room.graveLv += 1;
+    return true;
+  }
+
+  function botUpgradeKonsol(room) {
+    if (room.konsolLv >= 3) return false;
+    const biaya = KONSOL_UP[room.konsolLv];
+    if (room.gold < biaya) return false;
+    belanja(room, biaya);
+    room.konsolLv += 1;
+    return true;
+  }
+
+  function botBeliTambang(room) {
+    if (room.tambang.length >= MAKS_TAMBANG || room.gold < HARGA.tambang) return false;
+    belanja(room, HARGA.tambang);
+    room.tambang.push(room.tambang.length);
+    return true;
+  }
+
+  function botBeliBengkel(room) {
+    if (room.bengkel || room.gold < HARGA.bengkel) return false;
+    belanja(room, HARGA.bengkel);
+    room.bengkel = true;
     return true;
   }
 
@@ -1317,52 +1610,37 @@
         room.flashCd = 2.2;
         run.fx.push({ jenis: "sinar", x1: room.player.x, y1: room.player.y - 0.4, x2: g.x, y2: g.y - 0.9, life: 0.2, max: 0.2 });
         tambahStagger(room.slot, 24);
+        lukaiHantu(10);
       }
-      if (room.hp < 45 && room.gold >= HARGA.perbaiki) botPerbaiki(room);
+      if (room.hp < 50 && room.gold >= HARGA.perbaiki) botPerbaiki(room);
       return;
     }
     if (diPintu) {
       room.sleeping = false;
-      if (room.door.hp < room.door.max * 0.7) {
+      if (room.door.hp < room.door.max * 0.65) {
         botPerbaiki(room);
         return;
       }
-      if (room.door.lv < 3 && room.gold >= HARGA.pintuUp[room.door.lv]) {
-        botUpgradePintu(room);
-        return;
-      }
+      if (botUpgradePintu(room)) return;
       if (room.flashCd <= 0 && Math.hypot(g.x - room.player.x, g.y - room.player.y) <= RANGE_SENTER) {
         room.flashCd = 2.2;
         tambahStagger(room.slot, 22);
+        lukaiHantu(10);
       }
       return;
     }
     if (room.sleeping) return;
     const rajin = room.ai.cekatan;
-    if (room.turrets.length < 2 && room.gold >= HARGA.turret) {
-      botBeliTurret(room);
-      return;
-    }
-    if (room.turrets.length && room.gold >= HARGA.turretUp[room.turrets[0].lv] && room.turrets[0].lv < 3 && run.t > 35) {
-      botUpgradeTurret(room);
-      return;
-    }
-    if (room.door.lv < 2 && room.gold >= HARGA.pintuUp[room.door.lv] + 10) {
-      botUpgradePintu(room);
-      return;
-    }
-    if (room.bedLv < 2 && room.gold >= HARGA.kasurUp[room.bedLv] + 10) {
-      botUpgradeKasur(room);
-      return;
-    }
-    if (room.turrets.length < 3 && room.gold >= HARGA.turret) {
-      botBeliTurret(room);
-      return;
-    }
-    if (room.turrets.length >= 2 && room.gold >= HARGA.turret && rajin > 1) {
-      botBeliTurret(room);
-      return;
-    }
+    if (room.turrets.length < 2 && botBeliTurret(room)) return;
+    if (room.bedLv < 4 && room.gold >= BED_UP[room.bedLv] + 25 && botUpgradeKasur(room)) return;
+    if (room.turrets.length < 4 && botBeliTurret(room)) return;
+    if (room.graveLv < 3 && room.gold >= GRAVE_UP[room.graveLv] + 25 && botUpgradeGrave(room)) return;
+    if (room.konsolLv < 3 && room.gold >= KONSOL_UP[room.konsolLv] + 30 && botUpgradeKonsol(room)) return;
+    if (room.tambang.length < MAKS_TAMBANG && room.gold >= HARGA.tambang + 35 && botBeliTambang(room)) return;
+    if (!room.bengkel && room.gold >= HARGA.bengkel + 40 && botBeliBengkel(room)) return;
+    if (room.turrets.length < MAKS_TURRET && botBeliTurret(room)) return;
+    if (rajin > 1 && room.turrets.length && botUpgradeTurret(room)) return;
+    if (room.bedLv < 8 && room.gold >= BED_UP[room.bedLv] + 60 && botUpgradeKasur(room)) return;
     room.sleeping = true;
   }
 
@@ -1421,10 +1699,10 @@
       const jy = g.y - (t.ty + 0.5);
       const jarak = Math.hypot(jx, jy);
       t.arah = Math.atan2(jy, jx);
-      if (jarak > RANGE_TURRET[t.lv]) continue;
+      if (jarak > TURRET_RANGE[t.lv]) continue;
       if (t.cd > 0) continue;
-      t.cd = 0.62;
-      tambahStagger(room.slot, 7 + t.lv * 3);
+      t.cd = TURRET_CD[t.lv];
+      lukaiHantu(TURRET_DMG[t.lv]);
       run.fx.push({
         jenis: "peluru",
         x1: t.tx + 0.5,
@@ -1438,47 +1716,64 @@
   }
 
   /* ================= DREAM HUNTER ================= */
+  function targetBoleh(r) {
+    return r.alive && (r.slot === run.slotLokal || r.bot);
+  }
+
   function pilihTargetHantu() {
-    const kandidat = run.rooms.filter((r) => r.alive);
+    const kandidat = run.rooms.filter(targetBoleh);
     if (!kandidat.length) return -1;
-    if (kandidat.length === 1) return kandidat[0].slot;
-    let pilihan = -1;
-    for (let i = 0; i < 8; i++) {
-      const r = kandidat[Math.floor(run.rng() * kandidat.length)];
-      if (r.slot !== run.ghost.slotTerakhir) { pilihan = r.slot; break; }
-      pilihan = r.slot;
+    const lokal = kandidat.find((r) => r.slot === run.slotLokal);
+    let pilihan = null;
+    if (lokal && run.rng() < 0.6) {
+      pilihan = lokal;
+    } else {
+      const lain = kandidat.filter((r) => r.slot !== run.ghost.slotTerakhir);
+      const pool = lain.length ? lain : kandidat;
+      pilihan = pool[Math.floor(run.rng() * pool.length)];
     }
-    return pilihan;
+    return pilihan ? pilihan.slot : -1;
   }
 
   function tileSerang(room) {
     const d = room.def;
-    return { x: d.doorX, y: d.doorY === 5 ? 6 : 7 };
+    return { x: d.corridorX, y: d.doorY };
   }
 
   function munculkanHantu() {
     const g = run.ghost;
     g.visible = true;
-    g.x = 0.6;
-    g.y = 6.5;
-    g.arah = 0;
     g.stagger = 0;
     g.staggerIdle = 99;
     g.atkCd = 0;
     g.pukulT = 0;
     g.kejarT = 0;
+    g.pathCd = 0;
     g.slot = pilihTargetHantu();
     g.slotTerakhir = g.slot;
     if (g.slot < 0) {
       g.visible = false;
       g.state = "hilang";
-      g.timer = 4;
+      g.timer = 3;
       return;
     }
-    g.state = "jalan";
+    g.level = clamp(1 + Math.floor(run.t / 40), 1, 9);
+    g.maxHp = 650 + (g.level - 1) * 140;
+    if (!g.hp || g.hp <= 0) g.hp = g.maxHp;
+    g.hp = Math.min(g.hp, g.maxHp);
     const t = tileSerang(run.rooms[g.slot]);
-    g.path = cariJalur(0, 6, t.x, t.y, hantuBoleh);
+    const dariBawah = t.y > MH / 2;
+    g.x = 6.5;
+    g.y = (dariBawah ? MH - 3 : 1) + 0.5;
+    g.arah = dariBawah ? -Math.PI / 2 : Math.PI / 2;
+    g.path = cariJalur(Math.floor(g.x), Math.floor(g.y), t.x, t.y, hantuBoleh);
     g.pathI = 0;
+    if (g.path) {
+      g.state = "jalan";
+    } else {
+      g.state = "hilang";
+      g.timer = 1.2;
+    }
     if (run.t >= 0) kilat("DREAM HUNTER", "red");
     bunyi("hantu");
   }
@@ -1489,12 +1784,12 @@
     g.slot = -1;
     g.pukulT = 0;
     g.kejarT = 0;
-    g.path = cariJalur(Math.floor(g.x), Math.floor(g.y), 0, 6, hantuBoleh);
+    g.path = cariJalur(Math.floor(g.x), Math.floor(g.y), 6, MH - 3, hantuBoleh);
     g.pathI = 0;
     if (!g.path) {
       g.visible = false;
       g.state = "hilang";
-      g.timer = 3.4;
+      g.timer = 3;
     }
   }
 
@@ -1527,9 +1822,9 @@
     g.state = "pukul";
     g.pukulT = 0;
     const d = room.def;
-    g.arah = d.doorY === 5 ? Math.PI / 2 : -Math.PI / 2;
-    g.x = d.doorX + 0.5;
-    g.y = (d.doorY === 5 ? 6 : 7) + 0.5;
+    g.arah = d.sisi === "kiri" ? Math.PI : 0;
+    g.x = d.corridorX + 0.5;
+    g.y = d.doorY + 0.5;
     bunyi("pintu");
   }
 
@@ -1544,8 +1839,8 @@
 
   function hantamPintu(g, room, dt) {
     g.pukulT += dt;
-    if (room.remote && g.pukulT > 15) { hantuKabur(); return; }
-    const dps = 20 + Math.floor(run.t / 60) * 6;
+    const buff = g.buffT > 0 && g.buffJenis === "berserk" ? 1.2 : 1;
+    const dps = (14 + 5 * g.level) * buff;
     room.door.hp = Math.max(0, room.door.hp - dps * dt);
     room.door.goyang = 0.18;
     if (Math.floor(g.pukulT * 5) !== Math.floor((g.pukulT - dt) * 5)) {
@@ -1577,14 +1872,14 @@
   function kejarPemain(g, room, dt) {
     const p = room.player;
     g.kejarT += dt;
-    if (room.remote && g.kejarT > 9) { hantuKabur(); return; }
     g.pathCd -= dt;
     if (g.pathCd <= 0 || !g.path) {
       g.pathCd = 0.45;
       const jalan = cariJalur(Math.floor(g.x), Math.floor(g.y), Math.floor(p.x), Math.floor(p.y), hantuBoleh);
       if (jalan) { g.path = jalan; g.pathI = 0; }
     }
-    const spd = 2.35 + Math.min(1.1, Math.floor(run.t / 60) * 0.22);
+    const buff = g.buffT > 0 && g.buffJenis === "berserk";
+    const spd = (2.6 + 0.08 * g.level) * (buff ? 1.3 : 1);
     const nyampe = ikutiJalur(g, dt, spd);
     const jarak = Math.hypot(p.x - g.x, p.y - g.y);
     if (nyampe && jarak > 0.9) {
@@ -1597,22 +1892,42 @@
     }
     if (g.atkCd > 0) g.atkCd = Math.max(0, g.atkCd - dt);
     if (jarak < 0.85 && g.atkCd <= 0) {
-      g.atkCd = 0.95;
+      g.atkCd = 1;
       run.fx.push({ jenis: "sinar", x1: g.x, y1: g.y - 1, x2: p.x, y2: p.y - 0.6, life: 0.18, max: 0.18, warna: "#d9f5e8" });
-      if (!room.remote) {
-        lukaiPemain(room, 16 + Math.floor(run.t / 60) * 4);
-      } else {
-        const hurt = $("hd-hurt");
-        if (hurt && room.slot === run.slotLokal) hurt.classList.add("is-show");
-      }
+      lukaiPemain(room, (18 + 4 * g.level) * (buff ? 1.2 : 1));
       bunyi("hantu");
     }
+  }
+
+  function pakaiSkill(g) {
+    g.skillT = 22 + run.rng() * 6;
+    const lokal = run.rooms[run.slotLokal];
+    if (g.buffJenis !== "kejut" && (g.buffJenis !== "berserk" || g.buffT <= 0)) {
+      g.buffJenis = "berserk";
+      g.buffT = 9;
+      if (lokal && lokal.alive) {
+        toast(`${g.nama} mengamuk! Kecepatan dan serangan naik.`, "bad");
+        kilat("BERSERK", "red");
+      }
+    } else {
+      g.buffJenis = "kejut";
+      g.buffT = 0;
+      for (const r of run.rooms) {
+        for (const t of r.turrets) t.cd = Math.max(t.cd, 3);
+      }
+      if (lokal && lokal.alive) {
+        toast("KEJUT! Semua turret lumpuh 3 detik.", "bad");
+        kilat("TURRET LUMPUH", "red");
+      }
+      getar([40, 30, 60]);
+    }
+    bunyi("hantu");
   }
 
   function perbaruiHantu(dt) {
     const g = run.ghost;
     if (g.state === "tunggu") {
-      if (run.t >= JEDA_HANTU) munculkanHantu();
+      if (run.t >= 0) munculkanHantu();
       return;
     }
     if (!g.visible) {
@@ -1637,24 +1952,40 @@
     if (g.staggerIdle > 1.2 && g.stagger > 0) {
       g.stagger = Math.max(0, g.stagger - 13 * dt);
     }
+    if (g.buffT > 0) g.buffT = Math.max(0, g.buffT - dt);
+    g.skillT -= dt;
+    if (g.skillT <= 0 && run.t > 22) pakaiSkill(g);
     const room = g.slot >= 0 ? run.rooms[g.slot] : null;
     if (g.state !== "kabur" && (!room || !room.alive)) {
       hantuKabur();
       return;
     }
     if (g.state === "kabur") {
-      const spd = 3.1;
-      const nyampe = ikutiJalur(g, dt, spd);
+      const nyampe = ikutiJalur(g, dt, 3.4);
       if (nyampe) {
         g.visible = false;
         g.state = "hilang";
-        g.timer = 3.2;
+        g.timer = 2.4;
+        if (g.kaburMaxT > 0) {
+          g.hp = Math.min(g.maxHp, g.hp + g.maxHp * 0.35);
+          g.kaburMaxT = 0;
+          g.kaburLagi = run.t + 40;
+          toast(`${g.nama} mundur dan memulihkan diri...`, "bad");
+        }
       }
       return;
     }
+    if (g.hp > 0 && g.hp < g.maxHp * 0.15 && run.t > g.kaburLagi) {
+      g.kaburMaxT = 1;
+      kilat("HANTU MUNDUR", "green");
+      const lokal = run.rooms[run.slotLokal];
+      if (lokal && lokal.alive) toast("Dream Hunter mundur untuk memulihkan diri!", "good");
+      hantuKabur();
+      return;
+    }
     if (g.state === "jalan") {
-      const spd = 2.3 + Math.min(0.9, Math.floor(run.t / 60) * 0.18);
-      const nyampe = ikutiJalur(g, dt, spd);
+      const buff = g.buffT > 0 && g.buffJenis === "berserk" ? 1.25 : 1;
+      const nyampe = ikutiJalur(g, dt, (2.55 + 0.07 * g.level) * buff);
       if (nyampe) mulaiHantam(g);
       return;
     }
@@ -1667,9 +1998,6 @@
       if (g.state === "masuk" && (!g.path || g.pathI >= g.path.length || g.pathCd <= 0)) {
         g.state = "kejar";
       }
-      if (room.door.ada) {
-        // pintu dibangun ulang saat hantu masih di dalam: tetap lanjut kejar
-      }
       kejarPemain(g, room, dt);
       return;
     }
@@ -1680,16 +2008,19 @@
     if (!run || run.over) return;
     run.t += dt;
     if (run.t < 0) {
-      perbaruiEfek(dt);
-      return;
-    }
-    if (run.t >= MALAM_DETIK) {
-      akhiriMatch(true);
+      if (!run.mulaiPersiapan) {
+        run.mulaiPersiapan = true;
+        kilat("PERSIAPAN", "green");
+        toast("30 detik persiapan: bangun turret, naikkan kasur, lalu tidur!");
+      }
+    } else if (run.t >= MALAM_DETIK) {
+      akhiriMatch(true, "pagi");
       return;
     }
     if (!run.mulaiBunyi && run.t > 0.3) {
       run.mulaiBunyi = true;
-      if (run.mode === "mabar") kilat("MABAR DIMULAI", "green");
+      if (run.mode === "mabar") kilat("MALAM DIMULAI", "red");
+      else kilat("MALAM DIMULAI", "red");
     }
     for (const room of run.rooms) {
       perbaruiKamarEkonomi(room, dt);
@@ -1700,6 +2031,21 @@
         perbaruiBot(room, dt);
       }
       perbaruiTurret(room, dt);
+    }
+    const g = run.ghost;
+    if (g.visible && run.t >= 0) {
+      const target = clamp(1 + Math.floor(run.t / 40), 1, 9);
+      if (target > g.level) {
+        const naik = target - g.level;
+        g.level = target;
+        g.maxHp = 650 + (g.level - 1) * 140;
+        g.hp = Math.min(g.maxHp, g.hp + 140 * naik);
+        const lokal = run.rooms[run.slotLokal];
+        if (lokal && lokal.alive) {
+          toast(`${g.nama} naik ke LV.${g.level}!`, "bad");
+          kilat("HANTU LV." + g.level, "red");
+        }
+      }
     }
     perbaruiHantu(dt);
     perbaruiEfek(dt);
@@ -1918,32 +2264,101 @@
 
   function modelKasur(lv) {
     const kotak = [];
-    const selimut = ["#4e7f62", "#5f9a72", "#7fae5f"][lv - 1] || "#4e7f62";
-    kotak.push(vxB(-30, 30, 0, 4, -16, 16, "#4a3a28"));
-    kotak.push(vxB(-29, 29, 4, 8, -15, 15, "#dfe9d9"));
-    kotak.push(vxB(-29, 26, 8, 10.5, -14, 14, selimut));
-    kotak.push(vxB(-29, 26, 10.5, 11.5, -14, -12.5, vxRgb(selimut, 0.25)));
-    kotak.push(vxB(18, 27, 8, 12, -11, 11, "#f4f8ef"));
+    const selimut = ["#4e7f62", "#5f9a72", "#7fae5f", "#c9a15a", "#cf7f7f", "#8f7fd0", "#63b7c9", "#ffd166"][lv - 1] || "#4e7f62";
+    kotak.push(vxB(-14, 14, 0, 3.4, -13, 13, "#4a3a28"));
+    kotak.push(vxB(-14, 14, 3.4, 7.4, -12, 12, "#dfe9d9"));
+    kotak.push(vxB(-14, 12, 7.4, 9.2, -11, 11, selimut));
+    kotak.push(vxB(8, 13, 6, 10.2, -8, 8, "#f4f8ef"));
     if (lv >= 2) {
-      kotak.push(vxB(-29, 26, 10.6, 11.7, 12.4, 14, vxRgb(selimut, 0.35)));
+      kotak.push(vxB(-14, 12, 9.4, 10.1, -11, 11, vxRgb(selimut, 0.3)));
+    }
+    if (lv >= 4) {
+      kotak.push(vxB(-15, 15, 2.6, 3.4, -14, 14, "#d9b15c"));
+    }
+    if (lv >= 6) {
+      kotak.push(vxB(-3, 3, 10.4, 11.2, -11, 11, "#ffd166"));
+    }
+    if (lv >= 8) {
+      kotak.push(vxB(-15, 15, 10.2, 11.4, -14, 14, "#fff1a8"));
+    }
+    return kotak;
+  }
+
+  function modelKuburan(lv) {
+    const batu = ["#8f9b93", "#a9b5ac", "#c3cfc5"][lv - 1] || "#8f9b93";
+    const kotak = [];
+    kotak.push(vxB(-13, 13, 0, 3, -10, 10, "#4a3a28"));
+    kotak.push(vxB(-7, 7, 3, 9, -8, 8, batu));
+    kotak.push(vxB(-3, 3, 9, 12, -7, 7, batu));
+    kotak.push(vxB(-7, 7, 12, 15, -8, 8, batu));
+    kotak.push(vxB(-3, 3, 15, 18, -7, 7, batu));
+    kotak.push(vxB(-4, 4, 8.5, 9.5, 8, 9, vxRgb(batu, -0.3)));
+    if (lv >= 2) {
+      kotak.push(vxB(-12, -8, 3, 6, -7, 7, "#d9b15c"));
+      kotak.push(vxB(-11, -9, 6, 8, -5, 5, "#ffd166"));
     }
     if (lv >= 3) {
-      kotak.push(vxB(-31, 31, 3.2, 4.4, -17, 17, "#d9b15c"));
-      kotak.push(vxB(-6, 6, 11.4, 12.2, -14, 14, "#ffd166"));
+      kotak.push(vxB(8, 12, 3, 6, -7, 7, "#d9b15c"));
+      kotak.push(vxB(9, 11, 6, 9, -5, 5, "#fff1a8"));
     }
+    return kotak;
+  }
+
+  function modelKonsol(lv) {
+    const layar = ["#3f6f8a", "#4d86a8", "#63a8c9"][lv - 1] || "#3f6f8a";
+    const kotak = [];
+    kotak.push(vxB(-11, 11, 0, 3, -9, 9, "#3c5347"));
+    kotak.push(vxB(-3, 3, 3, 8, -4, 4, "#2b3a32"));
+    kotak.push(vxB(-11, 11, 8, 14, -6, 6, "#22302a"));
+    kotak.push(vxB(-9, 9, 14, 17, -5, 5, layar));
+    kotak.push(vxB(-7, 7, 15.5, 16.5, 5, 5.6, "#bff4ff"));
+    if (lv >= 2) {
+      kotak.push(vxB(-12, 12, 15.6, 16.8, -5.5, 5.5, vxRgb(layar, 0.3)));
+    }
+    if (lv >= 3) {
+      kotak.push(vxB(-13, 13, 17, 18.2, -6.5, 6.5, "#ffd166"));
+    }
+    return kotak;
+  }
+
+  function modelTambang() {
+    const kotak = [];
+    kotak.push(vxB(-12, 12, 0, 4, -12, 12, "#4a3a28"));
+    kotak.push(vxB(-8, 6, 4, 9, -8, 7, "#8a6a2a"));
+    kotak.push(vxB(-10, 8, 4, 7, -10, 4, "#b08a3a"));
+    kotak.push(vxB(3, 6, 4, 14, -3, 0, "#5a4a2c"));
+    kotak.push(vxB(6, 13, 12, 15, -5, 2, "#c9a15a"));
+    kotak.push(vxB(-2, 1, 9, 12, -6, 2, "#ffd166"));
+    return kotak;
+  }
+
+  function modelBengkel() {
+    const kotak = [];
+    kotak.push(vxB(-14, 14, 0, 3, -11, 11, "#4a3a28"));
+    kotak.push(vxB(-13, 13, 3, 9, -9, 9, "#8a6a44"));
+    kotak.push(vxB(-13, 13, 9, 10.4, -9, 9, "#b08a54"));
+    kotak.push(vxB(-10, -4, 5, 12, -3, 3, "#9aa3ad"));
+    kotak.push(vxB(4, 10, 5, 15, -3, 1, "#5a4a2c"));
+    kotak.push(vxB(8, 12, 14, 16, -5, 4, "#c9a15a"));
+    kotak.push(vxB(-2, 2, 10.4, 12, -6, 6, "#ffd166"));
     return kotak;
   }
 
   function modelSapu(lv) {
     const kotak = [];
-    const kayu = ["#8a6a44", "#9a7a4c", "#b08a54"][lv - 1] || "#8a6a44";
-    const bulu = ["#cbb26a", "#d8c27a", "#e8d38a"][lv - 1] || "#cbb26a";
+    const kayu = ["#8a6a44", "#9a7a4c", "#b08a54", "#7fb8d8"][lv - 1] || "#8a6a44";
+    const bulu = ["#cbb26a", "#d8c27a", "#e8d38a", "#bfe9ff"][lv - 1] || "#cbb26a";
     kotak.push(vxB(-6, 6, 0, 2, -6, 6, "#3c5347"));
     kotak.push(vxB(-1.2, 1.2, 2, 19, -1.2, 1.2, kayu));
     kotak.push(vxB(0, 8, 12, 18, -3, 3, bulu));
     kotak.push(vxB(6, 8.4, 11, 13, -1.2, 1.2, vxRgb(bulu, -0.2)));
     if (lv >= 3) {
       kotak.push(vxB(-2, 2, 19, 22, -2, 2, "#ffd166"));
+    }
+    if (lv >= 4) {
+      kotak.push(vxB(-8, 8, 18, 24, -8, 8, "#bfe9ff"));
+      kotak.push(vxB(-6, 6, 20, 22.5, -10.5, -8.5, "#e8faff"));
+      kotak.push(vxB(-6, 6, 20, 22.5, 8.5, 10.5, "#e8faff"));
     }
     return kotak;
   }
@@ -1958,6 +2373,22 @@
 
   function spriteKasur(lv) {
     return voxSprite("kasur:" + lv, () => modelKasur(lv));
+  }
+
+  function spriteKuburan(lv) {
+    return voxSprite("kuburan:" + lv, () => modelKuburan(lv));
+  }
+
+  function spriteKonsol(lv) {
+    return voxSprite("konsol:" + lv, () => modelKonsol(lv));
+  }
+
+  function spriteTambang() {
+    return voxSprite("tambang", () => modelTambang());
+  }
+
+  function spriteBengkel() {
+    return voxSprite("bengkel", () => modelBengkel());
   }
 
   /* ================= PETA STATIS ================= */
@@ -2001,66 +2432,53 @@
       }
     }
 
-    // Permadani koridor
+    // Permadani koridor vertikal
     g.fillStyle = "#2c4838";
-    g.fillRect(2 * T, 6 * T + 8, 17 * T, 2 * T - 16);
+    g.fillRect(6 * T + 7, T + 6, 2 * T - 14, 16 * T - 12);
     g.fillStyle = "rgba(88,217,143,0.1)";
-    g.fillRect(2 * T, 6 * T + 8, 17 * T, 3);
+    g.fillRect(6 * T + 7, T + 6, 3, 16 * T - 12);
+    g.fillRect(8 * T - 9, T + 6, 2, 16 * T - 12);
     g.fillStyle = "rgba(0,0,0,0.14)";
-    for (let x = 2; x < 19; x += 2) g.fillRect(x * T, 6 * T + 11, T * 0.7, 2);
+    for (let y = 2; y < 17; y += 2) g.fillRect(6 * T + 10, y * T + 6, T * 2 - 20, 2);
 
-    // Tangga keluar di kiri
-    g.fillStyle = "#101c15";
-    g.fillRect(0, 6 * T, T, 2 * T);
-    for (let i = 0; i < 4; i++) {
-      g.fillStyle = i % 2 ? "#28402f" : "#1e3124";
-      g.fillRect(2, 6 * T + 6 + i * 16, T - 4, 14);
+    // Aula bawah (tempat hantu masuk)
+    g.fillStyle = "#243a2d";
+    g.fillRect(4 * T + 6, 17 * T + 6, 6 * T - 12, 4 * T - 12);
+    g.fillStyle = "rgba(255,120,120,0.07)";
+    g.fillRect(6 * T + 4, 17 * T + 6, 2 * T - 8, 4 * T - 12);
+
+    // Gerbang tangga hantu di bawah
+    g.fillStyle = "#0a1410";
+    g.fillRect(5.4 * T, 19.2 * T, 3.2 * T, 2.4 * T);
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle = i % 2 ? "#2b4333" : "#1d3024";
+      g.fillRect(5.5 * T, 19.4 * T + i * 13, 3 * T, 11);
     }
     g.save();
-    g.fillStyle = "#7fd6a4";
+    g.fillStyle = "#8ce6b0";
     g.font = "700 8px system-ui, sans-serif";
     g.textAlign = "center";
-    g.translate(T * 0.55, 6 * T - 6);
-    g.rotate(-Math.PI / 2);
-    g.fillText("PINTU", 0, 0);
+    g.fillText("GERBANG", 7 * T, 19.1 * T);
     g.restore();
 
     // Lampu dinding + cahaya
-    const lampu = [
-      [4, 5], [9, 5], [14, 5], [4, 8], [9, 8], [14, 8],
-    ];
-    for (const [lx, ly] of lampu) {
+    const lampu = [];
+    for (const r of ROOM_DEFS) {
+      lampu.push([r.doorX, r.y0, r.sisi]);
+      lampu.push([r.doorX, r.y0 + 3, r.sisi]);
+    }
+    for (const [lx, ly, sisi] of lampu) {
       const px = (lx + 0.5) * T;
       const py = (ly + 0.5) * T;
-      const grad = g.createRadialGradient(px, py, 4, px, py, T * 2.4);
-      grad.addColorStop(0, "rgba(255,226,160,0.16)");
+      const grad = g.createRadialGradient(px, py, 4, px, py, T * 2);
+      grad.addColorStop(0, "rgba(255,226,160,0.14)");
       grad.addColorStop(1, "rgba(255,226,160,0)");
       g.fillStyle = grad;
       g.beginPath();
-      g.arc(px, py, T * 2.4, 0, TAU);
+      g.arc(px, py, T * 2, 0, TAU);
       g.fill();
       g.fillStyle = "rgba(255,228,168,0.85)";
-      g.fillRect(px - 3, py - 6, 6, 4);
-      g.fillStyle = "rgba(90,70,30,0.8)";
-      g.fillRect(px - 4, py - 2, 8, 2);
-    }
-
-    // Props kamar: meja & tanaman kecil
-    for (const r of ROOM_DEFS) {
-      const px = (r.x0 + 3.1) * T;
-      const py = (r.y0 + 0.9) * T;
-      g.fillStyle = "#2f4434";
-      g.fillRect(px, py, T * 0.55, T * 0.4);
-      g.fillStyle = "#3c5a44";
-      g.fillRect(px + 2, py + 2, T * 0.55 - 4, 3);
-      g.fillStyle = "#6d5a3a";
-      g.fillRect(px + 5, py + T * 0.18, 6, 8);
-      g.fillStyle = "#4e9a68";
-      g.beginPath();
-      g.arc(px + 8, py + T * 0.14, 7, 0, TAU);
-      g.fill();
-      g.fillStyle = "rgba(0,0,0,0.25)";
-      g.fillRect(px + 4, py + T * 0.4, T * 0.4, 3);
+      g.fillRect(px - (sisi === "kiri" ? 4 : 0), py - 2, 4, 7);
     }
 
     // Dinding
@@ -2071,17 +2489,18 @@
       }
     }
 
-    // Bingkai pintu
+    // Bingkai pintu vertikal (kiri/kanan koridor)
     for (const r of ROOM_DEFS) {
       const px = r.doorX * T;
       const py = r.doorY * T;
       g.fillStyle = "#0b1610";
-      g.fillRect(px - 1, py - 14, T + 2, T + 14);
+      g.fillRect(px - 2, py - 3, T + 4, T + 6);
       g.fillStyle = "#38503e";
-      g.fillRect(px - 2, py - 16, 4, T + 16);
-      g.fillRect(px + T - 2, py - 16, 4, T + 16);
+      g.fillRect(px - 1, py - 5, T + 2, 5);
+      g.fillRect(px - 1, py + T, T + 2, 5);
       g.fillStyle = "#4a6a52";
-      g.fillRect(px - 2, py - 18, T + 4, 4);
+      g.fillRect(px - 2, py - 6, T + 4, 2);
+      g.fillRect(px - 2, py + T + 4, T + 4, 2);
     }
 
     petaBeku = c;
@@ -2130,12 +2549,11 @@
     view.dpr = dpr;
     canvas.width = Math.round(view.w * dpr);
     canvas.height = Math.round(view.h * dpr);
-    const padX = 12;
-    const padY = 10;
-    const skala = Math.min((view.w - padX * 2) / WORLD_W, (view.h - padY * 2) / (WORLD_H + 6));
-    view.scale = Math.max(0.22, skala);
+    const pad = petaBekuPad;
+    const skala = Math.min((view.w - 6) / WORLD_W, (view.h - 6) / (WORLD_H + pad));
+    view.scale = Math.max(0.12, skala);
     view.ox = (view.w - WORLD_W * view.scale) / 2;
-    view.oy = (view.h - WORLD_H * view.scale) / 2 + 3 * view.scale;
+    view.oy = (view.h - (WORLD_H + pad) * view.scale) / 2 + pad * view.scale;
   }
 
   function w2s(x, y) {
@@ -2169,13 +2587,28 @@
       for (const room of run.rooms) {
         const d = room.def;
         items.push({ y: (d.bedY + 1) * T, fn: () => gambarKasur(g, room) });
+        items.push({ y: (d.graveY + 1) * T, fn: () => gambarKuburan(g, room) });
+        items.push({ y: (d.konsolY + 1) * T, fn: () => gambarKonsol(g, room) });
+        const posT = tileTambang(d);
+        for (let i = 0; i < room.tambang.length; i++) {
+          const p = posT[i];
+          if (!p) break;
+          items.push({
+            y: (p.y + 1) * T,
+            fn: () => voxGambarSprite(g, spriteTambang(), (p.x + 0.5) * T, (p.y + 1) * T - 2, 0.62, 0.4, 0, 1),
+          });
+        }
+        if (room.bengkel) {
+          const p = tileBengkel(d);
+          items.push({
+            y: (p.y + 1) * T,
+            fn: () => voxGambarSprite(g, spriteBengkel(), (p.x + 0.5) * T, (p.y + 1) * T - 2, 0.6, 0.4, 0, 1),
+          });
+        }
         for (const t of room.turrets) {
           items.push({
             y: (t.ty + 1) * T - 2,
-            fn: () => {
-              const kapasitas = spriteTurretLv(t.lv);
-              voxGambarLangsung(g, kapasitas, (t.tx + 0.5) * T, (t.ty + 1) * T - 2, 1.35, t.arah);
-            },
+            fn: () => voxGambarSprite(g, spriteTurretLv(t.lv), (t.tx + 0.5) * T, (t.ty + 1) * T - 2, 1.05, t.arah, 0, 1),
           });
         }
         if (room.alive && !room.sleeping) {
@@ -2187,7 +2620,7 @@
             fn: () => {
               g.save();
               g.globalAlpha = room.remote ? 0.86 : 1;
-              voxGambarSprite(g, spr, p.x * T, p.y * T + T * 0.42, 1.16, p.arah, fase, 1);
+              voxGambarSprite(g, spr, p.x * T, p.y * T + T * 0.42, 1.02, p.arah, fase, 1);
               g.restore();
             },
           });
@@ -2213,59 +2646,80 @@
   }
 
   function spriteTurretLv(lv) {
-    return modelSapu(lv);
+    return voxSprite("sapu:" + lv, () => modelSapu(lv));
   }
+
+  const DOOR_WARNA = [
+    ["#8a6a44", "#5a4128", "#b08a54"],
+    ["#8f9aa3", "#5c666e", "#b6c0c8"],
+    ["#6f8ea8", "#3f5a70", "#9dc0d8"],
+    ["#7d6fbf", "#4a3f80", "#b9a6ff"],
+  ];
 
   function gambarPintu(g, room) {
     const d = room.def;
     const cx = (d.doorX + 0.5) * T;
-    const cy = (d.doorY + 1) * T;
+    const cy = (d.doorY + 0.5) * T;
+    const kiri = d.sisi === "kiri";
+    const w = T * 0.4;
+    const hh = T * 0.74;
     if (!room.door.ada) {
-      g.fillStyle = "#070f0a";
-      g.fillRect(cx - T * 0.44, cy - T * 1.02, T * 0.88, T * 0.98);
-      g.fillStyle = "rgba(0,0,0,0.5)";
+      g.save();
+      g.fillStyle = "#06100a";
+      g.fillRect(cx - T * 0.48, cy - T * 0.48, T * 0.96, T * 0.96);
+      g.fillStyle = "rgba(0,0,0,0.55)";
       g.beginPath();
-      g.ellipse(cx, cy - 2, T * 0.5, 5, 0, 0, TAU);
+      g.ellipse(cx + (kiri ? -3 : 3), cy, T * 0.42, T * 0.5, 0, 0, TAU);
       g.fill();
       g.fillStyle = "#4a3a28";
-      g.fillRect(cx - T * 0.34, cy - 4, 7, 3);
-      g.fillRect(cx + T * 0.12, cy - 6, 9, 3);
+      g.fillRect(cx - T * 0.3, cy + T * 0.28, 8, 3);
+      g.fillRect(cx + T * 0.05, cy + T * 0.4, 10, 3);
+      g.fillRect(cx - T * 0.12, cy - T * 0.42, 7, 3);
+      g.restore();
       return;
     }
-    const lv = room.door.lv;
-    const w = T * 0.9;
-    const h = T * 1.18;
-    const goyang = room.door.goyang > 0 ? Math.sin(room.door.goyang * 90) * 1.6 : 0;
-    const warna = ["#54735a", "#7c8a56", "#a79a58"][lv - 1];
-    const gelap = ["#2c4033", "#46502f", "#5f5730"][lv - 1];
+    const tier = clamp(room.door.tier | 0, 0, 3);
+    const warna = DOOR_WARNA[tier];
+    const goyang = room.door.goyang > 0 ? Math.sin(room.door.goyang * 90) * 1.8 : 0;
+    const rasio = clamp(room.door.hp / room.door.max, 0, 1);
     g.save();
     g.translate(cx + goyang, cy);
-    g.fillStyle = "#0c1711";
-    g.fillRect(-w / 2 - 2, -h - 2, w + 4, h + 4);
-    g.fillStyle = warna;
-    g.fillRect(-w / 2, -h, w, h);
-    g.fillStyle = vxRgb(warna, 0.22);
-    g.fillRect(-w / 2, -h, w, 4);
-    g.fillStyle = gelap;
-    g.fillRect(-w / 2, -h * 0.55, w, 2);
-    g.fillRect(-w / 2, -h * 0.22, w, 2);
-    g.fillRect(-1, -h, 2, h);
+    g.fillStyle = "rgba(0,0,0,0.35)";
+    g.fillRect(-w / 2 - 3, -hh + 4, w + 6, T * 0.5);
+    g.fillStyle = warna[1];
+    g.fillRect(-w / 2 - 2, -hh - 2, w + 4, hh + 8);
+    g.fillStyle = warna[0];
+    g.fillRect(-w / 2, -hh, w, hh);
+    if (tier === 3) {
+      g.shadowColor = warna[2];
+      g.shadowBlur = 8;
+      g.fillRect(-w / 2, -hh, w, 2);
+      g.shadowBlur = 0;
+    }
+    g.fillStyle = warna[2];
+    g.fillRect(-w / 2, -hh, w, 2.4);
+    g.fillStyle = warna[1];
+    g.fillRect(-w / 2, -hh * 0.62, w, 2);
+    g.fillRect(-w / 2, -hh * 0.28, w, 2);
     g.fillStyle = "#e0c060";
     g.beginPath();
-    g.arc(w * 0.28, -h * 0.5, 2.4, 0, TAU);
+    g.arc(kiri ? w * 0.26 : -w * 0.26, -hh * 0.52, 2.2, 0, TAU);
     g.fill();
-    const rasio = clamp(room.door.hp / room.door.max, 0, 1);
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle = i < room.door.lv ? warna[2] : "rgba(0,0,0,0.4)";
+      g.fillRect(-w / 2 + 2 + i * 4, 2, 3, 3);
+    }
     if (rasio < 0.7) {
-      g.strokeStyle = "rgba(15,10,5,0.65)";
-      g.lineWidth = 1.5;
+      g.strokeStyle = "rgba(15,10,5,0.7)";
+      g.lineWidth = 1.4;
       g.beginPath();
-      g.moveTo(-w * 0.3, -h * 0.2);
-      g.lineTo(-w * 0.05, -h * 0.42);
-      g.lineTo(-w * 0.2, -h * 0.62);
+      g.moveTo(-w * 0.3, -hh * 0.15);
+      g.lineTo(-w * 0.05, -hh * 0.4);
+      g.lineTo(-w * 0.2, -hh * 0.64);
       if (rasio < 0.4) {
-        g.moveTo(w * 0.34, -h * 0.34);
-        g.lineTo(w * 0.1, -h * 0.5);
-        g.lineTo(w * 0.24, -h * 0.72);
+        g.moveTo(w * 0.32, -hh * 0.3);
+        g.lineTo(w * 0.08, -hh * 0.5);
+        g.lineTo(w * 0.22, -hh * 0.72);
       }
       g.stroke();
     }
@@ -2275,7 +2729,19 @@
   function gambarKasur(g, room) {
     const d = room.def;
     const spr = spriteKasur(room.bedLv);
-    voxGambarSprite(g, spr, (d.bedX + 1) * T, (d.bedY + 1) * T, 1, 0.32, 0, 1);
+    voxGambarSprite(g, spr, (d.bedX + 0.5) * T, (d.bedY + 0.9) * T, 0.62, 0.35, 0, 1);
+  }
+
+  function gambarKuburan(g, room) {
+    const d = room.def;
+    const spr = spriteKuburan(room.graveLv);
+    voxGambarSprite(g, spr, (d.graveX + 0.5) * T, (d.graveY + 0.9) * T, 0.62, 0.35, 0, 1);
+  }
+
+  function gambarKonsol(g, room) {
+    const d = room.def;
+    const spr = spriteKonsol(room.konsolLv);
+    voxGambarSprite(g, spr, (d.konsolX + 0.5) * T, (d.konsolY + 0.9) * T, 0.66, 0.35, 0, 1);
   }
 
   function gambarTidur(g, room) {
@@ -2284,16 +2750,16 @@
     g.save();
     g.fillStyle = "rgba(0,0,0,0.25)";
     g.beginPath();
-    g.ellipse((d.bedX + 1) * T, (d.bedY + 0.95) * T, T * 0.75, T * 0.22, 0, 0, TAU);
+    g.ellipse((d.bedX + 0.5) * T, (d.bedY + 0.9) * T, T * 0.6, T * 0.2, 0, 0, TAU);
     g.fill();
-    g.font = "700 11px system-ui, sans-serif";
+    g.font = "700 10px system-ui, sans-serif";
     g.fillStyle = "rgba(190,240,210,0.85)";
     g.textAlign = "center";
     const naik = (t * 0.8) % 1;
     g.globalAlpha = 1 - naik;
-    g.fillText("Z", (d.bedX + 2.1) * T + naik * 6, (d.bedY + 0.4) * T - naik * 10);
+    g.fillText("Z", (d.bedX + 1.2) * T + naik * 6, (d.bedY + 0.35) * T - naik * 10);
     g.globalAlpha = 0.75;
-    g.fillText("z", (d.bedX + 1.75) * T, (d.bedY + 0.28) * T);
+    g.fillText("z", (d.bedX + 0.9) * T, (d.bedY + 0.22) * T);
     g.restore();
   }
 
@@ -2336,20 +2802,28 @@
       g.lineWidth = 1.4;
       g.beginPath();
       g.moveTo(px - 8, py - 24);
-      g.lineTo(d.doorX * T + T * 0.5, d.doorY * T + T * 0.7);
+      g.lineTo((d.doorX + 0.5) * T, (d.doorY + 0.5) * T);
       g.stroke();
     }
   }
 
   function gambarBarHantu(g, gh) {
-    if (gh.stagger <= 1 && gh.state !== "stun") return;
     const px = gh.x * T;
-    const py = gh.y * T - 44;
-    const w = 34;
-    g.fillStyle = "rgba(6,12,9,0.75)";
-    g.fillRect(px - w / 2 - 1, py - 1, w + 2, 5);
-    g.fillStyle = gh.state === "stun" ? "#ffd166" : "#8ee6b4";
-    g.fillRect(px - w / 2, py, (w * (gh.state === "stun" ? 1 : gh.stagger / 100)), 3);
+    const py = gh.y * T - 46;
+    const w = 46;
+    g.save();
+    g.textAlign = "center";
+    g.font = "700 8px system-ui, sans-serif";
+    g.fillStyle = "rgba(6,12,9,0.72)";
+    g.fillRect(px - w / 2 - 12, py - 12, w + 24, 12);
+    g.fillStyle = gh.buffT > 0 ? "#ffb0b0" : "#e6fff0";
+    const nama = gh.nama.length > 14 ? gh.nama.slice(0, 13) + "…" : gh.nama;
+    g.fillText(`${nama} · LV ${gh.level}`, px, py - 3);
+    g.fillStyle = "rgba(6,12,9,0.8)";
+    g.fillRect(px - w / 2 - 1, py - 1, w + 2, 6);
+    g.fillStyle = gh.state === "stun" ? "#ffd166" : "#ff8c8c";
+    g.fillRect(px - w / 2, py, w * clamp(gh.hp / gh.maxHp, 0, 1), 4);
+    g.restore();
   }
 
   function gambarSorot(g) {
@@ -2362,10 +2836,12 @@
     if (x < d.x0 || x > d.x0 + 3 || y < d.y0 || y > d.y0 + 3) return;
     const turret = room.turrets.find((t) => t.tx === x && t.ty === y);
     const kasur = tileKasur(d, x, y);
+    const funitur = tileFurnitur(d, x, y);
+    const boleh = !turret && tileBolehTurret(room, x, y);
     g.save();
-    g.fillStyle = turret ? "rgba(255,209,102,0.18)" : kasur ? "rgba(127,200,238,0.18)" : "rgba(88,217,143,0.16)";
+    g.fillStyle = turret ? "rgba(255,209,102,0.18)" : kasur ? "rgba(127,200,238,0.18)" : funitur ? "rgba(200,200,200,0.1)" : "rgba(88,217,143,0.16)";
     g.fillRect(x * T + 2, y * T + 2, T - 4, T - 4);
-    g.strokeStyle = turret ? "rgba(255,209,102,0.8)" : "rgba(88,217,143,0.7)";
+    g.strokeStyle = turret ? "rgba(255,209,102,0.8)" : boleh ? "rgba(88,217,143,0.7)" : "rgba(180,180,180,0.5)";
     g.lineWidth = 1.4;
     g.strokeRect(x * T + 2, y * T + 2, T - 4, T - 4);
     g.restore();
@@ -2378,19 +2854,15 @@
     g.font = "700 8px system-ui, sans-serif";
     for (const room of run.rooms) {
       const d = room.def;
-      const cx = (d.doorX + 0.5) * T;
-      const cy = d.doorY * T - 22;
+      const cx = (d.x0 + 2) * T;
+      const cy = (d.y0 + 3.72) * T;
       const lokal = room.slot === run.slotLokal;
       g.fillStyle = room.alive ? (lokal ? "rgba(190,255,215,0.95)" : "rgba(200,225,210,0.7)") : "rgba(255,140,140,0.75)";
       const nama = room.nama.length > 10 ? room.nama.slice(0, 9) + "…" : room.nama;
       g.fillText(room.alive ? nama : nama + " ✝", cx, cy);
-      if (room.alive && room.door.ada) {
-        const w = 26;
-        const rasio = clamp(room.door.hp / room.door.max, 0, 1);
-        g.fillStyle = "rgba(4,9,6,0.7)";
-        g.fillRect(cx - w / 2 - 1, cy + 3, w + 2, 4);
-        g.fillStyle = rasio > 0.55 ? "#ffd166" : rasio > 0.25 ? "#e8a94e" : "#ff7272";
-        g.fillRect(cx - w / 2, cy + 4, w * rasio, 2);
+      if (room.sleeping) {
+        g.fillStyle = "rgba(150,220,250,0.85)";
+        g.fillText("tidur", cx, cy + 9);
       }
     }
     g.restore();
@@ -2513,26 +2985,51 @@
       senterBtn.classList.toggle("is-off", me.sleeping);
     }
 
-    let biayaPintu;
-    if (!me.door.ada) biayaPintu = HARGA.pintuBaru;
-    else if (me.door.hp < me.door.max - 0.5) biayaPintu = HARGA.perbaiki;
-    else if (me.door.lv < 3) biayaPintu = HARGA.pintuUp[me.door.lv];
-    else biayaPintu = -1;
-    setTeks("hd-pintu-cost", biayaPintu < 0 ? "MAX" : String(biayaPintu));
+    const info = infoPintu(me);
+    setTeks("hd-pintu-cost", info.jenis === "rusak" || info.jenis === "max" ? "MAX" : String(info.biaya));
     const pintuBtn = $("hd-btn-pintu");
-    if (pintuBtn) pintuBtn.classList.toggle("is-off", biayaPintu < 0 || me.gold < biayaPintu);
+    if (pintuBtn) {
+      pintuBtn.classList.toggle("is-off", info.jenis === "rusak" || info.jenis === "max" || me.gold < info.biaya);
+    }
 
     const turretMaks = me.turrets.length >= MAKS_TURRET;
     setTeks("hd-turret-cost", turretMaks ? "MAX" : String(HARGA.turret));
     const turretBtn = $("hd-btn-turret");
     if (turretBtn) turretBtn.classList.toggle("is-off", turretMaks || me.gold < HARGA.turret);
 
-    const kasurMaks = me.bedLv >= 3;
-    const biayaKasur = kasurMaks ? 0 : HARGA.kasurUp[me.bedLv];
-    setTeks("hd-kasur-cost", kasurMaks ? "MAX" : String(biayaKasur));
-    const kasurBtn = $("hd-btn-kasur");
-    if (kasurBtn) kasurBtn.classList.toggle("is-off", kasurMaks || me.gold < biayaKasur);
+    const kabur = {
+      "hd-kasur-lv": me.bedLv >= 8 ? "MAX" : `Lv.${me.bedLv}`,
+      "hd-kuburan-lv": me.graveLv >= 3 ? "MAX" : `Lv.${me.graveLv}`,
+      "hd-konsol-lv": me.konsolLv >= 3 ? "MAX" : `Lv.${me.konsolLv}`,
+      "hd-tambang-lv": `${me.tambang.length}/${MAKS_TAMBANG}`,
+      "hd-bengkel-lv": me.bengkel ? "ADA" : "—",
+    };
+    for (const id in kabur) setTeks(id, kabur[id]);
+    setTeks("hd-kasur-cost", me.bedLv >= 8 ? "MAX" : String(BED_UP[me.bedLv]));
+    setTeks("hd-kuburan-cost", me.graveLv >= 3 ? "MAX" : String(GRAVE_UP[me.graveLv]));
+    setTeks("hd-konsol-cost", me.konsolLv >= 3 ? "MAX" : String(KONSOL_UP[me.konsolLv]));
+    setTeks("hd-tambang-cost", me.tambang.length >= MAKS_TAMBANG ? "MAX" : String(HARGA.tambang));
+    setTeks("hd-bengkel-cost", me.bengkel ? "ADA" : String(HARGA.bengkel));
+    const mati = {
+      "hd-build-kasur": me.bedLv >= 8 || me.gold < BED_UP[me.bedLv],
+      "hd-build-kuburan": me.graveLv >= 3 || me.gold < GRAVE_UP[me.graveLv],
+      "hd-build-konsol": me.konsolLv >= 3 || me.gold < KONSOL_UP[me.konsolLv],
+      "hd-build-tambang": me.tambang.length >= MAKS_TAMBANG || me.gold < HARGA.tambang,
+      "hd-build-bengkel": me.bengkel || me.gold < HARGA.bengkel,
+    };
+    for (const id in mati) {
+      const b = $(id);
+      if (b) b.classList.toggle("is-off", mati[id]);
+    }
   }
+
+  const TUTOR_TEKS = [
+    "Pasang turret di ubin kamar (klik ubin atau tombol Turret).",
+    "Dekati kasur, lalu tekan Tidur untuk menabung uang.",
+    "Naikkan level kasur supaya uang tidur makin cepat.",
+    "Perbaiki atau naikkan level pintu sebelum hantu datang.",
+    "Bangun tambang emas untuk ubah energi jadi uang.",
+  ];
 
   function updateHud(force) {
     const hud = $("hd-hud");
@@ -2549,20 +3046,51 @@
     setTeks("hd-door-label", me.door.ada ? `${Math.max(0, Math.round(me.door.hp))} / ${me.door.max}` : "Rusak");
     setBar("hd-door-bar", me.door.ada ? me.door.hp / me.door.max : 0);
     setTeks("hd-gold", `💰 ${angka(me.gold)}`);
+    setTeks("hd-energy", `⚡ ${Math.floor(me.energy)}`);
 
     const sisa = run.t < 0 ? -run.t : MALAM_DETIK - run.t;
     setTeks("hd-timer", fmtWaktu(sisa));
     const timeEl = $("hd-timer");
-    if (timeEl) timeEl.classList.toggle("is-urgent", run.t >= 0 && sisa <= 30);
-    setTeks("hd-timer-label", run.t < 0 ? "Mulai dalam" : sisa <= 30 ? "Pagi hampir tiba" : "Menuju pagi");
+    if (timeEl) {
+      timeEl.classList.toggle("is-urgent", run.t >= 0 && sisa <= 30);
+      timeEl.classList.toggle("is-prep", run.t < 0);
+    }
+    setTeks("hd-timer-label", run.t < 0 ? "Persiapan · mulai dalam" : sisa <= 30 ? "Pagi hampir tiba" : "Menuju pagi");
 
     let st = "Aman";
     if (!me.alive) st = "Gugur";
-    else if (me.sleeping) st = "Tidur";
+    else if (me.sleeping) st = `Tidur +${BED_INCOME[me.bedLv]}/s`;
     else if (hantuDalamKamar(me)) st = "Hantu di kamar!";
     else if (diPintuKamar(me)) st = "Pintu diserang!";
     else if (me.hp < 40) st = "HP kritis";
     setTeks("hd-state-label", st);
+
+    const g = run.ghost;
+    const hc = $("hd-hunter-card");
+    if (hc) hc.classList.toggle("is-live", !!g.visible);
+    setTeks("hd-hunter-name", g.nama);
+    setTeks("hd-hunter-lv", `LV ${g.level}`);
+    setBar("hd-hunter-bar", g.hp / g.maxHp);
+    const aksiHantu = {
+      tunggu: "Menunggu",
+      jalan: "Mencari kamar",
+      pukul: "Menghancurkan pintu",
+      masuk: "Menerobos masuk",
+      kejar: "Mengejar pemain",
+      stun: "STUN",
+      kabur: "Mundur",
+      hilang: "Bersembunyi",
+    };
+    let skillTeks = aksiHantu[g.state] || "Menyerang";
+    if (g.buffT > 0) skillTeks = g.buffJenis === "berserk" ? "BERSERK" : "KEJUT";
+    setTeks("hd-hunter-skill", g.visible ? skillTeks : "Belum muncul");
+
+    const tutor = $("hd-tutor");
+    if (tutor) {
+      const tampilTutor = !!(run.tutor && !run.tutor.selesai && me.alive);
+      tutor.classList.toggle("is-show", tampilTutor);
+      if (tampilTutor) setTeks("hd-tutor-text", TUTOR_TEKS[clamp(run.tutor.langkah, 0, TUTOR_TEKS.length - 1)]);
+    }
 
     segarkanTombol(me);
 
@@ -2577,7 +3105,7 @@
             s === "tidur" ? "is-sleep" : s === "diserang" ? "is-attack" : s === "gugur" ? "is-dead" : "",
             r.slot === run.slotLokal ? "is-me" : "",
           ].filter(Boolean).join(" ");
-          return `<div class="hd-room-chip ${cls}"><span class="hd-dot"></span><b>${esc(r.nama)}</b><small>${s}</small></div>`;
+          return `<div class="hd-room-chip ${cls}" title="${esc(r.nama)}"><span class="hd-dot"></span><b>${r.slot + 1}</b></div>`;
         }).join("");
       }
     }
@@ -2729,17 +3257,20 @@
       <div class="hd-panel">
         <div class="hd-menu-top">
           <button class="hd-back-inline" type="button" data-hd-action="cara-kembali">← Kembali</button>
-          <span class="hd-best-pill">Malam 3 menit</span>
+          <span class="hd-best-pill">30 detik persiapan · 5 menit malam</span>
         </div>
-        <div class="hd-logo"><h3>CARA <span>MAIN</span></h3><p>Bertahan sampai pagi di kamarmu</p></div>
+        <div class="hd-logo"><h3>CARA <span>MAIN</span></h3><p>8 kamar · 1 Dream Hunter · bertahan sampai pagi</p></div>
         <div class="hd-guide">
-          ${item("🌅", "Tujuan", "Delapan kamar, satu Dream Hunter. Bertahan <b>3 menit</b> sampai pagi. Hantu memilih satu kamar dan menghancurkan pintunya.")}
-          ${item("🚪", "Pintu", "Tekan <b>Pintu</b> untuk perbaiki (+45 HP / 💰10), bangun ulang (💰70), atau naikkan level (💰85 / 💰140) supaya lebih tahan.")}
-          ${item("🛏️", "Tidur", "Mendekati kasur lalu tekan <b>Tidur</b> untuk menabung uang. Kamu otomatis bangun kalau hantu masuk. Naikkan level kasur untuk pemasukan lebih cepat.")}
-          ${item("🧹", "Turret sapu", "Klik ubin kamarmu atau tekan <b>Turret</b> untuk memasang sapu otomatis (💰45). Klik turret yang ada untuk naikkan level. Maksimal 4.")}
-          ${item("🔦", "Senter", "Tekan <b>Senter</b> saat hantu dekat untuk membuatnya mundur. Kalau bar stagger penuh, hantu <b>stun</b> dan kamu dapat bonus uang.")}
-          ${item("👥", "Mabar", "Sampai 8 pemain. Kamar kosong diisi bot. Hantu dan pemainmu tetap tanpa delay; pemain lain disinkronkan tiap ±1 detik, jadi gerak mereka sedikit tertinggal. Itu wajar tanpa server.")}
-          ${item("🎮", "Kontrol", "Desktop: WASD / panah · Space senter · F tidur · R pintu · T turret · G kasur · Esc jeda. Sentuh: joystick kiri dan tombol aksi kanan.")}
+          ${item("🌅", "Tujuan", "Delapan kamar, satu Dream Hunter. Bertahan <b>5 menit</b> sampai matahari terbit. Hantu memilih satu kamar, menghancurkan pintunya, lalu mengejar pemainnya. Kalahkan hantunya untuk menang lebih cepat.")}
+          ${item("🚪", "Pintu", "4 tingkat: Kayu → Besi → Baja → Vibranium, masing-masing 3 level (160–1140 HP). Perbaiki +40% HP (💰15), naikkan level, atau ganti tingkat. Pintu yang hancur total <b>tidak bisa</b> dibangun ulang.")}
+          ${item("🛏️", "Kasur", "Dekati kasur lalu tekan <b>Tidur</b>. Tiap level kasur (1–8) menambah uang per detik (4–512). Kamu otomatis bangun kalau hantu masuk.")}
+          ${item("🪦", "Kuburan & Konsol", "Kuburan menghasilkan uang pasif (+1/2/4 per detik). Konsol menghasilkan energi (+1/2/3 per 2 detik). Energi dipakai tambang emas.")}
+          ${item("⛏️", "Tambang & Bengkel", "Tambang (maks 3, 💰60): ubah 3 energi/detik menjadi 7 uang/detik. Bengkel (💰80): memperbaiki pintu otomatis 2,5%/detik.")}
+          ${item("🧹", "Turret", "Maks <b>9 turret</b> per kamar (💰25). 4 level: Sapu → Sekop → Selang → Bubble (upgrade 💰40/70/110). Klik ubin kamar atau turret untuk memasang/menaikkan.")}
+          ${item("🔦", "Senter", "Tekan <b>Senter</b> saat hantu dekat: memberi damage dan mendorongnya mundur. Stagger penuh = hantu stun dan kamu dapat +12 uang.")}
+          ${item("👻", "Dream Hunter", "Level hantu naik tiap 40 detik (maks 9): makin cepat, makin sakit, HP 650–1770. Skill: <b>Berserk</b> (kecepatan & damage naik) dan <b>Kejut</b> (semua turret lumpuh 3 detik). Di bawah 15% HP hantu mundur dan memulihkan diri.")}
+          ${item("👥", "Mabar", "Sampai 8 pemain; slot kosong diisi bot. Hantu dan pemainmu berjalan tanpa delay; pemain lain disinkronkan ±1 detik. Kamu tetap bisa menang sendiri dengan bertahan sampai pagi.")}
+          ${item("🎮", "Kontrol", "Desktop: WASD / panah · Space senter · F tidur · R pintu · T turret · B menu bangun · G kasur · Esc jeda. Sentuh: joystick kiri, tombol aksi kanan.")}
         </div>
         <p class="hd-note">Semua aksi dibatasi Firestore Rules saat menyimpan rekor dan status mabar. Tidak ada data akun lain yang bisa diubah dari browser.</p>
       </div>`;
@@ -2780,17 +3311,27 @@
         <b>${esc(r.nama)}${r.bot ? " (bot)" : ""}</b>
         <small>${r.alive ? (r.sleeping ? "tidur" : "bertahan") : "gugur"}</small>
       </div>`).join("");
+    const judul = h.menang
+      ? h.sebab === "hantu"
+        ? "DREAM HUNTER KALAH"
+        : "BERTAHAN SAMPAI PAGI"
+      : "KAMU GUGUR";
+    const sub = h.menang
+      ? h.sebab === "hantu"
+        ? "Kamu mengalahkan Dream Hunter sebelum matahari terbit."
+        : "Matahari terbit dan Dream Hunter mundur dari asrama."
+      : "Hantu berhasil menembus kamarmu. Pasang turret dan perkuat pintu lebih awal.";
     scr.innerHTML = `
       <div class="hd-panel">
         <div class="hd-result-head">
-          <h3>${h.menang ? "BERTAHAN SAMPAI PAGI" : "KAMU GUGUR"}</h3>
-          <p>${h.menang ? "Dream Hunter mundur saat matahari terbit." : "Hantu berhasil masuk ke kamarmu."}</p>
-          ${h.baru ? `<span class="hd-record-badge">REKOR BARU · Tidur Terlama</span>` : ""}
+          <h3>${judul}</h3>
+          <p>${sub}</p>
+          ${h.baru ? `<span class="hd-record-badge">REKOR BARU · Bertahan Terlama</span>` : ""}
         </div>
         <div class="hd-stats">
           <div class="hd-stat"><small>Waktu</small><b>${fmtWaktu(h.detik || 0)}</b></div>
           <div class="hd-stat"><small>Uang</small><b>${angka(h.gold || 0)}</b></div>
-          <div class="hd-stat"><small>Hantu mundur</small><b>${angka(h.stun || 0)}x</b></div>
+          <div class="hd-stat"><small>Hunter mundur</small><b>${angka(h.stun || 0)}x</b></div>
         </div>
         <div class="hd-result-list">${baris}</div>
         <p class="hd-note">${catatan}</p>
@@ -2802,7 +3343,7 @@
   }
 
   /* ================= AKHIR MATCH ================= */
-  function akhiriMatch(menang) {
+  function akhiriMatch(menang, sebab) {
     if (!run || run.over) return;
     run.over = true;
     run.menang = !!menang;
@@ -2811,9 +3352,12 @@
     const detik = clamp(run.t, 0, MALAM_DETIK);
     const hasil = {
       menang: !!menang,
+      sebab: sebab || (menang ? "pagi" : "gugur"),
       detik,
       gold: Math.max(0, Math.floor(run.goldTotal)),
       stun: run.stunHantu,
+      hantuKalah: run.hantuKalah,
+      level: run.ghost.level,
       baru: detik > lama.bestTime + 0.5 || (menang && lama.wins === 0),
       simpan: null,
     };
@@ -2824,8 +3368,10 @@
     stick.y = 0;
     stick.id = null;
     if (knobEl) knobEl.style.transform = "";
+    const sheet = $("hd-sheet");
+    if (sheet) sheet.classList.remove("is-open");
     if (menang) {
-      kilat("PAGI TIBA", "green");
+      kilat(sebab === "hantu" ? "HUNTER KALAH" : "PAGI TIBA", "green");
       bunyi("menang");
     } else {
       kilat("KAMU GUGUR", "red");
@@ -2947,7 +3493,7 @@
     let bestJ = Infinity;
     for (let y = d.y0; y < d.y0 + 4; y++) {
       for (let x = d.x0; x < d.x0 + 4; x++) {
-        if (tileKasur(room.def, x, y)) continue;
+        if (!tileBolehTurret(room, x, y)) continue;
         if (room.turrets.some((t) => t.tx === x && t.ty === y)) continue;
         const j = Math.abs(x - d.doorX) + Math.abs(y - d.y0);
         if (j < bestJ) { bestJ = j; best = { x, y }; }
@@ -2981,7 +3527,18 @@
     else if (act === "tidur") aksiKasur(me);
     else if (act === "pintu") aksiPintu(me);
     else if (act === "turret") tombolTurret(me);
-    else if (act === "kasur") aksiKasurUp(me);
+    else if (act === "bangun") {
+      const sheet = $("hd-sheet");
+      if (sheet) {
+        const buka = !sheet.classList.contains("is-open");
+        sheet.classList.toggle("is-open", buka);
+        bunyi("klik");
+      }
+    } else if (act === "kasur") aksiKasurUp(me);
+    else if (act === "kuburan") aksiKuburan(me);
+    else if (act === "konsol") aksiKonsol(me);
+    else if (act === "tambang") aksiTambang(me);
+    else if (act === "bengkel") aksiBengkel(me);
   }
 
   function klikTile(tx, ty) {
@@ -2992,6 +3549,14 @@
     if (tx < d.x0 || tx > d.x0 + 3 || ty < d.y0 || ty > d.y0 + 3) return;
     if (tileKasur(d, tx, ty)) {
       aksiKasur(me);
+      return;
+    }
+    if (tx === d.graveX && ty === d.graveY) {
+      aksiKuburan(me);
+      return;
+    }
+    if (tx === d.konsolX && ty === d.konsolY) {
+      aksiKonsol(me);
       return;
     }
     if (me.sleeping) {
@@ -3044,6 +3609,7 @@
       else if (k === "r") { const me = run.rooms[run.slotLokal]; if (me) aksiPintu(me); e.preventDefault(); }
       else if (k === "t") { const me = run.rooms[run.slotLokal]; if (me) tombolTurret(me); e.preventDefault(); }
       else if (k === "g") { const me = run.rooms[run.slotLokal]; if (me) aksiKasurUp(me); e.preventDefault(); }
+      else if (k === "b") { aksiTombol("bangun"); e.preventDefault(); }
     });
 
     document.addEventListener("keyup", (e) => {

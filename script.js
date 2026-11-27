@@ -4195,6 +4195,27 @@ const UPDATE_LOG = [
   {
     tanggal: "27/11/26",
     items: [
+      "Version 2.21.1 Survival Arena: Senjata yang Sudah Dimiliki Bisa Dipakai Lagi Gratis Lewat Toko, Tanpa Beli Ulang",
+      "Version 2.21.1 Loot Senjata Tidak Lagi Mengganti Senjata Mahal Jadi Senjata Lebih Rendah; Senjata Baru Masuk Tas Dulu",
+      "Version 2.21.1 Kartu Toko Menandai Senjata Aktif, Dimiliki, dan Harga Beli dengan Jelas",
+    ],
+  },
+  {
+    tanggal: "27/11/26",
+    items: [
+      "Version 2.21.0 Peta Haunted Dorm Dibuat Ulang Persis Versi Asli: Koridor Vertikal, 4 Kamar Kiri dan 4 Kamar Kanan, Gerbang Hantu di Bawah",
+      "Version 2.21.0 Gameplay Replika: Persiapan 30 Detik, Malam 5 Menit, Menang kalau Bertahan sampai Pagi atau Mengalahkan Dream Hunter",
+      "Version 2.21.0 Ekonomi Baru: Kasur Level 1-8, Kuburan, Konsol Energi, 3 Tambang Emas, dan Bengkel Perbaikan Otomatis",
+      "Version 2.21.0 Pintu 4 Tingkat Kayu sampai Vibranium dengan 3 Level dan 1140 HP Maksimal",
+      "Version 2.21.0 Sampai 9 Turret per Kamar dengan 4 Level: Sapu, Sekop, Selang, Bubble",
+      "Version 2.21.0 Dream Hunter Punya Nama, Level 1-9, HP Besar, Serta Skill Berserk dan Kejut",
+      "Version 2.21.0 HUD Baru: Kartu Hunter, Energi, Tutorial Langkah demi Langkah, dan Menu Bangun",
+      "Version 2.21.0 Tampilan Tetap 3D Voxel: Peta dan Gameplay Sama dengan Asli, Visualnya Saja yang Beda",
+    ],
+  },
+  {
+    tanggal: "27/11/26",
+    items: [
       "Version 2.20.0 Game Baru Haunted Dorm: Delapan Kamar Asrama Melawan Satu Dream Hunter",
       "Version 2.20.0 Mabar Sampai 8 Pemain Lewat Kode Room, Slot Kosong Otomatis Diisi Bot Pintar",
       "Version 2.20.0 Hantu dan Pemain Lokal Bergerak Tanpa Delay, Status Pemain Lain Tersinkron Tiap Detik",

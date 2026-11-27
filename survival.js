@@ -731,6 +731,7 @@
         level: 1, exp: 0, expNeed: 34,
         kills: 0, money: 0, moneyEarned: 0, expTotal: 0,
         weapon: "pistol", mag: 0, reload: 0, fireCd: 0,
+        owned: { pistol: true },
         skills: {},
         beli: { maxhp: 0, speed: 0, dmg: 0, rate: 0 },
         medkit: 0, hurtCd: 0, regenAcc: 0,
@@ -1149,14 +1150,20 @@
     } else if (pk.jenis === "senjata") {
       const opsi = Object.keys(WEAPONS).filter((id) => id !== "pistol");
       const id = pick(opsi);
-      if (p.weapon === id) {
+      if (p.owned[id]) {
         p.money += 80;
         p.moneyEarned += 80;
-        tambahTeks(p.x, p.y - 30, "+80", "#ffcf5c");
+        tambahTeks(p.x, p.y - 30, `${WEAPONS[id].nama} +80`, "#ffcf5c");
       } else {
-        gantiSenjata(id);
+        p.owned[id] = true;
+        if (p.weapon === "pistol") {
+          gantiSenjata(id);
+          flash(`DAPAT ${WEAPONS[id].nama.toUpperCase()}`, true);
+        } else {
+          flash(`${WEAPONS[id].nama.toUpperCase()} MASUK TAS`, true);
+          toast(`🔒 ${WEAPONS[id].nama} masuk tas. Tekan B untuk pakai.`, 2200);
+        }
         tambahTeks(p.x, p.y - 30, WEAPONS[id].nama, "#aee3ff");
-        flash(`DAPAT ${WEAPONS[id].nama.toUpperCase()}`, true);
       }
     }
   }
@@ -1166,6 +1173,7 @@
     if (!w) return;
     const p = run.player;
     p.weapon = id;
+    p.owned[id] = true;
     p.mag = w.mag > 0 ? w.mag : 0;
     p.reload = 0;
     p.fireCd = 0.15;
@@ -1935,10 +1943,13 @@
     if (!item || !run) return;
     const p = run.player;
     if (p.weapon === id) return toast("Senjata itu sudah dipakai.", 1400);
-    if (p.money < item.harga) return toast("Uang kurang.", 1400);
-    p.money -= item.harga;
+    const sudahPunya = !!p.owned[id];
+    if (!sudahPunya) {
+      if (p.money < item.harga) return toast("Uang kurang.", 1400);
+      p.money -= item.harga;
+    }
     gantiSenjata(id);
-    toast(`🛒 ${WEAPONS[id].nama} siap dipakai!`);
+    toast(sudahPunya ? `🔁 ${WEAPONS[id].nama} dipakai lagi.` : `🛒 ${WEAPONS[id].nama} siap dipakai!`);
     renderShop();
   }
 
@@ -3171,13 +3182,15 @@
     const senjata = SHOP_WEAPONS.map((it) => {
       const w = WEAPONS[it.id];
       const pakai = p.weapon === it.id;
-      const kurang = p.money < it.harga;
-      return `<div class="sv-shop-item ${pakai ? "is-owned" : ""}">
+      const punya = !!p.owned[it.id];
+      const kurang = !punya && p.money < it.harga;
+      const harga = pakai ? "Aktif" : punya ? "Dimiliki" : `💰 ${angka(it.harga)}`;
+      return `<div class="sv-shop-item ${pakai || punya ? "is-owned" : ""}">
         <h5>${w.icon} ${w.nama}</h5>
         <p>${w.desc}</p>
         <div class="sv-shop-buy">
-          <span class="sv-price">💰 ${angka(it.harga)}</span>
-          <button type="button" data-sv-action="buy-weapon" data-id="${it.id}" ${pakai || kurang ? "disabled" : ""}>${pakai ? "Dipakai" : "Beli"}</button>
+          <span class="sv-price">${harga}</span>
+          <button type="button" data-sv-action="buy-weapon" data-id="${it.id}" ${pakai || kurang ? "disabled" : ""}>${pakai ? "Dipakai" : punya ? "Pakai" : "Beli"}</button>
         </div>
       </div>`;
     }).join("");

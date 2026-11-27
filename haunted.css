@@ -952,3 +952,236 @@ body.hd-touch .hd-hint { display: none; }
 
 .hd-pause-actions .hd-btn-primary,
 .hd-over-actions .hd-btn-primary { grid-column: auto; }
+
+/* ===================================================
+   REPLIKA VERTIKAL — peta 14 x 22, tampilan potret
+=================================================== */
+.hd-app {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  scroll-margin-top: 74px;
+}
+
+.hd-stage {
+  width: min(100%, 560px, 55vh);
+  aspect-ratio: 10 / 16;
+  max-height: none;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.hd-hud-top {
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "player actions"
+    "player timer"
+    "hunter hunter";
+  gap: 6px;
+}
+
+.hd-player-card {
+  grid-area: player;
+  min-width: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
+.hd-top-actions { grid-area: actions; }
+.hd-timer { grid-area: timer; justify-self: end; align-self: start; }
+
+.hd-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hd-energy {
+  color: #8fd0ee;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.hd-hunter-card {
+  grid-area: hunter;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 5px 9px 6px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(8, 16, 12, 0.9), rgba(8, 16, 12, 0.6));
+  border: 1px solid var(--hd-line);
+  backdrop-filter: blur(6px);
+}
+
+.hd-hunter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hd-hunter-row > b {
+  font-size: 11px;
+  color: var(--hd-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hd-hunter-card .hd-chip {
+  background: linear-gradient(135deg, #ffc0c0, #e34b4b);
+  color: #1a0707;
+}
+
+.hd-bar-hunter { grid-column: 1; grid-row: 2; height: 7px; }
+.hd-bar-hunter > i { background: linear-gradient(90deg, #ff9a9a, #e34b4b); }
+
+.hd-hunter-card small {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 9px;
+  color: var(--hd-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.hd-hunter-card.is-live {
+  border-color: rgba(255, 114, 114, 0.45);
+  box-shadow: 0 0 16px -6px rgba(255, 80, 80, 0.6);
+}
+
+.hd-room-strip {
+  top: 188px;
+  left: 8px;
+  right: 8px;
+  max-width: none;
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.hd-room-strip::-webkit-scrollbar { display: none; }
+
+.hd-room-chip {
+  flex: 0 0 auto;
+  grid-template-columns: 9px auto;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.hd-room-chip b { min-width: 1.1em; text-align: center; }
+
+.hd-tutor {
+  position: absolute;
+  top: 220px;
+  left: 50%;
+  transform: translate(-50%, -6px);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(8, 18, 12, 0.94);
+  border: 1px solid rgba(88, 217, 143, 0.45);
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--hd-ink);
+  max-width: calc(100% - 24px);
+  z-index: 6;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.hd-tutor.is-show { display: flex; transform: translate(-50%, 0); }
+
+.hd-sheet {
+  position: absolute;
+  right: 12px;
+  bottom: 208px;
+  width: min(248px, 68%);
+  display: none;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(8, 16, 12, 0.96);
+  border: 1px solid var(--hd-line);
+  backdrop-filter: blur(8px);
+  z-index: 7;
+  box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 0.8);
+}
+
+.hd-sheet.is-open { display: grid; }
+
+.hd-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hd-muted);
+  padding: 2px 2px 4px;
+}
+
+.hd-sheet-head button {
+  border: none;
+  background: none;
+  color: var(--hd-ink);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.hd-sheet-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(214, 240, 223, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--hd-ink);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.hd-sheet-row:active { background: rgba(255, 255, 255, 0.1); }
+.hd-sheet-row small { color: var(--hd-muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+.hd-sheet-row.is-off { opacity: 0.45; }
+
+.hd-sheet-row .hd-cost {
+  min-width: 26px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #ffd166;
+  color: #201607;
+  font-size: 9px;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 720px) {
+  .hd-stage { width: 100%; aspect-ratio: 10 / 16; }
+  .hd-hud-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "player actions" "player timer" "hunter hunter"; }
+  .hd-room-strip { top: 188px; left: 8px; right: 8px; flex-direction: row; max-width: none; }
+  .hd-sheet { bottom: 198px; right: 10px; width: min(232px, 64%); }
+  .hd-tutor { top: 220px; font-size: 10px; }
+  .hd-timer { min-width: 0; max-width: 124px; padding: 5px 9px 6px; }
+  .hd-top-actions { justify-self: end; }
+  .hd-timer strong { font-size: 21px; }
+  .hd-timer small { font-size: 8px; letter-spacing: 0.1em; line-height: 1.25; }
+}
+
+@media (max-height: 700px) {
+  .hd-sheet { bottom: 168px; }
+}
