@@ -514,6 +514,148 @@ service cloud.firestore {
         && c.skin in ['terang','sawo','gelap'];
     }
 
+    // ── HAUNTED DORM ─────────────────────────────────────────
+    // Rekor per akun (satu dokumen per absen) dan room mabar beserta
+    // dokumen pemainnya. Simulasi jalan di browser, jadi rules menjaga
+    // bentuk data, batas wajar, dan rekor cuma boleh naik.
+    match /haunted/{absen} {
+      allow read: if true;
+      allow create: if string(request.resource.data.absen) == absen
+        && isValidHauntedRecord(request.resource.data);
+      allow update: if string(request.resource.data.absen) == absen
+        && isValidHauntedRecord(request.resource.data)
+        && request.resource.data.bestTime >= resource.data.bestTime
+        && request.resource.data.wins >= resource.data.wins
+        && request.resource.data.games >= resource.data.games
+        && request.resource.data.bestGold >= resource.data.bestGold
+        && request.resource.data.totalGold >= resource.data.totalGold
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    function isValidHauntedRecord(d) {
+      return d.keys().hasOnly(['absen','name','bestTime','wins','games','bestGold',
+                               'totalGold','createdAt','updatedAt','version'])
+        && d.keys().hasAll(['absen','name','bestTime','wins','games','bestGold',
+                            'totalGold','createdAt','updatedAt','version'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() >= 1
+        && d.name.size() <= 30
+        && d.bestTime is number
+        && d.bestTime >= 0
+        && d.bestTime <= 180
+        && d.wins is number
+        && d.wins >= 0
+        && d.wins <= 1000000
+        && d.games is number
+        && d.games >= 0
+        && d.games <= 1000000
+        && d.wins <= d.games
+        && d.bestGold is number
+        && d.bestGold >= 0
+        && d.bestGold <= 100000
+        && d.totalGold is number
+        && d.totalGold >= 0
+        && d.totalGold <= 100000000
+        && d.totalGold >= d.bestGold
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.version == 1;
+    }
+
+    match /hauntedRooms/{kode} {
+      allow read: if true;
+      allow create: if kode.matches('^[A-Z2-9]{5}$')
+        && request.resource.data.code == kode
+        && isValidHauntedRoom(request.resource.data);
+      allow update: if kode.matches('^[A-Z2-9]{5}$')
+        && request.resource.data.code == kode
+        && isValidHauntedRoom(request.resource.data);
+      allow delete: if kode.matches('^[A-Z2-9]{5}$');
+    }
+
+    match /hauntedRooms/{kode}/players/{absen} {
+      allow read: if true;
+      allow create: if kode.matches('^[A-Z2-9]{5}$')
+        && string(request.resource.data.absen) == absen
+        && isValidHauntedPlayer(request.resource.data);
+      allow update: if kode.matches('^[A-Z2-9]{5}$')
+        && string(request.resource.data.absen) == absen
+        && isValidHauntedPlayer(request.resource.data);
+      allow delete: if kode.matches('^[A-Z2-9]{5}$')
+        && string(resource.data.absen) == absen;
+    }
+
+    function isValidHauntedRoom(d) {
+      return d.keys().hasOnly(['code','hostAbsen','hostName','status','seed','startAt',
+                               'kapasitas','createdAt','updatedAt','version'])
+        && d.keys().hasAll(['code','hostAbsen','hostName','status','seed','startAt',
+                            'kapasitas','createdAt','updatedAt','version'])
+        && d.code is string
+        && d.code.size() == 5
+        && d.hostAbsen is number
+        && d.hostAbsen >= 1
+        && d.hostAbsen <= 64
+        && d.hostName is string
+        && d.hostName.size() >= 1
+        && d.hostName.size() <= 30
+        && d.status in ['lobby','playing']
+        && d.seed is number
+        && d.seed >= 0
+        && d.seed <= 1000000000
+        && d.startAt is number
+        && d.startAt >= 0
+        && d.kapasitas == 8
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.version == 1;
+    }
+
+    function isValidHauntedPlayer(d) {
+      return d.keys().hasOnly(['absen','name','slot','alive','hp','doorHp','doorLv',
+                               'bedLv','turrets','status','joinedAt','updatedAt','version'])
+        && d.keys().hasAll(['absen','name','slot','alive','hp','doorHp','doorLv',
+                            'bedLv','turrets','status','joinedAt','updatedAt','version'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() >= 1
+        && d.name.size() <= 30
+        && d.slot is number
+        && d.slot >= 0
+        && d.slot <= 7
+        && d.alive is bool
+        && d.hp is number
+        && d.hp >= 0
+        && d.hp <= 100
+        && d.doorHp is number
+        && d.doorHp >= 0
+        && d.doorHp <= (d.doorLv == 1 ? 160 : (d.doorLv == 2 ? 280 : 430))
+        && d.doorLv is number
+        && d.doorLv >= 1
+        && d.doorLv <= 3
+        && d.bedLv is number
+        && d.bedLv >= 1
+        && d.bedLv <= 3
+        && d.turrets is string
+        && d.turrets.size() <= 48
+        && d.turrets.matches('^$|^[0-9]{1,2}:[0-9]{1,2}:[0-9](,[0-9]{1,2}:[0-9]{1,2}:[0-9]){0,3}$')
+        && d.status in ['siap','aman','tidur','diserang','gugur']
+        && d.joinedAt is number
+        && d.joinedAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.version == 1;
+    }
+
     // ── PROFIL GAME (nama, avatar, motto) ────────────────────
     // Satu dokumen per akun, dipakai TableVerse, Streak, Quiz,
     // Block Blast, dan Sudoku sebagai nama tampilan.

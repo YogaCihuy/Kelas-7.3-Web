@@ -1936,6 +1936,13 @@ function setupPageTabs() {
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
+        const hdView = document.getElementById("game-haunted-view");
+        if (hdView && !hdView.hidden) {
+          if (typeof window.hauntedTutup === "function") window.hauntedTutup();
+          hdView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
       }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
@@ -4188,6 +4195,13 @@ const UPDATE_LOG = [
   {
     tanggal: "27/11/26",
     items: [
+      "Version 2.20.0 Game Baru Haunted Dorm: Delapan Kamar Asrama Melawan Satu Dream Hunter",
+      "Version 2.20.0 Mabar Sampai 8 Pemain Lewat Kode Room, Slot Kosong Otomatis Diisi Bot Pintar",
+      "Version 2.20.0 Hantu dan Pemain Lokal Bergerak Tanpa Delay, Status Pemain Lain Tersinkron Tiap Detik",
+      "Version 2.20.0 Bot Punya Keputusan Sendiri: Bangun Turret, Upgrade Pintu, Perbaiki, dan Tidur",
+      "Version 2.20.0 Tampilan 3D Voxel untuk Asrama, Hantu, Pemain, Kasur, dan Turret Sapu",
+      "Version 2.20.0 Rekor per Akun: Waktu Bertahan Terlama, Jumlah Menang, dan Total Main",
+      "Version 2.20.0 Kontrol Keyboard, Klik Ubin, dan Joystick Sentuh di HP",
       "Version 2.19.0 Karakter Survival Arena Sekarang Voxel 3D Kotak-Kotak dengan Animasi Jalan, Berlaku Juga untuk Semua Zombie",
       "Version 2.19.0 Zombie Lebih Kuat dan Lebih Pintar: Mencari Rute Terpendek serta Menghindari Tembok dan Peti",
       "Version 2.19.0 Jangkauan Lightning Orb Dikecilkan supaya Terasa Lebih Dekat ke Karakter",
@@ -4536,7 +4550,7 @@ function setupThemeSettings() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku", "rubik", "island", "survival"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku", "rubik", "island", "survival", "haunted"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
@@ -4549,6 +4563,7 @@ const GAME_INFO_ATUR = {
   rubik: { judul: "Rubik Cube", icon: "🧊" },
   island: { judul: "Island Tycoon", icon: "🏝️" },
   survival: { judul: "Survival Arena", icon: "🧟" },
+  haunted: { judul: "Haunted Dorm", icon: "👻" },
 };
 const GAME_MODE_INFO = [
   { id: "default", judul: "Default", sub: "Urutan bawaan web." },
@@ -4817,6 +4832,18 @@ function renderGames() {
     }
   }
 
+  let ringkasHaunted = login ? "8 kamar · hantu, bot, dan mabar" : "Bisa main tanpa login · rekor lokal";
+  if (typeof window.hauntedRingkas === "function") {
+    const rh = window.hauntedRingkas();
+    if (rh && rh.bestTime > 0) {
+      const menit = Math.floor(rh.bestTime / 60);
+      const detik = String(Math.floor(rh.bestTime % 60)).padStart(2, "0");
+      ringkasHaunted = `⏱️ ${menit}:${detik} · ${Number(rh.wins) || 0} menang · ${Number(rh.games) || 0} main`;
+    } else if (login) {
+      ringkasHaunted = "Belum pernah bertahan. Coba satu malam!";
+    }
+  }
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -4928,6 +4955,16 @@ function renderGames() {
       spark: "🔫",
       kelas: "game-card-survival",
       cari: "survival arena zombie gelombang wave bertahan shooter tembak skill senjata loot supply drop toko leaderboard rekor",
+    },
+    {
+      id: "haunted",
+      judul: "Haunted Dorm",
+      deskripsi: "Delapan kamar asrama, satu Dream Hunter. Perkuat pintu, pasang turret sapu, tidur buat nabung, dan bertahan sampai pagi. Main solo atau mabar; slot kosong diisi bot.",
+      progress: ringkasHaunted,
+      icon: "👻",
+      spark: "🌙",
+      kelas: "game-card-haunted",
+      cari: "haunted dorm hantu asrama kamar pintu tidur kasur turret sapu senter malam zombie bertahan mabar bot kode room multiplayer",
     },
   ];
 
@@ -7301,6 +7338,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnHauntedBack = document.getElementById("btn-haunted-back");
+  if (btnHauntedBack) {
+    btnHauntedBack.addEventListener("click", () => {
+      if (typeof window.hauntedTutup === "function") window.hauntedTutup();
+      document.getElementById("game-haunted-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -7319,6 +7367,7 @@ function setupGamesTab() {
       if (game !== "rubik" && typeof window.rubikTutup === "function") window.rubikTutup();
       if (game !== "island" && typeof window.islandTutup === "function") window.islandTutup();
       if (game !== "survival" && typeof window.survivalTutup === "function") window.survivalTutup();
+      if (game !== "haunted" && typeof window.hauntedTutup === "function") window.hauntedTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
@@ -7331,6 +7380,7 @@ function setupGamesTab() {
       document.getElementById("game-rubik-view").hidden = game !== "rubik";
       document.getElementById("game-island-view").hidden = game !== "island";
       document.getElementById("game-survival-view").hidden = game !== "survival";
+      document.getElementById("game-haunted-view").hidden = game !== "haunted";
       if (game === "timer") {
         timerRender();
       } else if (game === "guesscolor") {
@@ -7355,6 +7405,8 @@ function setupGamesTab() {
         if (typeof window.islandBuka === "function") window.islandBuka();
       } else if (game === "survival") {
         if (typeof window.survivalBuka === "function") window.survivalBuka();
+      } else if (game === "haunted") {
+        if (typeof window.hauntedBuka === "function") window.hauntedBuka();
       } else {
         renderGames();
       }

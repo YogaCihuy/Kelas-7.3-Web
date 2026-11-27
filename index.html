@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="rubik.css?v=1">
 <link rel="stylesheet" href="island.css?v=2">
 <link rel="stylesheet" href="survival.css?v=4">
+<link rel="stylesheet" href="haunted.css?v=1">
 <link rel="stylesheet" href="chat.css?v=4">
 <link rel="stylesheet" href="fishing.css?v=6">
 <link rel="stylesheet" href="tableverse.css?v=10">
@@ -980,6 +981,78 @@
             </div>
           </div>
         </div>
+
+        <div id="game-haunted-view" hidden>
+          <div class="game-topbar">
+            <button id="btn-haunted-back" class="btn-text-only game-back" type="button">&#8592; Semua Game</button>
+            <span class="game-coin" aria-live="polite">&#128123; Haunted Dorm</span>
+          </div>
+
+          <div class="section-head">
+            <h2>Haunted Dorm</h2>
+            <p class="section-sub">Delapan kamar asrama, satu Dream Hunter. Kunci dan perkuat pintu, pasang turret sapu, tidur untuk menabung, lalu bertahan sampai pagi. Main solo atau mabar sampai 8 pemain; slot kosong diisi bot yang berpikir sendiri.</p>
+          </div>
+
+          <div id="hd-app" class="hd-app">
+            <div id="hd-stage" class="hd-stage">
+              <canvas id="hd-canvas" class="hd-canvas" aria-label="Asrama voxel top-down. Gerak dengan WASD atau joystick, klik ubin kamar untuk turret."></canvas>
+              <div class="hd-vignette" aria-hidden="true"></div>
+              <div id="hd-hurt" class="hd-hurt" aria-hidden="true"></div>
+
+              <div id="hd-hud" class="hd-hud" hidden>
+                <div class="hd-hud-top">
+                  <div class="hd-player-card">
+                    <div class="hd-player-row">
+                      <span class="hd-avatar" aria-hidden="true">&#128123;</span>
+                      <span id="hd-player-name" class="hd-player-name">Pemain</span>
+                      <span id="hd-slot-chip" class="hd-chip">Kamar 1</span>
+                    </div>
+                    <div>
+                      <div class="hd-bar-label"><span>HP</span><b id="hd-hp-label">100 / 100</b></div>
+                      <div id="hd-hp-bar" class="hd-bar hd-bar-hp"><i></i></div>
+                    </div>
+                    <div>
+                      <div class="hd-bar-label"><span>Pintu</span><b id="hd-door-label">160 / 160</b></div>
+                      <div id="hd-door-bar" class="hd-bar hd-bar-door"><i></i></div>
+                    </div>
+                    <div class="hd-small-row"><span id="hd-state-label">Aman</span><b id="hd-gold" class="hd-gold">&#128176; 70</b></div>
+                  </div>
+
+                  <div class="hd-timer">
+                    <strong id="hd-timer">3:00</strong>
+                    <small id="hd-timer-label">Menuju pagi</small>
+                  </div>
+
+                  <div class="hd-top-actions">
+                    <button id="hd-pause-btn" class="hd-icon-btn" type="button" aria-label="Jeda">&#9208;&#65039;</button>
+                    <button id="hd-sound-btn" class="hd-icon-btn" type="button" aria-label="Suara">&#128266;</button>
+                  </div>
+                </div>
+
+                <div id="hd-room-strip" class="hd-room-strip"></div>
+
+                <div id="hd-joystick" class="hd-joystick" aria-label="Joystick gerak">
+                  <span id="hd-joystick-knob" class="hd-joystick-knob"></span>
+                </div>
+
+                <div class="hd-actions">
+                  <button id="hd-btn-senter" class="hd-action-btn" type="button" data-hd-act="senter">Senter<span class="hd-key">Space</span><span class="hd-cooldown"></span></button>
+                  <button id="hd-btn-tidur" class="hd-action-btn is-sleep" type="button" data-hd-act="tidur"><span id="hd-tidur-txt">Tidur</span><span class="hd-key">F</span></button>
+                  <button id="hd-btn-pintu" class="hd-action-btn is-door" type="button" data-hd-act="pintu">Pintu<span class="hd-key">R</span><b id="hd-pintu-cost" class="hd-cost">10</b></button>
+                  <button id="hd-btn-turret" class="hd-action-btn is-build" type="button" data-hd-act="turret">Turret<span class="hd-key">T</span><b id="hd-turret-cost" class="hd-cost">45</b></button>
+                  <button id="hd-btn-kasur" class="hd-action-btn is-up is-wide" type="button" data-hd-act="kasur">Kasur+<span class="hd-key">G</span><b id="hd-kasur-cost" class="hd-cost">65</b></button>
+                </div>
+
+                <div class="hd-hint">WASD gerak · klik ubin kamar untuk turret · Space senter · F tidur · R pintu · T turret · G kasur · Esc jeda</div>
+              </div>
+
+              <div id="hd-toast" class="hd-toast" role="status" aria-live="polite"></div>
+              <div id="hd-flash" class="hd-flash" aria-hidden="true"></div>
+
+              <div id="hd-screen" class="hd-screen" hidden></div>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -1017,7 +1090,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.19.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.20.0</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (27/11/26)</button>
   </footer>
 
@@ -1568,7 +1641,7 @@
 <script src="data.js?v=2"></script>
 <script src="guru.js?v=3"></script>
 <script src="streak3d.js?v=2"></script>
-<script src="script.js?v=69"></script>
+<script src="script.js?v=70"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=7"></script>
 <script src="fishing-local.js?v=11"></script>
@@ -1588,6 +1661,7 @@
 <script src="island-local.js?v=1"></script>
 <script src="island.js?v=3"></script>
 <script src="survival.js?v=4"></script>
+<script src="haunted.js?v=1"></script>
 <script src="chat.js?v=5"></script>
 <script src="native-notif.js?v=5"></script>
 </body>
