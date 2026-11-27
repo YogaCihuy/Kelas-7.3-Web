@@ -1929,6 +1929,13 @@ function setupPageTabs() {
           const listView = document.getElementById("games-list-view");
           if (listView) listView.hidden = false;
         }
+        const svView = document.getElementById("game-survival-view");
+        if (svView && !svView.hidden) {
+          if (typeof window.survivalTutup === "function") window.survivalTutup();
+          svView.hidden = true;
+          const listView = document.getElementById("games-list-view");
+          if (listView) listView.hidden = false;
+        }
       }
       panels.forEach((p) => {
         const tampilkan = p.dataset.pagePanel === target;
@@ -4179,6 +4186,19 @@ async function simpanGameProfil(e) {
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
   {
+    tanggal: "27/11/26",
+    items: [
+      "Version 2.18.0 Game Baru Survival Arena: Bertahan dari Gelombang Zombie di Arena",
+      "Version 2.18.0 6 Senjata, Loot Peti, Supply Drop, dan Toko Selama Pertandingan",
+      "Version 2.18.0 12 Skill Bisa Diupgrade Sampai Level 5 dan Benar-Benar Berpengaruh",
+      "Version 2.18.0 Level Up Menghentikan Permainan Sebentar dan Menawarkan Pilihan Skill",
+      "Version 2.18.0 Leaderboard Dua Kategori: Survival Terlama dan Kill Terbanyak",
+      "Version 2.18.0 Rekor Disimpan per Akun dan Hasil Divalidasi Ketat di Server",
+      "Version 2.18.0 Kustomisasi Karakter Kosmetik Tanpa Bonus Stat Apa Pun",
+      "Version 2.18.0 Kontrol Keyboard, Mouse, dan Layar Sentuh Tanpa Numpuk di UI",
+    ],
+  },
+  {
     tanggal: "25/11/26",
     items: [
       "Version 2.17.1 Worker Dibatasi Maksimal 3 per Akun Lagi",
@@ -4511,7 +4531,7 @@ function setupThemeSettings() {
 }
 
 /* ===== Pengaturan urutan game ===== */
-const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku", "rubik", "island"];
+const GAME_IDS_ATUR = ["timer", "guesscolor", "tableverse", "fishing", "streak", "quiz", "blockblast", "sudoku", "rubik", "island", "survival"];
 const GAME_INFO_ATUR = {
   timer: { judul: "Timer", icon: "⏱️" },
   guesscolor: { judul: "Guess the Color", icon: "🎨" },
@@ -4523,6 +4543,7 @@ const GAME_INFO_ATUR = {
   sudoku: { judul: "Sudoku", icon: "🔢" },
   rubik: { judul: "Rubik Cube", icon: "🧊" },
   island: { judul: "Island Tycoon", icon: "🏝️" },
+  survival: { judul: "Survival Arena", icon: "🧟" },
 };
 const GAME_MODE_INFO = [
   { id: "default", judul: "Default", sub: "Urutan bawaan web." },
@@ -4779,6 +4800,18 @@ function renderGames() {
     }
   }
 
+  let ringkasSurvival = login ? "Belum pernah bertahan. Mulai wave 1!" : "Bisa main tanpa login · rekor lokal";
+  if (typeof window.survivalRingkas === "function") {
+    const rs = window.survivalRingkas();
+    if (rs && rs.bestTime > 0) {
+      const menit = Math.floor(rs.bestTime / 60);
+      const detik = String(Math.floor(rs.bestTime % 60)).padStart(2, "0");
+      ringkasSurvival = `⏱️ ${menit}:${detik} · ${Number(rs.bestWave) || 0} wave · ${Number(rs.bestKills) || 0} kill`;
+    } else if (login) {
+      ringkasSurvival = "Belum pernah bertahan. Mulai wave 1!";
+    }
+  }
+
   // TableVerse aktif lagi tanpa server (Firestore langsung).
   const katalog = [
     {
@@ -4880,6 +4913,16 @@ function renderGames() {
       spark: "🌴",
       kelas: "",
       cari: "island tycoon pulau bangun tanam kebun pabrik pekerja lumberjack kendaraan mobil marketplace kunjungan pulau teman isometrik",
+    },
+    {
+      id: "survival",
+      judul: "Survival Arena",
+      deskripsi: "Bertahan dari gelombang zombie di arena: tembak, kumpulkan uang & EXP, pilih 12 skill, belanja di toko, dan kejar rekor bertahan terlama.",
+      progress: ringkasSurvival,
+      icon: "🧟",
+      spark: "🔫",
+      kelas: "game-card-survival",
+      cari: "survival arena zombie gelombang wave bertahan shooter tembak skill senjata loot supply drop toko leaderboard rekor",
     },
   ];
 
@@ -7242,6 +7285,17 @@ function setupGamesTab() {
     });
   }
 
+  const btnSurvivalBack = document.getElementById("btn-survival-back");
+  if (btnSurvivalBack) {
+    btnSurvivalBack.addEventListener("click", () => {
+      if (typeof window.survivalTutup === "function") window.survivalTutup();
+      document.getElementById("game-survival-view").hidden = true;
+      document.getElementById("games-list-view").hidden = false;
+      renderGames();
+      SoundFX.modalClose();
+    });
+  }
+
   panel.addEventListener("click", (e) => {
     if (e.target.closest("[data-game-login]")) {
       document.getElementById("btn-show-login").click();
@@ -7259,6 +7313,7 @@ function setupGamesTab() {
       if (game !== "sudoku" && typeof window.sudokuTutup === "function") window.sudokuTutup();
       if (game !== "rubik" && typeof window.rubikTutup === "function") window.rubikTutup();
       if (game !== "island" && typeof window.islandTutup === "function") window.islandTutup();
+      if (game !== "survival" && typeof window.survivalTutup === "function") window.survivalTutup();
       document.getElementById("games-list-view").hidden = true;
       document.getElementById("game-timer-view").hidden = game !== "timer";
       document.getElementById("game-guesscolor-view").hidden = game !== "guesscolor";
@@ -7270,6 +7325,7 @@ function setupGamesTab() {
       document.getElementById("game-sudoku-view").hidden = game !== "sudoku";
       document.getElementById("game-rubik-view").hidden = game !== "rubik";
       document.getElementById("game-island-view").hidden = game !== "island";
+      document.getElementById("game-survival-view").hidden = game !== "survival";
       if (game === "timer") {
         timerRender();
       } else if (game === "guesscolor") {
@@ -7292,6 +7348,8 @@ function setupGamesTab() {
         if (typeof window.rubikBuka === "function") window.rubikBuka();
       } else if (game === "island") {
         if (typeof window.islandBuka === "function") window.islandBuka();
+      } else if (game === "survival") {
+        if (typeof window.survivalBuka === "function") window.survivalBuka();
       } else {
         renderGames();
       }

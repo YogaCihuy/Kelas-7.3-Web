@@ -445,6 +445,75 @@ service cloud.firestore {
         && d.updatedAt is number;
     }
 
+    // ── SURVIVAL ARENA ──────────────────────────────────────
+    // Satu dokumen per akun: rekor bertahan, total kill, dan kosmetik
+    // karakter. Gameplay jalan di browser, jadi rules yang mengawal:
+    // bentuk data, batas wajar, dan rekor hanya boleh naik (monoton).
+    match /survival/{absen} {
+      allow read: if true;
+      allow create: if string(request.resource.data.absen) == absen
+        && isValidSurvival(request.resource.data);
+      allow update: if string(request.resource.data.absen) == absen
+        && isValidSurvival(request.resource.data)
+        && request.resource.data.bestTime >= resource.data.bestTime
+        && request.resource.data.bestKills >= resource.data.bestKills
+        && request.resource.data.bestWave >= resource.data.bestWave
+        && request.resource.data.bestLevel >= resource.data.bestLevel
+        && request.resource.data.totalKills >= resource.data.totalKills
+        && request.resource.data.games >= resource.data.games;
+      allow delete: if false;
+    }
+
+    function isValidSurvival(d) {
+      return d.keys().hasOnly(['absen','name','bestTime','bestKills','bestWave','bestLevel',
+                               'totalKills','games','character','createdAt','updatedAt','version'])
+        && d.keys().hasAll(['absen','name','bestTime','bestKills','bestWave','bestLevel',
+                            'totalKills','games','character','createdAt','updatedAt','version'])
+        && d.absen is number
+        && d.absen >= 1
+        && d.absen <= 64
+        && d.name is string
+        && d.name.size() >= 1
+        && d.name.size() <= 30
+        && d.bestTime is number
+        && d.bestTime >= 0
+        && d.bestTime <= 86400
+        && d.bestKills is number
+        && d.bestKills >= 0
+        && d.bestKills <= 50000
+        && d.bestWave is number
+        && d.bestWave >= 0
+        && d.bestWave <= 500
+        && d.bestLevel is number
+        && d.bestLevel >= 0
+        && d.bestLevel <= 300
+        && d.totalKills is number
+        && d.totalKills >= 0
+        && d.totalKills <= 10000000
+        && d.totalKills >= d.bestKills
+        && d.games is number
+        && d.games >= 0
+        && d.games <= 1000000
+        && d.character is map
+        && isValidSurvivalChar(d.character)
+        && d.createdAt is number
+        && d.createdAt > 0
+        && d.updatedAt is number
+        && d.updatedAt > 0
+        && d.version == 1;
+    }
+
+    function isValidSurvivalChar(c) {
+      return c.keys().hasOnly(['hair','face','outfit','color','acc','skin'])
+        && c.keys().hasAll(['hair','face','outfit','color','acc','skin'])
+        && c.hair in ['pendek','spiky','jabrik','botak']
+        && c.face in ['biasa','serius','senyum','mata-satu']
+        && c.outfit in ['kaos','jaket','lab','rompi']
+        && c.color in ['hijau','biru','merah','ungu','kuning']
+        && c.acc in ['none','topi','kacamata','masker']
+        && c.skin in ['terang','sawo','gelap'];
+    }
+
     // ── PROFIL GAME (nama, avatar, motto) ────────────────────
     // Satu dokumen per akun, dipakai TableVerse, Streak, Quiz,
     // Block Blast, dan Sudoku sebagai nama tampilan.
