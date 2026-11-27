@@ -4188,6 +4188,8 @@ const UPDATE_LOG = [
   {
     tanggal: "27/11/26",
     items: [
+      "Version 2.18.1 Pilihan Skill di HP Tidak Lagi Terpilih Sendiri Saat Jempol Masih Menahan Joystick atau Tombol Tembak",
+      "Version 2.18.1 Petunjuk Keyboard Disembunyikan di Layar Sentuh, Termasuk Saat HP Diputar Mendatar",
       "Version 2.18.0 Game Baru Survival Arena: Bertahan dari Gelombang Zombie di Arena",
       "Version 2.18.0 6 Senjata, Loot Peti, Supply Drop, dan Toko Selama Pertandingan",
       "Version 2.18.0 12 Skill Bisa Diupgrade Sampai Level 5 dan Benar-Benar Berpengaruh",

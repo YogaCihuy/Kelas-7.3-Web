@@ -3233,6 +3233,10 @@
 
     const scr = $("sv-screen");
     if (scr) {
+      scr.addEventListener("pointerdown", (e) => {
+        const kartu = e.target.closest('[data-sv-action="pick"]');
+        if (kartu) kartu.dataset.svArm = "1";
+      });
       scr.addEventListener("click", (e) => {
         const toggle = e.target.closest("[data-sv-toggle]");
         if (toggle) {
@@ -3262,6 +3266,8 @@
         }
         const btn = e.target.closest("[data-sv-action]");
         if (!btn || btn.disabled) return;
+        if (btn.dataset.svAction === "pick" && e.detail !== 0 && btn.dataset.svArm !== "1") return;
+        if (btn.dataset.svArm) delete btn.dataset.svArm;
         aksiLayar(btn.dataset.svAction, btn);
       });
     }

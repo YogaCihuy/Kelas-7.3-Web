@@ -1074,8 +1074,9 @@
   .sv-stage { min-height: 360px; }
 }
 
-/* Layar sentuh: joystick tampil kalau memang ada sentuhan */
+/* Layar sentuh: joystick tampil & hint keyboard disembunyikan */
 body.sv-touch .sv-joystick { display: block; }
+body.sv-touch .sv-hint { display: none; }
 
 /* Kurangi animasi kalau perangkat minta */
 @media (prefers-reduced-motion: reduce) {
