@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=23">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="streak3d.css?v=2">
 <link rel="stylesheet" href="timer.css?v=1">
@@ -124,6 +124,41 @@
     <div class="loading-apk-track"><div id="loading-apk-bar" class="loading-apk-bar"></div></div>
     <p class="loading-apk-text">SSC, Berkarakter, Unggul, Berprestasi, Juara</p>
   </div>
+
+  <!-- GUEST SCREEN: gerbang login untuk browser yang belum punya akun -->
+  <div id="guest-screen" class="guest-screen" hidden>
+    <div class="guest-screen-card modal-box">
+      <img src="Images/7.3Icon.png" alt="" class="guest-screen-logo">
+      <p class="guest-screen-eyebrow">Selamat datang di</p>
+      <h1 class="guest-screen-title">Kelas 7.3</h1>
+      <p class="guest-screen-sub">Login pakai Username &amp; Password akunmu (siswa atau guru).</p>
+      <form id="form-guest-login" class="account-form guest-screen-form">
+        <label for="guest-login-username">Username</label>
+        <input id="guest-login-username" type="text" autocomplete="username" required>
+        <label for="guest-login-password">Password</label>
+        <input id="guest-login-password" type="password" autocomplete="current-password" required>
+        <p id="guest-login-error" class="form-error" hidden></p>
+        <button type="submit" class="btn-primary btn-block">Login</button>
+        <button type="button" id="btn-login-guest" class="btn-secondary btn-block guest-screen-guest-btn">Login as Guest</button>
+      </form>
+      <a id="guest-lupa-password" class="guest-screen-forgot" href="#">Lupa Password? Chat Yoga</a>
+      <p class="form-hint guest-screen-hint">Guest cuma bisa lihat Home, Daftar Guru, dan Games.</p>
+    </div>
+  </div>
+  <script>
+  /* Tampilkan Guest Screen secepat mungkin supaya menu utama gak sempat kedip. */
+  (function () {
+    try {
+      if (localStorage.getItem("kelas73-session")) return;
+      if (localStorage.getItem("kelas73-guest") === "1") return;
+    } catch (e) { return; }
+    var gate = document.getElementById("guest-screen");
+    if (gate) {
+      gate.hidden = false;
+      document.documentElement.classList.add("guest-gate");
+    }
+  })();
+  </script>
 
   <button id="btn-sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Matikan suara efek">
     <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
@@ -1155,7 +1190,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.30.4</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.31.0</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (28/11/26)</button>
   </footer>
 
@@ -1706,7 +1741,7 @@
 <script src="data.js?v=2"></script>
 <script src="guru.js?v=3"></script>
 <script src="streak3d.js?v=2"></script>
-<script src="script.js?v=84"></script>
+<script src="script.js?v=85"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=9"></script>
 <script src="fishing-local.js?v=12"></script>

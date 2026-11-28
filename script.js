@@ -815,6 +815,8 @@ window.sesiGuruSiap = function (guru) {
       currentUser = null;
       updateAccountUI();
       renderSosialKarenaLogin();
+    } else {
+      sinkronGuestScreen();
     }
     return;
   }
@@ -837,6 +839,8 @@ window.guruSesiHilang = function () {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem("kelas73-session");
+  // Logout = balik lagi ke Guest Screen, bukan langsung masuk mode Guest.
+  try { localStorage.removeItem(GUEST_FLAG_KEY); } catch (err) {}
   updateAccountUI();
   renderSosialKarenaLogin();
 }
@@ -2637,8 +2641,16 @@ function setupAccountUI() {
   });
 
   document.getElementById("btn-stay-guest").addEventListener("click", () => {
+    try { localStorage.setItem(GUEST_FLAG_KEY, "1"); } catch (err) {}
     closeAccountPanels();
     SoundFX.buttonClick();
+  });
+
+  document.getElementById("form-guest-login").addEventListener("submit", handleGuestScreenLogin);
+  document.getElementById("btn-login-guest").addEventListener("click", () => {
+    try { localStorage.setItem(GUEST_FLAG_KEY, "1"); } catch (err) {}
+    SoundFX.buttonClick();
+    sinkronGuestScreen();
   });
 
   document.getElementById("btn-logout").addEventListener("click", () => {
@@ -2709,6 +2721,21 @@ function setupAccountUI() {
       err.hidden = false;
     }
   });
+
+  const linkLupaGuest = document.getElementById("guest-lupa-password");
+  if (linkLupaGuest) {
+    linkLupaGuest.href = linkLupa.href;
+    linkLupaGuest.target = linkLupa.target;
+    linkLupaGuest.rel = "noopener";
+    linkLupaGuest.addEventListener("click", (e) => {
+      if (NOMOR_WA_YOGA.includes("X")) {
+        e.preventDefault();
+        const err = document.getElementById("guest-login-error");
+        err.textContent = "Nomor WA belum diisi di script.js (NOMOR_WA_YOGA).";
+        err.hidden = false;
+      }
+    });
+  }
 
   document.getElementById("profil-notif").addEventListener("change", (e) => {
     if (e.target.checked && typeof Notification !== "undefined") {
@@ -2835,13 +2862,11 @@ function updateAccountUI() {
   if (typeof window.kisiKisiAkunBerubah === "function") window.kisiKisiAkunBerubah(akunFitur);
   if (typeof window.guruAkunBerubah === "function") window.guruAkunBerubah(currentUser || null);
   terapkanTabGuru();
+  sinkronGuestScreen();
 }
 
-async function handleLoginSubmit(e) {
-  e.preventDefault();
-  const username = document.getElementById("login-username").value.trim();
-  const password = document.getElementById("login-password").value;
-  const errorEl = document.getElementById("login-error");
+/* Dipakai bareng oleh modal login dan Guest Screen. Hasil true = berhasil login. */
+async function prosesLogin(username, password, errorEl) {
   errorEl.hidden = true;
 
   let matchedAbsen = null;
@@ -2860,20 +2885,19 @@ async function handleLoginSubmit(e) {
         errorEl.textContent = "Password salah.";
         errorEl.hidden = false;
         SoundFX.errorSound();
-        return;
+        return false;
       }
       loginUserGuru(guru);
       if (typeof window.tableverseLoginDenganPassword === "function") {
         window.tableverseLoginDenganPassword(guru.absen, password);
       }
-      closeModal(document.getElementById("modal-login"));
       SoundFX.resultReveal();
-      return;
+      return true;
     }
     errorEl.textContent = "Username gak ditemukan.";
     errorEl.hidden = false;
     SoundFX.errorSound();
-    return;
+    return false;
   }
 
   const merged = getMergedAccount(matchedAbsen);
@@ -2881,7 +2905,7 @@ async function handleLoginSubmit(e) {
     errorEl.textContent = "Password salah.";
     errorEl.hidden = false;
     SoundFX.errorSound();
-    return;
+    return false;
   }
 
   try {
@@ -2893,13 +2917,57 @@ async function handleLoginSubmit(e) {
     if (typeof window.tableverseLoginDenganPassword === "function") {
       window.tableverseLoginDenganPassword(matchedAbsen, password);
     }
-    closeModal(document.getElementById("modal-login"));
     SoundFX.resultReveal();
+    return true;
   } catch (err) {
     errorEl.textContent = "Gagal login, cek koneksi internet.";
     errorEl.hidden = false;
     SoundFX.errorSound();
+    return false;
   }
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const username = document.getElementById("login-username").value.trim();
+  const password = document.getElementById("login-password").value;
+  const ok = await prosesLogin(username, password, document.getElementById("login-error"));
+  if (ok) closeModal(document.getElementById("modal-login"));
+}
+
+/* ===================================================
+   Guest Screen: gerbang login untuk browser baru
+=================================================== */
+const GUEST_FLAG_KEY = "kelas73-guest"; // "1" = browser ini sudah pilih "Login as Guest"
+
+function perluGuestScreen() {
+  if (currentUser) return false;
+  try {
+    if (localStorage.getItem("kelas73-session")) return false;
+    if (localStorage.getItem(GUEST_FLAG_KEY) === "1") return false;
+  } catch (err) {
+    return false;
+  }
+  return true;
+}
+
+function sinkronGuestScreen() {
+  const gate = document.getElementById("guest-screen");
+  if (!gate) return;
+  const tampil = perluGuestScreen();
+  gate.hidden = !tampil;
+  document.documentElement.classList.toggle("guest-gate", tampil);
+}
+
+async function handleGuestScreenLogin(e) {
+  e.preventDefault();
+  const form = document.getElementById("form-guest-login");
+  const ok = await prosesLogin(
+    document.getElementById("guest-login-username").value.trim(),
+    document.getElementById("guest-login-password").value,
+    document.getElementById("guest-login-error")
+  );
+  if (ok) form.reset();
 }
 
 function openEditProfilModal(absen) {
@@ -4262,6 +4330,9 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.31.0 Browser Baru Sekarang Dibuka dengan Guest Screen: Menu Utama Baru Muncul Setelah Login atau Memilih Login as Guest",
+      "Version 2.31.0 Guest Screen Berisi Login Username & Password Siswa atau Guru, Plus Tombol Login as Guest",
+      "Version 2.31.0 Pilihan Login as Guest Diingat per Browser, dan Logout Akan Mengembalikan ke Guest Screen",
       "Version 2.30.4 Saat Kuota Habis Fishing Menampilkan Tulisan Server Sedang Ditutup, Kembali Jam 15:00 WIB",
       "Version 2.30.3 Pesan Kuota Habis Lebih Jelas: Fishing Memberi Tahu Kuota Baca Firebase Pulih Otomatis Sekitar Pukul 15:00 WIB",
       "Version 2.30.2 Kuota Baca Firestore Ditekan: Papan Peringkat Fishing, Like Biodata, dan Peringkat Games Tidak Lagi Membaca Ulang Seluruh Data Setiap Ada Perubahan",

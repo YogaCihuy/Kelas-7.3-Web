@@ -1528,3 +1528,61 @@ html.apk-loading #loading-apk.keluar { opacity: 0; pointer-events: none; }
 @media (max-width: 420px) {
   .guru-kelola-row { align-items: flex-start; }
 }
+
+/* ===== Guest Screen (gerbang login di browser baru) ===== */
+.guest-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.25rem;
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 90% at 15% 0%, rgba(91, 201, 142, 0.35), transparent 60%),
+    linear-gradient(160deg, var(--t-hero-a) 0%, var(--t-hero-b) 55%, var(--t-hero-c) 130%);
+}
+html.guest-gate,
+html.guest-gate body { overflow: hidden; }
+.guest-screen-card {
+  text-align: center;
+  margin: auto;
+  padding: 1.7rem 1.4rem 1.35rem;
+  max-height: none;
+  overflow: visible;
+}
+.guest-screen-logo {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  margin-bottom: 0.4rem;
+}
+.guest-screen-eyebrow {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.guest-screen-title {
+  font-size: clamp(1.8rem, 7vw, 2.3rem);
+  line-height: 1.1;
+  margin-top: 0.15rem;
+}
+.guest-screen-sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 0.45rem;
+}
+.guest-screen-form { text-align: left; }
+.guest-screen-guest-btn { margin-top: 0.6rem; }
+.guest-screen-forgot {
+  display: inline-block;
+  margin-top: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--emerald);
+  text-decoration: none;
+}
+.guest-screen-forgot:hover { text-decoration: underline; }
+.guest-screen-hint { text-align: center; }
