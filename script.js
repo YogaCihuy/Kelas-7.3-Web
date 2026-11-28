@@ -1024,7 +1024,7 @@ function terapkanBadgeLike() {
 function muatLikeSosial(paksa) {
   const sekarang = Date.now();
   if (sosialState.likesBusy) return;
-  if (!paksa && sosialState.likesMuat && sekarang - sosialState.likesMuat < 15000) return;
+  if (!paksa && sosialState.likesMuat && sekarang - sosialState.likesMuat < 60000) return;
   sosialState.likesMuat = sekarang;
   sosialState.likesBusy = true;
   try {
@@ -1114,7 +1114,7 @@ function bukaSosialDetail(absen) {
   renderLikeDetail();
   renderKomentar();
   muatKomentar(absen);
-  muatLikeSosial(true);
+  muatLikeSosial();
   if (!currentUser) setSosialHint("Login dulu buat like & komentar.");
 }
 
