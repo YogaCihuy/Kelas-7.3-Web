@@ -3046,6 +3046,9 @@
     if (kode.includes("unavailable") || /network|offline|failed to fetch|timeout|unreachable/i.test(teks)) {
       return "Tidak bisa menghubungi Firestore. Cek koneksi/jaringan lalu coba lagi.";
     }
+    if (kode.includes("resource-exhausted") || /quota exceeded/i.test(teks)) {
+      return "Kuota baca harian Firebase (50.000/hari) sedang habis. Kuota pulih otomatis sekitar jam 15:00 WIB — setelah itu muat ulang halaman dan coba lagi.";
+    }
     return teks || "Gagal membuka Fishing.";
   }
 

@@ -4262,6 +4262,7 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.30.3 Pesan Kuota Habis Lebih Jelas: Fishing Memberi Tahu Kuota Baca Firebase Pulih Otomatis Sekitar Pukul 15:00 WIB",
       "Version 2.30.2 Kuota Baca Firestore Ditekan: Papan Peringkat Fishing, Like Biodata, dan Peringkat Games Tidak Lagi Membaca Ulang Seluruh Data Setiap Ada Perubahan",
       "Version 2.30.2 Papan Peringkat Fishing Hanya Memuat Data Saat Panel Peringkat Dibuka, Jadi Mancing Biasa Tidak Lagi Memakan Kuota",
       "Version 2.30.2 Like Biodata Diambil Sekali Saat Halaman Dimuat dan Saat Profil Dibuka, Jadi Like Ramai-Ramai Tidak Menghabiskan Kuota",
