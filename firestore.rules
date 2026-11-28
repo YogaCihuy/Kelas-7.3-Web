@@ -556,7 +556,7 @@ service cloud.firestore {
         && d.wins <= d.games
         && d.bestGold is number
         && d.bestGold >= 0
-        && d.bestGold <= 100000
+        && d.bestGold <= 999999
         && d.totalGold is number
         && d.totalGold >= 0
         && d.totalGold <= 100000000
@@ -620,11 +620,11 @@ service cloud.firestore {
 
     function isValidHauntedPlayer(d) {
       return d.keys().hasOnly(['absen','name','slot','alive','hp','gold','energy',
-                               'doorTier','doorHp','doorLv','bedLv','graveLv','konsolLv',
+                               'doorTier','doorHp','doorLv','bedLv','ice','konsolLv',
                                'tambang','bengkel','turrets','status','joinedAt',
                                'updatedAt','version'])
         && d.keys().hasAll(['absen','name','slot','alive','hp','gold','energy',
-                            'doorTier','doorHp','doorLv','bedLv','graveLv','konsolLv',
+                            'doorTier','doorHp','doorLv','bedLv','ice','konsolLv',
                             'tambang','bengkel','turrets','status','joinedAt',
                             'updatedAt','version'])
         && d.absen is number
@@ -642,43 +642,33 @@ service cloud.firestore {
         && d.hp <= 100
         && d.gold is number
         && d.gold >= 0
-        && d.gold <= 99999
+        && d.gold <= 999999
         && d.energy is number
         && d.energy >= 0
-        && d.energy <= 999
+        && d.energy <= 999999
         && d.doorTier is number
         && d.doorTier >= 1
-        && d.doorTier <= 4
+        && d.doorTier <= 3
         && d.doorLv is number
-        && d.doorLv >= 1
-        && d.doorLv <= 3
+        && d.doorLv >= 0
+        && d.doorLv <= 12
         && d.doorHp is number
         && d.doorHp >= 0
-        && d.doorHp <= (
-          d.doorTier == 1
-            ? (d.doorLv == 1 ? 160 : d.doorLv == 2 ? 200 : 240)
-            : d.doorTier == 2
-              ? (d.doorLv == 1 ? 300 : d.doorLv == 2 ? 375 : 450)
-              : d.doorTier == 3
-                ? (d.doorLv == 1 ? 480 : d.doorLv == 2 ? 600 : 720)
-                : (d.doorLv == 1 ? 760 : d.doorLv == 2 ? 950 : 1140)
-        )
+        && d.doorHp <= 40960
         && d.bedLv is number
         && d.bedLv >= 1
-        && d.bedLv <= 8
-        && d.graveLv is number
-        && d.graveLv >= 1
-        && d.graveLv <= 3
+        && d.bedLv <= 10
+        && d.ice is bool
         && d.konsolLv is number
         && d.konsolLv >= 1
-        && d.konsolLv <= 3
+        && d.konsolLv <= 10
         && d.tambang is number
         && d.tambang >= 0
         && d.tambang <= 3
         && d.bengkel is bool
         && d.turrets is string
-        && d.turrets.size() <= 96
-        && d.turrets.matches('^$|^[0-9]{1,2}:[0-9]{1,2}:[1-4](,[0-9]{1,2}:[0-9]{1,2}:[1-4]){0,8}$')
+        && d.turrets.size() <= 180
+        && d.turrets.matches('^$|^[0-9]{1,2}:[0-9]{1,2}:([1-9]|1[0-3])(,[0-9]{1,2}:[0-9]{1,2}:([1-9]|1[0-3])){0,11}$')
         && d.status in ['siap','aman','tidur','diserang','gugur']
         && d.joinedAt is number
         && d.joinedAt > 0

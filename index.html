@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=21">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="streak3d.css?v=2">
 <link rel="stylesheet" href="timer.css?v=1">
@@ -17,13 +17,14 @@
 <link rel="stylesheet" href="rubik.css?v=1">
 <link rel="stylesheet" href="island.css?v=2">
 <link rel="stylesheet" href="survival.css?v=4">
-<link rel="stylesheet" href="haunted.css?v=2">
+<link rel="stylesheet" href="haunted.css?v=3">
 <link rel="stylesheet" href="chat.css?v=4">
 <link rel="stylesheet" href="fishing.css?v=6">
 <link rel="stylesheet" href="tableverse.css?v=10">
 <link rel="stylesheet" href="kisi-kisi.css?v=5">
 <link rel="stylesheet" href="theme.css?v=8">
 <link rel="stylesheet" href="design.css?v=1">
+<link rel="stylesheet" href="anim.css?v=1">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -218,16 +219,41 @@
   </header>
 
   <!-- NAV HOME / INFO / MEDIA SOSIAL / POLLING -->
-  <nav class="page-nav">
+  <nav class="page-nav" aria-label="Navigasi halaman">
     <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
-    <button class="page-tab-btn active" data-page-tab="home">Home</button>
-    <button class="page-tab-btn" data-page-tab="guru">Daftar Guru</button>
-    <button class="page-tab-btn" data-page-tab="info">Info</button>
-    <button class="page-tab-btn" data-page-tab="chat">Chat<span id="chat-tab-badge" class="chat-tab-badge" hidden></span></button>
-    <button class="page-tab-btn" data-page-tab="medsos">Sosmed</button>
-    <button class="page-tab-btn" data-page-tab="polling">Polling</button>
-    <button class="page-tab-btn" data-page-tab="games">Games</button>
-    <button class="page-tab-btn" data-page-tab="kisi">Kisi Kisi</button>
+    <button class="page-tab-btn active" data-page-tab="home">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.6 10.6 12 3.7l8.4 6.9"/><path d="M5.6 9.6V20h12.8V9.6"/><path d="M9.9 20v-5.4h4.2V20"/></svg>
+      <span class="tab-teks">Home</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="guru">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.9 9.4 12 4.8l9.1 4.6L12 14 2.9 9.4Z"/><path d="M6.8 11.5v4.1c0 1.5 2.3 2.7 5.2 2.7s5.2-1.2 5.2-2.7v-4.1"/><path d="M21.1 9.4v5.3"/></svg>
+      <span class="tab-teks">Daftar Guru</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="info">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><path d="M12 11.2v5.4"/><circle cx="12" cy="7.9" r="1.05" fill="currentColor" stroke="none"/></svg>
+      <span class="tab-teks">Info</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="chat">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.4 11.7c0 3.7-3.8 6.6-8.4 6.6-1 0-2-.14-2.9-.4L4.6 19.4l1-3.3c-1.2-1.2-1.9-2.7-1.9-4.4C3.7 8 7.5 5.1 12 5.1s8.4 2.9 8.4 6.6Z"/><path d="M8.7 11.7h.01"/><path d="M12 11.7h.01"/><path d="M15.3 11.7h.01"/></svg>
+      <span class="tab-teks">Chat</span>
+      <span id="chat-tab-badge" class="chat-tab-badge" hidden></span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="medsos">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="2.4"/><circle cx="17.6" cy="5.6" r="2.4"/><circle cx="17.6" cy="18.4" r="2.4"/><path d="m8.2 10.8 7.2-4"/><path d="m8.2 13.2 7.2 4"/></svg>
+      <span class="tab-teks">Sosmed</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="polling">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.2 20h15.6"/><path d="M7.4 20v-5.6"/><path d="M12 20V8.2"/><path d="M16.6 20v-8.4"/></svg>
+      <span class="tab-teks">Polling</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="games">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2.9" y="7.2" width="18.2" height="10.2" rx="5.1"/><path d="M7.6 10.6v3.4"/><path d="M5.9 12.3h3.4"/><path d="M15.6 11h.01"/><path d="M17.6 13h.01"/></svg>
+      <span class="tab-teks">Games</span>
+    </button>
+    <button class="page-tab-btn" data-page-tab="kisi">
+      <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4.6" y="3.8" width="14.8" height="16.4" rx="2.2"/><path d="M8.2 3.8v16.4"/><path d="M11.4 8.2h4.8"/><path d="M11.4 12h3.2"/></svg>
+      <span class="tab-teks">Kisi Kisi</span>
+    </button>
   </nav>
 
   <main>
@@ -990,7 +1016,7 @@
 
           <div class="section-head">
             <h2>Haunted Dorm</h2>
-            <p class="section-sub">Delapan kamar asrama tersusun vertikal, satu Dream Hunter. Naikkan kasur, kuburan, dan konsol untuk ekonomi; pasang sampai 9 turret; perkuat pintu 4 tingkat; bertahan 5 menit sampai pagi atau kalahkan hantunya. Main solo atau mabar sampai 8 pemain; slot kosong diisi bot yang berpikir sendiri.</p>
+            <p class="section-sub">Peta asrama asli 43×37 dengan 12 kamar dan 4 gerbang, satu Dream Hunter. Naikkan kasur (10 level), kulkas es, konsol, dan tambang; pasang sampai 12 turret 13 level; perkuat pintu 13 level; bertahan sampai pagi atau kalahkan hantunya. Main solo atau mabar sampai 8 pemain; slot kosong diisi bot yang berpikir sendiri.</p>
           </div>
 
           <div id="hd-app" class="hd-app">
@@ -1012,12 +1038,12 @@
                       <div id="hd-hp-bar" class="hd-bar hd-bar-hp"><i></i></div>
                     </div>
                     <div>
-                      <div class="hd-bar-label"><span>Pintu</span><b id="hd-door-label">160 / 160</b></div>
+                      <div class="hd-bar-label"><span>Pintu</span><b id="hd-door-label">50 / 50</b></div>
                       <div id="hd-door-bar" class="hd-bar hd-bar-door"><i></i></div>
                     </div>
                     <div class="hd-small-row">
                       <span id="hd-state-label">Aman</span>
-                      <span class="hd-wallet"><b id="hd-gold" class="hd-gold">&#128176; 30</b><b id="hd-energy" class="hd-energy">&#9889; 0</b></span>
+                      <span class="hd-wallet"><b id="hd-gold" class="hd-gold">&#128176; 50</b><b id="hd-energy" class="hd-energy">&#9889; 0</b></span>
                     </div>
                   </div>
 
@@ -1056,19 +1082,19 @@
                 <div id="hd-sheet" class="hd-sheet">
                   <div class="hd-sheet-head"><b>Bangun &amp; Upgrade</b><button type="button" data-hd-act="bangun" aria-label="Tutup">&#10005;</button></div>
                   <button id="hd-build-kasur" class="hd-sheet-row" type="button" data-hd-act="kasur">
-                    <span>&#128716;&#65039; Kasur</span><small id="hd-kasur-lv">Lv.1</small><b id="hd-kasur-cost" class="hd-cost">30</b>
+                    <span>&#128716;&#65039; Kasur</span><small id="hd-kasur-lv">Lv.1</small><b id="hd-kasur-cost" class="hd-cost">25</b>
                   </button>
                   <button id="hd-build-kuburan" class="hd-sheet-row" type="button" data-hd-act="kuburan">
-                    <span>&#129702; Kuburan</span><small id="hd-kuburan-lv">Lv.1</small><b id="hd-kuburan-cost" class="hd-cost">45</b>
+                    <span>&#129482; Kulkas Es</span><small id="hd-kuburan-lv">&mdash;</small><b id="hd-kuburan-cost" class="hd-cost">64</b>
                   </button>
                   <button id="hd-build-konsol" class="hd-sheet-row" type="button" data-hd-act="konsol">
-                    <span>&#128250; Konsol</span><small id="hd-konsol-lv">Lv.1</small><b id="hd-konsol-cost" class="hd-cost">50</b>
+                    <span>&#128250; Konsol</span><small id="hd-konsol-lv">Lv.1</small><b id="hd-konsol-cost" class="hd-cost">200</b>
                   </button>
                   <button id="hd-build-tambang" class="hd-sheet-row" type="button" data-hd-act="tambang">
-                    <span>&#9935; Tambang</span><small id="hd-tambang-lv">0/3</small><b id="hd-tambang-cost" class="hd-cost">60</b>
+                    <span>&#9935; Tambang</span><small id="hd-tambang-lv">0/3</small><b id="hd-tambang-cost" class="hd-cost">128</b>
                   </button>
                   <button id="hd-build-bengkel" class="hd-sheet-row" type="button" data-hd-act="bengkel">
-                    <span>&#128295; Bengkel</span><small id="hd-bengkel-lv">&mdash;</small><b id="hd-bengkel-cost" class="hd-cost">80</b>
+                    <span>&#128295; Bengkel</span><small id="hd-bengkel-lv">&mdash;</small><b id="hd-bengkel-cost" class="hd-cost">32</b>
                   </button>
                 </div>
 
@@ -1076,11 +1102,11 @@
                   <button id="hd-btn-senter" class="hd-action-btn" type="button" data-hd-act="senter">Senter<span class="hd-key">Space</span><span class="hd-cooldown"></span></button>
                   <button id="hd-btn-tidur" class="hd-action-btn is-sleep" type="button" data-hd-act="tidur"><span id="hd-tidur-txt">Tidur</span><span class="hd-key">F</span></button>
                   <button id="hd-btn-pintu" class="hd-action-btn is-door" type="button" data-hd-act="pintu">Pintu<span class="hd-key">R</span><b id="hd-pintu-cost" class="hd-cost">15</b></button>
-                  <button id="hd-btn-turret" class="hd-action-btn is-build" type="button" data-hd-act="turret">Turret<span class="hd-key">T</span><b id="hd-turret-cost" class="hd-cost">25</b></button>
+                  <button id="hd-btn-turret" class="hd-action-btn is-build" type="button" data-hd-act="turret">Turret<span class="hd-key">T</span><b id="hd-turret-cost" class="hd-cost">8</b></button>
                   <button id="hd-btn-bangun" class="hd-action-btn is-up is-wide" type="button" data-hd-act="bangun">Bangun<span class="hd-key">B</span></button>
                 </div>
 
-                <div class="hd-hint">WASD gerak · klik ubin kamar untuk turret · Space senter · F tidur · R pintu · T turret · B bangun · G kasur · Esc jeda</div>
+                <div class="hd-hint">WASD gerak · klik ubin kamar untuk turret/kulkas/tambang · Space senter · F tidur · R pintu · T turret · B bangun · G kasur · Esc jeda</div>
               </div>
 
               <div id="hd-toast" class="hd-toast" role="status" aria-live="polite"></div>
@@ -1127,8 +1153,8 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.21.1</button>
-    <button class="footer-link" type="button" data-open-updates>Last Update (27/11/26)</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.24.0</button>
+    <button class="footer-link" type="button" data-open-updates>Last Update (28/11/26)</button>
   </footer>
 
   <!-- MODAL DETAIL SISWA -->
@@ -1678,7 +1704,7 @@
 <script src="data.js?v=2"></script>
 <script src="guru.js?v=3"></script>
 <script src="streak3d.js?v=2"></script>
-<script src="script.js?v=72"></script>
+<script src="script.js?v=76"></script>
 <script src="guess-color.js?v=2"></script>
 <script src="fishing-catalog.js?v=7"></script>
 <script src="fishing-local.js?v=11"></script>
@@ -1698,8 +1724,9 @@
 <script src="island-local.js?v=1"></script>
 <script src="island.js?v=3"></script>
 <script src="survival.js?v=5"></script>
-<script src="haunted.js?v=2"></script>
+<script src="haunted.js?v=3"></script>
 <script src="chat.js?v=5"></script>
 <script src="native-notif.js?v=5"></script>
+<script src="anim.js?v=1"></script>
 </body>
 </html>

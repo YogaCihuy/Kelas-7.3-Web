@@ -1867,11 +1867,16 @@ function setupPageTabs() {
 
   function moveIndicator(btn) {
     if (!indicator) return;
-    indicator.style.width = `${btn.offsetWidth}px`;
-    indicator.style.transform = `translateX(${btn.offsetLeft - btns[0].offsetLeft}px)`;
     const nav = btn.closest(".page-nav");
+    const navRect = nav ? nav.getBoundingClientRect() : { left: 0 };
+    const btnRect = btn.getBoundingClientRect();
+    const padKiri = nav ? parseFloat(getComputedStyle(nav).paddingLeft) || 0 : 0;
+    const geserX = btnRect.left - navRect.left + (nav ? nav.scrollLeft : 0) - padKiri;
+    indicator.style.width = `${btn.offsetWidth}px`;
+    indicator.style.transform = `translateX(${geserX}px)`;
     if (nav && nav.scrollWidth > nav.clientWidth + 1) {
-      nav.scrollTo({ left: btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2, behavior: "smooth" });
+      const kontenKiri = btnRect.left - navRect.left + nav.scrollLeft;
+      nav.scrollTo({ left: kontenKiri - (nav.clientWidth - btn.offsetWidth) / 2, behavior: "smooth" });
     }
   }
 
@@ -4192,6 +4197,26 @@ async function simpanGameProfil(e) {
 
 /* ===== Update List (footer) ===== */
 const UPDATE_LOG = [
+  {
+    tanggal: "28/11/26",
+    items: [
+      "Version 2.24.0 Loading Screen Singkat Saat Pertama Buka dan Animasi Masuk Bergiliran untuk Bagian Halaman",
+      "Version 2.24.0 Efek Hover Baru: Kartu Miring 3D Mengikuti Kursor dan Tombol Punya Efek Ripple Saat Ditekan",
+      "Version 2.24.0 Latar Hero Bergerak Halus, Judul Ikut Geser Sedikit, dan Kursor Bulat di Desktop",
+      "Version 2.24.0 Semua Animasi Otomatis Nonaktif Kalau Perangkat Minta Kurangi Gerakan",
+      "Version 2.23.0 Tampilan Tab Navigasi Baru: Bar Melayang di Atas dengan Ikon di Setiap Tab",
+      "Version 2.23.0 Tab Aktif Pakai Pil Hijau Bergradasi dengan Ikon yang Sedikit Membesar",
+      "Version 2.23.0 Di HP Tab Tersusun Ikon dan Tulisan, Bisa Digeser Menyamping supaya Semua Tab Rapi",
+      "Version 2.22.0 Peta Haunted Dorm Diganti ke Peta Asli 43×37: 12 Kamar Tidak Beraturan, Koridor, dan 4 Gerbang Masuk Hantu",
+      "Version 2.22.0 Pintu 13 Level Sesuai Asli: Besi sampai Vibranium, HP Maksimal 40.960, Bisa Diperbaiki 40 persen, dan Tidak Bisa Dibangun Ulang Kalau Sudah Hancur",
+      "Version 2.22.0 Kasur 10 Level dengan Syarat Level Pintu, Kulkas Es 64 Petir yang Memperlambat Hantu, Konsol 10 Level, 3 Tambang, dan Bengkel",
+      "Version 2.22.0 Turret 13 Level dengan Syarat Konsol, Maksimal 12 Turret per Kamar, dan Tembakan Otomatis ke Dream Hunter",
+      "Version 2.22.0 Dream Hunter Naik Level Tiap 35 Detik sampai Level 13, Memilih Gerbang Acak, Menghancurkan Pintu, Mengejar Pemain, dan Mundur saat HP Tinggal 30 persen",
+      "Version 2.22.0 Mabar 8 Pemain Menyimpan Level Pintu, Kulkas, Konsol, Tambang, dan Sampai 12 Turret per Pemain",
+      "Version 2.22.0 Empat Kamar Kosong Tetap Tampil di Peta supaya Bentuk Asrama Sama dengan Asli",
+      "Version 2.22.0 Tampilan Tetap 3D Voxel: Peta dan Gameplay Sama dengan Asli, Visualnya Saja yang Beda",
+    ],
+  },
   {
     tanggal: "27/11/26",
     items: [
