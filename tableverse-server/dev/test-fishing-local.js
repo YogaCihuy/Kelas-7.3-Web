@@ -223,7 +223,7 @@ async function tangkap(absen) {
   // ── AUTO SELL ─────────────────────────────────────
   const totalTas = (s) => Object.values(s.fish || {}).reduce((a, b) => a + b, 0);
   cek(cat.catalog.worker && cat.catalog.worker.price === 3000, "katalog worker harga 3000");
-  cek(cat.catalog.worker.max === 3, "katalog maksimal 3 worker");
+  cek(cat.catalog.worker.max === 4, "katalog maksimal 4 worker");
   cek(cat.catalog.worker.baseSpeedMs === 3600000 && cat.catalog.worker.minSpeedMs === 900000 && cat.catalog.worker.stepMs === 300000, "worker 1 jam bisa upgrade sampai 15 menit");
 
   await cekError("ambang auto sell negatif ditolak", "invalid-argument", () =>
@@ -283,7 +283,9 @@ async function tangkap(absen) {
   const w2id = w2.worker.id;
   const w3 = await panggil(2, "buyWorker", { name: "Budi", gender: "laki", look: "keren" });
   cek(w3.state.workers.length === 3, "tiga worker terdaftar");
-  await cekError("worker keempat ditolak", "failed-precondition", () => panggil(2, "buyWorker", { name: "Dodi" }));
+  const w4 = await panggil(2, "buyWorker", { name: "Dodi", gender: "laki", look: "topi" });
+  cek(w4.state.workers.length === 4, "empat worker terdaftar");
+  await cekError("worker kelima ditolak", "failed-precondition", () => panggil(2, "buyWorker", { name: "Eka" }));
 
   const upd = await panggil(2, "updateWorker", { workerId: w1id, name: "Sari Laut", gender: "lainnya", look: "nenek" });
   cek(upd.worker.name === "Sari Laut" && upd.worker.gender === "lainnya" && upd.worker.look === "nenek", "custom worker bisa diubah");
@@ -557,7 +559,7 @@ async function tangkap(absen) {
   db.__set("fishing", "2", stLama);
   const akhir = await panggil(2, "ensure");
   cek(!("fieldVersiLama" in akhir.state), "field sisa versi lama dibuang saat ensure");
-  cek(akhir.state.workers.length === 3, "worker tersimpan setelah ensure ulang");
+  cek(akhir.state.workers.length === 4, "worker tersimpan setelah ensure ulang");
   cek(akhir.state.autoSell.enabled === true, "auto sell tersimpan setelah ensure ulang");
 
   Date.now = NOW_ASLI;

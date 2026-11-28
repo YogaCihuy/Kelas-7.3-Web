@@ -256,7 +256,7 @@
       collection[id] = { caught: Math.max(0, Number(rec && rec.caught) || 0), firstAt: tsMs(rec && rec.firstAt) };
     });
     const rods = Array.isArray(raw.rods) ? raw.rods.map((r) => ({ id: String(r && r.id), durability: Math.max(0, Number(r && r.durability) || 0) })) : [];
-    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 3;
+    const maxWorker = (FC.cat && FC.cat.worker && FC.cat.worker.max) || 4;
     const maxLevel = (FC.cat && FC.cat.worker && FC.cat.worker.maxLevel) || 9;
     const workers = (Array.isArray(raw.workers) ? raw.workers : []).slice(0, maxWorker).map((w, i) => ({
       id: String((w && w.id) || `w-${i + 1}`),
@@ -368,7 +368,7 @@
     const dariKatalog = Number(infoWorker().max) || 0;
     let dariMesin = 0;
     try { dariMesin = Number(window.FishingLocal && window.FishingLocal.workerLimit) || 0; } catch (err) { dariMesin = 0; }
-    return Math.max(dariKatalog, dariMesin) || 3;
+    return Math.max(dariKatalog, dariMesin) || 4;
   }
   function workerPrice() { return Number(infoWorker().price) || 3000; }
   function workerLevelMaks() { return Number(infoWorker().maxLevel) || 9; }

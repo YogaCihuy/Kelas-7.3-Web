@@ -15,7 +15,7 @@
   };
 
   const WORKER = {
-    max: 3,
+    max: 4,
     price: 3000,
     baseSpeedMs: 3600000,
     minSpeedMs: 900000,
