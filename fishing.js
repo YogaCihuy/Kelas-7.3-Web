@@ -856,6 +856,7 @@
   const BAIT_EMOJI = {
     cacing: "🐛", udang: "🦐", jangkrik: "🦗", pelet: "🟤", "ikan-kecil": "🐟",
     cumi: "🦑", "udang-mutiara": "🦐", kunang: "✨", permata: "💎", bintang: "⭐",
+    "serpihan-aurora": "🌠", "debu-nebula": "🌌", meteorit: "☄️", "inti-hitam": "🕳️", supernova: "💫",
   };
 
   function baitArt(bait) {
@@ -1102,7 +1103,7 @@
               ${topSecret ? `
                 <span class="fishing-first-art">${fishArt(infoIkan(topSecret.fishId), { label: topSecret.fishName })}</span>
                 <div><strong>${esc(topSecret.fishName)}</strong><small>${esc(topSecret.name)} · ${waktu(topSecret.at)}</small></div>
-              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi.${TAMPILKAN_POTION ? " Potion Luck menembus batas jadi 0,2%–0,3%." : ""}</small></div>`}
+              ` : `<div class="fishing-first-empty"><span>Slot pertama masih terbuka</span><small>Peluang 0,05% dasar. Joran lama maksimal 0,1%, joran &amp; umpan baru sampai 0,5%.</small></div>`}
             </div>
           </article>
         </div>
@@ -1913,7 +1914,7 @@
                 return `<div class="fishing-legend-slot is-empty">
                   <span class="fishing-legend-slot-no">#${i + 1}</span>
                   <span class="fishing-legend-empty-art" aria-hidden="true">${rarity === "secret" ? "🌟" : "👑"}</span>
-                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? `Peluang 0,05% dasar, sampai 0,1% dengan luck tinggi.${TAMPILKAN_POTION ? " Potion Luck menembus batas jadi 0,2%–0,3%." : ""}` : "Peluang 0,5% per lemparan."}</small></div>
+                  <div><strong>Slot masih terbuka</strong><small>${rarity === "secret" ? "Peluang 0,05% dasar. Joran lama maksimal 0,1%, joran &amp; umpan baru sampai 0,5%." : "Peluang 0,5% per lemparan."}</small></div>
                 </div>`;
               }
               return `<div class="fishing-legend-slot is-filled">
@@ -3118,13 +3119,16 @@
 
   function ringkas(login) {
     if (!login) return "Login dulu buat mulai memancing";
+    const totalIkan = (window.FishingCatalog && Array.isArray(window.FishingCatalog.FISH))
+      ? window.FishingCatalog.FISH.length
+      : 204;
     try {
       const r = JSON.parse(localStorage.getItem(RINGKAS_KEY) || "null");
       if (r && currentUser && Number(r.absen) === Number(currentUser.absen)) {
-        return `🎣 ${angka(r.species)}/102 spesies · 💰 ${angka(r.coins)} koin · 📦 ${angka(r.totalValue)}`;
+        return `🎣 ${angka(r.species)}/${angka(totalIkan)} spesies · 💰 ${angka(r.coins)} koin · 📦 ${angka(r.totalValue)}`;
       }
     } catch (err) { /* cache rusak */ }
-    return "Lempar pancing pertamamu & isi koleksi 102 ikan!";
+    return `Lempar pancing pertamamu & isi koleksi ${angka(totalIkan)} ikan!`;
   }
 
   /* ================= EVENT ================= */

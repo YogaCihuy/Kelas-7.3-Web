@@ -1870,15 +1870,28 @@ function setupPageTabs() {
     const nav = btn.closest(".page-nav");
     const navRect = nav ? nav.getBoundingClientRect() : { left: 0 };
     const btnRect = btn.getBoundingClientRect();
-    const padKiri = nav ? parseFloat(getComputedStyle(nav).paddingLeft) || 0 : 0;
-    const geserX = btnRect.left - navRect.left + (nav ? nav.scrollLeft : 0) - padKiri;
-    indicator.style.width = `${btn.offsetWidth}px`;
+    const gayaNav = nav ? getComputedStyle(nav) : null;
+    const padKiri = gayaNav ? parseFloat(gayaNav.paddingLeft) || 0 : 0;
+    const padAtas = gayaNav ? parseFloat(gayaNav.paddingTop) || 0 : 0;
+    const tebalBorder = gayaNav ? parseFloat(gayaNav.borderLeftWidth) || 0 : 0;
+    const geserX = btnRect.left - navRect.left + (nav ? nav.scrollLeft : 0) - padKiri - tebalBorder;
+    indicator.style.left = `${padKiri}px`;
+    indicator.style.top = `${padAtas}px`;
+    indicator.style.bottom = `${padAtas}px`;
+    indicator.style.width = `${btnRect.width}px`;
     indicator.style.transform = `translateX(${geserX}px)`;
     if (nav && nav.scrollWidth > nav.clientWidth + 1) {
       const kontenKiri = btnRect.left - navRect.left + nav.scrollLeft;
-      nav.scrollTo({ left: kontenKiri - (nav.clientWidth - btn.offsetWidth) / 2, behavior: "smooth" });
+      nav.scrollTo({ left: kontenKiri - (nav.clientWidth - btnRect.width) / 2, behavior: "smooth" });
     }
   }
+
+  btns.forEach((btn) => {
+    const label = btn.querySelector(".tab-teks");
+    if (label && !btn.hasAttribute("aria-label")) {
+      btn.setAttribute("aria-label", label.textContent.trim());
+    }
+  });
 
   btns.forEach((btn, idx) => {
     btn.addEventListener("click", () => {
@@ -1963,10 +1976,26 @@ function setupPageTabs() {
     if (idx === 0) requestAnimationFrame(() => moveIndicator(btn));
   });
 
-  window.addEventListener("resize", () => {
+  const pantauIndikator = () => {
     const active = document.querySelector(".page-tab-btn.active");
     if (active) moveIndicator(active);
-  });
+  };
+
+  window.addEventListener("resize", pantauIndikator);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(pantauIndikator);
+  }
+
+  new MutationObserver(() => requestAnimationFrame(pantauIndikator)).observe(
+    document.documentElement,
+    { attributes: true, attributeFilter: ["data-design", "data-theme"] }
+  );
+
+  if ("ResizeObserver" in window) {
+    const nav = document.querySelector(".page-nav");
+    if (nav) new ResizeObserver(() => requestAnimationFrame(pantauIndikator)).observe(nav);
+  }
 }
 
 /* Guest & akun guru cuma boleh pakai Home + Daftar Guru + Games. */
@@ -4200,6 +4229,21 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.28.0 Lima Joran Baru: Aurora, Nebula, Void, Singularitas, dan Dewa Samudra dengan Luck Jauh Lebih Tinggi",
+      "Version 2.28.0 Lima Umpan Baru: Aurora, Nebula, Meteorit, Lubang Hitam, dan Supernova",
+      "Version 2.28.0 Peluang Secret Sekarang Ikut Gear: Joran & Umpan Lama Maksimal 0,1%, Joran & Umpan Baru Sampai 0,5%",
+      "Version 2.27.0 Fishing Sekarang Punya 204 Ikan: 102 Spesies Baru dari Umum sampai Rahasia, Koleksi Makin Panjang",
+      "Version 2.27.0 Peluang Maksimal Ikan Secret Naik Jadi 0,5% dengan Luck Gear Tinggi",
+      "Version 2.27.0 Pencapaian Ensiklopedia Hidup Ikut Diperbarui untuk 204 Spesies",
+      "Version 2.26.0 Tema Warna Sekarang Menembus ke Akar Game: Timer, Streak, Quiz, Guess the Color, TableVerse, dan Fishing Ikut Ganti Warna",
+      "Version 2.26.0 Semua Desain Ikut Masuk ke Dalam Game: Kartu, Tombol, Input, dan Panel Ikut Gaya Design yang Dipilih",
+      "Version 2.26.0 Ganti Tema atau Design Langsung Terlihat di Halaman Games Tanpa Perlu Muat Ulang",
+      "Version 2.26.0 Desain Baru (Liquid Glass, Terminal, Pixel Art, Aurora, Vaporwave, dan Lainnya) Kini Juga Aktif di Game, Bukan Cuma Halaman Utama",
+      "Version 2.25.0 Tab Navigasi Sekarang Cuma Nampilin Ikon, Tulisan Baru Muncul di Tab yang Sedang Dibuka",
+      "Version 2.25.0 Pil Hijau Tab Aktif Diperlebar Biar Nutup Seluruh Tab dengan Rapi di Semua Ukuran Layar",
+      "Version 2.25.0 Efek Parallax: Latar Hero, Judul, Daun, dan Aurora Ikut Bergerak Halus Waktu Halaman Digeser",
+      "Version 2.25.0 Tambah 8 Desain Baru: Liquid Glass, Material You, Terminal, Y2K Chrome, Bauhaus, Pixel Art, Aurora Gradient, dan Vaporwave",
+      "Version 2.25.0 Tombol Hapus Akun Guru Disembunyikan dari Tampilan Supaya Tidak Kepencet, Penghapusan Hanya Bisa dari Kode",
       "Version 2.24.0 Loading Screen Singkat Saat Pertama Buka dan Animasi Masuk Bergiliran untuk Bagian Halaman",
       "Version 2.24.0 Efek Hover Baru: Kartu Miring 3D Mengikuti Kursor dan Tombol Punya Efek Ripple Saat Ditekan",
       "Version 2.24.0 Latar Hero Bergerak Halus, Judul Ikut Geser Sedikit, dan Kursor Bulat di Desktop",
@@ -4496,6 +4540,14 @@ const DAFTAR_DESAIN = [
   { id: "hand-drawn", nama: "Hand Drawn", ket: "Gaya gambar pensil, kotak agak miring" },
   { id: "cartoon", nama: "Cartoon", ket: "Garis tebal, warna cerah, sudut bulat" },
   { id: "manga", nama: "Manga", ket: "Tinta hitam, screentone, panel komik" },
+  { id: "liquid-glass", nama: "Liquid Glass", ket: "Kaca bening, blur, kilau lembut" },
+  { id: "material-you", nama: "Material You", ket: "Warna tonal, sudut besar, lembut" },
+  { id: "terminal", nama: "Terminal", ket: "Layar hitam, teks hijau monospace" },
+  { id: "y2k-chrome", nama: "Y2K Chrome", ket: "Logam mengkilap ala tahun 2000-an" },
+  { id: "bauhaus", nama: "Bauhaus", ket: "Bentuk geometris, warna primer tegas" },
+  { id: "pixel-art", nama: "Pixel Art", ket: "Kotak piksel, gaya game retro" },
+  { id: "aurora", nama: "Aurora Gradient", ket: "Gradasi langit hijau-ungu" },
+  { id: "vaporwave", nama: "Vaporwave", ket: "Neon pink-cyan, grid retro" },
 ];
 
 function setupThemeSettings() {
@@ -4557,7 +4609,7 @@ function setupThemeSettings() {
     document.documentElement.dataset.design = desain.id;
     simpanDesain(desain.id);
     sorotDesain(desain.id);
-    /* Semua design pakai warna putih-hijau seperti Normal. */
+    /* Design memakai paletnya sendiri; tema warna kembali ke light sebagai dasar. */
     if (desain.id !== "normal" && document.documentElement.dataset.theme !== "light") pasangTema("light");
   }
 
@@ -4843,7 +4895,7 @@ function renderGames() {
         ? `💰 ${Number(rf.coins || 0).toLocaleString("id-ID")} koin · ${Number(rf.totalCaught || 0).toLocaleString("id-ID")} ikan · ${Number(rf.species || 0)} spesies`
         : "Belum pernah mancing. Lempar pancing pertamamu!";
     } catch (e) {
-      ringkasFishing = "Kolam siap · 102 spesies";
+      ringkasFishing = "Kolam siap · 204 spesies";
     }
   }
 
@@ -4925,7 +4977,7 @@ function renderGames() {
     {
       id: "fishing",
       judul: "Fishing",
-      deskripsi: "Lempar pancing, tarik tepat waktu, kumpulkan 102 spesies ikan. Jual tangkapan, rekrut Worker, atur Auto Sell, dan kejar Legend & Secret.",
+      deskripsi: "Lempar pancing, tarik tepat waktu, kumpulkan 204 spesies ikan. Jual tangkapan, rekrut Worker, atur Auto Sell, dan kejar Legend & Secret.",
       progress: ringkasFishing,
       icon: "🎣",
       spark: "🌊",

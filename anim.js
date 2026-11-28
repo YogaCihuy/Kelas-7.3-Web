@@ -188,6 +188,20 @@
       aurora.setAttribute("aria-hidden", "true");
       aurora.innerHTML = "<i></i><i></i><i></i>";
       hero.prepend(aurora);
+
+      let rafScroll = 0;
+      const paralaksScroll = () => {
+        if (rafScroll) return;
+        rafScroll = requestAnimationFrame(() => {
+          rafScroll = 0;
+          const r = hero.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > window.innerHeight) return;
+          const jarak = Math.min(Math.max(-r.top, 0), hero.offsetHeight);
+          hero.style.setProperty("--paralaks", jarak.toFixed(1) + "px");
+        });
+      };
+      window.addEventListener("scroll", paralaksScroll, { passive: true });
+      paralaksScroll();
     }
 
     if (kurangiGerak.matches || !kursorPresisi.matches) return;

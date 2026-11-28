@@ -100,6 +100,75 @@ html[data-design]:not([data-design="normal"]) {
 .design-preview-manga i { height: 3px; border-radius: 0; background: #101613; }
 .design-preview-manga i:nth-child(1) { width: 60%; background: #2F8F5B; }
 
+.design-preview-liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(199, 236, 218, 0.55));
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75), 0 4px 10px -5px rgba(23, 57, 42, 0.5);
+}
+.design-preview-liquid-glass i { background: rgba(47, 143, 91, 0.35); }
+.design-preview-liquid-glass i:nth-child(1) { background: #2F8F5B; }
+
+.design-preview-material-you {
+  background: #E3F3E9;
+  border: 0;
+  border-radius: 12px;
+}
+.design-preview-material-you i { height: 5px; border-radius: 999px; background: #B9DDC8; }
+.design-preview-material-you i:nth-child(1) { background: #2E6B4F; }
+
+.design-preview-terminal {
+  background: #04110A;
+  border: 1px solid #2F7A49;
+  border-radius: 0;
+}
+.design-preview-terminal i { height: 2px; border-radius: 0; background: #1E4A2E; }
+.design-preview-terminal i:nth-child(1) { background: #4CE07C; }
+
+.design-preview-y2k-chrome {
+  background: linear-gradient(180deg, #FFFFFF 0%, #CFDDD5 48%, #EDF4F0 100%);
+  border-color: #9FB8AA;
+}
+.design-preview-y2k-chrome i { background: #B9CFC3; }
+.design-preview-y2k-chrome i:nth-child(1) { background: #2F8F5B; }
+
+.design-preview-bauhaus {
+  background: #F7F1E2;
+  border: 2px solid #141414;
+  border-radius: 0;
+}
+.design-preview-bauhaus i { height: 5px; border-radius: 0; background: #1F4FA8; }
+.design-preview-bauhaus i:nth-child(1) { background: #E03A2F; }
+.design-preview-bauhaus i:nth-child(3) { background: #F2C230; }
+
+.design-preview-pixel-art {
+  background: #E8F6EC;
+  border: 3px solid #123824;
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+.design-preview-pixel-art i { height: 5px; border-radius: 0; background: #9FD5B3; }
+.design-preview-pixel-art i:nth-child(1) { background: #2E9B5F; }
+
+.design-preview-aurora {
+  background:
+    radial-gradient(circle at 25% 20%, rgba(91, 224, 168, 0.8), transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(124, 108, 246, 0.75), transparent 60%),
+    #081A12;
+  border-color: rgba(130, 255, 200, 0.35);
+}
+.design-preview-aurora i { background: rgba(217, 255, 234, 0.5); }
+.design-preview-aurora i:nth-child(1) { background: #5BE0A8; }
+
+.design-preview-vaporwave {
+  background:
+    linear-gradient(180deg, rgba(255, 106, 213, 0.25), transparent 65%),
+    #1B0B30;
+  border-color: #FF6AD5;
+  border-radius: 3px;
+}
+.design-preview-vaporwave i { background: rgba(108, 243, 255, 0.55); border-radius: 0; }
+.design-preview-vaporwave i:nth-child(1) { background: #FF6AD5; }
+
 /* =====================================================================
    1. MODERN DESIGN
    Garis tipis, bersih, geometris, bayangan halus.
@@ -1105,6 +1174,977 @@ html[data-design="manga"] .footer {
   font-size: 0.8rem;
 }
 
+/* =====================================================================
+   6. LIQUID GLASS
+   Kaca bening, blur, kilau, dan latar gradasi lembut.
+===================================================================== */
+html[data-design="liquid-glass"]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #0F3B2A;
+  --emerald: #27A46A;
+  --mint: rgba(232, 248, 239, 0.62);
+  --paper: #EFF8F3;
+  --ink: #0E281C;
+  --muted: #4A6B5C;
+  --line: rgba(255, 255, 255, 0.6);
+  --white: rgba(255, 255, 255, 0.55);
+  --radius-s: 14px;
+  --radius-m: 20px;
+  --radius-l: 28px;
+  --shadow: 0 20px 45px -28px rgba(12, 50, 34, 0.45);
+}
+
+html[data-design="liquid-glass"] body {
+  background:
+    radial-gradient(48vw 40vw at 8% 6%, #B9F2D5 0, transparent 62%),
+    radial-gradient(42vw 36vw at 92% 4%, #C8DDFF 0, transparent 60%),
+    radial-gradient(48vw 42vw at 50% 96%, #D8F7E6 0, transparent 62%),
+    #F2FAF6;
+  background-attachment: fixed;
+}
+
+html[data-design="liquid-glass"] .hero {
+  background:
+    radial-gradient(60% 90% at 20% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    linear-gradient(150deg, #0F3B2A, #1E5A40 55%, #2FA86A 130%);
+}
+
+html[data-design="liquid-glass"] nav.page-nav {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 20px 40px -26px rgba(11, 52, 35, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px) saturate(1.35);
+}
+
+html[data-design="liquid-glass"] .tab-indicator {
+  background: linear-gradient(135deg, rgba(20, 74, 52, 0.94), rgba(39, 164, 106, 0.86));
+  box-shadow: 0 10px 20px -12px rgba(12, 60, 40, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+html[data-design="liquid-glass"] .siswa-card,
+html[data-design="liquid-glass"] .info-card,
+html[data-design="liquid-glass"] .medsos-card,
+html[data-design="liquid-glass"] .polling-card,
+html[data-design="liquid-glass"] .game-card,
+html[data-design="liquid-glass"] .picker-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.44));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 18px 32px -24px rgba(13, 49, 34, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+
+html[data-design="liquid-glass"] .game-card { border-radius: 24px; }
+
+html[data-design="liquid-glass"] .btn-primary {
+  background: linear-gradient(135deg, rgba(23, 76, 54, 0.96), rgba(47, 168, 111, 0.9));
+  box-shadow: 0 12px 24px -14px rgba(14, 60, 40, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+html[data-design="liquid-glass"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(23, 76, 54, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+html[data-design="liquid-glass"] .modal-box {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(245, 252, 248, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(22px) saturate(1.3);
+}
+
+html[data-design="liquid-glass"] .theme-toggle,
+html[data-design="liquid-glass"] .sound-toggle,
+html[data-design="liquid-glass"] .account-toggle,
+html[data-design="liquid-glass"] .apk-download {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+/* =====================================================================
+   7. MATERIAL YOU
+   Warna tonal, permukaan lembut, sudut besar.
+===================================================================== */
+html[data-design="material-you"]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #1C4A36;
+  --emerald: #3E8A64;
+  --mint: #DDF1E5;
+  --paper: #F6FBF8;
+  --ink: #16241C;
+  --muted: #4F6A5C;
+  --line: #C9E3D5;
+  --white: #FFFFFF;
+  --radius-s: 16px;
+  --radius-m: 24px;
+  --radius-l: 32px;
+  --shadow: 0 2px 6px rgba(23, 57, 42, 0.08), 0 12px 28px -18px rgba(23, 57, 42, 0.35);
+}
+
+html[data-design="material-you"] body { background: #F6FBF8; }
+
+html[data-design="material-you"] .hero {
+  background: linear-gradient(135deg, #173D2C 0%, #235741 60%, #3E8A64 100%);
+}
+
+html[data-design="material-you"] nav.page-nav {
+  background: #E7F3EC;
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(28, 74, 54, 0.06), 0 14px 28px -26px rgba(23, 57, 42, 0.5);
+}
+
+html[data-design="material-you"] .tab-indicator {
+  background: #1C4A36;
+  box-shadow: none;
+}
+
+html[data-design="material-you"] .siswa-card,
+html[data-design="material-you"] .info-card,
+html[data-design="material-you"] .medsos-card,
+html[data-design="material-you"] .polling-card {
+  background: #EFF8F2;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 10px 24px -20px rgba(23, 57, 42, 0.45);
+}
+
+html[data-design="material-you"] .game-card {
+  background: #E8F4EC;
+  border: 1px solid #CFE7DA;
+  border-radius: 28px;
+  box-shadow: none;
+}
+
+html[data-design="material-you"] .game-card:hover {
+  border-color: #A9D3BD;
+  box-shadow: 0 14px 30px -24px rgba(23, 57, 42, 0.45);
+}
+
+html[data-design="material-you"] .picker-card { background: #DDF1E5; border-radius: 32px; }
+
+html[data-design="material-you"] .btn-primary { background: #1C4A36; color: #FFFFFF; }
+
+html[data-design="material-you"] .btn-primary:hover { background: #255E45; }
+
+html[data-design="material-you"] .btn-secondary {
+  background: #DDF1E5;
+  border: 0;
+  color: #1C4A36;
+}
+
+html[data-design="material-you"] .btn-secondary:not(:disabled):hover { background: #CDE9DA; }
+
+html[data-design="material-you"] .modal-box { border-radius: 32px; }
+
+html[data-design="material-you"] .theme-option { background: #EFF8F2; border: 0; border-radius: 20px; }
+
+html[data-design="material-you"] .theme-option.is-active {
+  background: #DDF1E5;
+  box-shadow: inset 0 0 0 2px #3E8A64;
+}
+
+html[data-design="material-you"] .theme-toggle,
+html[data-design="material-you"] .sound-toggle,
+html[data-design="material-you"] .account-toggle,
+html[data-design="material-you"] .apk-download {
+  background: #E7F3EC;
+  border: 0;
+}
+
+/* =====================================================================
+   8. TERMINAL
+   Layar hitam, fosfor hijau, monospace, garis persegi.
+===================================================================== */
+html[data-design="terminal"]:not([data-design="normal"]) {
+  color-scheme: dark;
+  --forest: #8CFFB0;
+  --emerald: #4CE07C;
+  --mint: #0C2217;
+  --paper: #040A06;
+  --ink: #C4FFD2;
+  --muted: #6FB083;
+  --line: #1C4A2C;
+  --white: #07130B;
+  --shadow: 0 0 24px rgba(76, 224, 124, 0.12);
+  --font-display: "Courier New", ui-monospace, monospace;
+  --font-body: ui-monospace, "Cascadia Mono", "Courier New", monospace;
+  --radius-s: 0;
+  --radius-m: 0;
+  --radius-l: 0;
+}
+
+html[data-design="terminal"] body {
+  background:
+    repeating-linear-gradient(180deg, rgba(76, 224, 124, 0.045) 0 1px, transparent 1px 3px),
+    radial-gradient(80vw 60vw at 50% -10%, #0B2C19 0, transparent 60%),
+    #040A06;
+}
+
+html[data-design="terminal"] .hero {
+  background: linear-gradient(160deg, #031008, #062314 55%, #0B3A22 130%);
+  border-bottom: 1px solid #1C4A2C;
+}
+
+html[data-design="terminal"] .hero-title {
+  color: #B6FFCB;
+  text-shadow: 0 0 18px rgba(76, 224, 124, 0.55);
+}
+
+html[data-design="terminal"] .hero-eyebrow,
+html[data-design="terminal"] .stat-label { color: #6FB083; }
+
+html[data-design="terminal"] nav.page-nav {
+  background: #04110A;
+  border: 1px solid #1C4A2C;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #071A0F, 0 14px 30px -20px #000;
+}
+
+html[data-design="terminal"] .tab-indicator {
+  background: #12351F;
+  border: 1px solid #4CE07C;
+  border-radius: 0;
+  box-shadow: 0 0 16px rgba(76, 224, 124, 0.35), inset 0 0 12px rgba(76, 224, 124, 0.12);
+}
+
+html[data-design="terminal"] .page-tab-btn.active { color: #B6FFCB; }
+
+html[data-design="terminal"] .section-head h2 {
+  color: #9CFFB8;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+html[data-design="terminal"] .section-head h2::before {
+  content: "$ ";
+  color: #4CE07C;
+}
+
+html[data-design="terminal"] .section-head h2::after { background: #1C4A2C; height: 1px; }
+
+html[data-design="terminal"] .siswa-card,
+html[data-design="terminal"] .info-card,
+html[data-design="terminal"] .medsos-card,
+html[data-design="terminal"] .polling-card,
+html[data-design="terminal"] .game-card,
+html[data-design="terminal"] .picker-card {
+  background: #06170E;
+  border: 1px solid #1C4A2C;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #04110A, 0 0 22px rgba(76, 224, 124, 0.06);
+}
+
+html[data-design="terminal"] .game-card::before,
+html[data-design="terminal"] .game-card::after { display: none; }
+
+html[data-design="terminal"] .game-icon {
+  background: #0A2415;
+  border: 1px solid #1C4A2C;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #04110A;
+}
+
+html[data-design="terminal"] .btn-primary {
+  background: #0B2E1B;
+  color: #B6FFCB;
+  border: 1px solid #4CE07C;
+  border-radius: 0;
+  box-shadow: 0 0 14px rgba(76, 224, 124, 0.25);
+}
+
+html[data-design="terminal"] .btn-primary:hover { background: #123F25; }
+
+html[data-design="terminal"] .btn-secondary {
+  background: transparent;
+  color: #9CFFB8;
+  border: 1px solid #2F7A49;
+  border-radius: 0;
+}
+
+html[data-design="terminal"] .btn-secondary:not(:disabled):hover { background: #0B2E1B; }
+
+html[data-design="terminal"] .modal-box,
+html[data-design="terminal"] .theme-option {
+  background: #06170E;
+  border: 1px solid #1C4A2C;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #04110A;
+}
+
+html[data-design="terminal"] .theme-option.is-active { background: #0B2E1B; box-shadow: inset 0 0 0 1px #4CE07C; }
+
+html[data-design="terminal"] .theme-toggle,
+html[data-design="terminal"] .sound-toggle,
+html[data-design="terminal"] .account-toggle,
+html[data-design="terminal"] .apk-download {
+  background: #07160D;
+  border: 1px solid #1C4A2C;
+  color: #9CFFB8;
+}
+
+html[data-design="terminal"] .games-search,
+html[data-design="terminal"] .games-settings-open {
+  background: #06170E;
+  border: 1px solid #1C4A2C;
+  border-radius: 0;
+}
+
+html[data-design="terminal"] .footer {
+  border-top: 1px solid #1C4A2C;
+  color: #6FB083;
+  letter-spacing: 0.04em;
+}
+
+/* =====================================================================
+   9. Y2K CHROME
+   Logam perak mengkilap, bevel, dan kilau ala tahun 2000-an.
+===================================================================== */
+html[data-design="y2k-chrome"]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #20342A;
+  --emerald: #2F8F5B;
+  --mint: #E7EFEA;
+  --paper: #EEF4F0;
+  --ink: #15231C;
+  --muted: #4E6659;
+  --line: #AFC4B8;
+  --white: #F8FBF9;
+  --radius-s: 10px;
+  --radius-m: 18px;
+  --radius-l: 26px;
+  --shadow: 0 14px 28px -20px rgba(24, 48, 36, 0.55);
+}
+
+html[data-design="y2k-chrome"] body {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2.5px),
+    linear-gradient(180deg, #F7FBF9, #DDE9E2 60%, #F3F8F5);
+  background-size: 160px 160px, 210px 210px, 100% 100%;
+}
+
+html[data-design="y2k-chrome"] .hero {
+  background: linear-gradient(155deg, #20342A 0%, #2C5742 38%, #7FA894 68%, #D8E7DE 100%);
+}
+
+html[data-design="y2k-chrome"] .hero-title {
+  background: linear-gradient(180deg, #FFFFFF 0%, #DDF0E5 35%, #8FB6A1 58%, #FFFFFF 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.3));
+}
+
+html[data-design="y2k-chrome"] nav.page-nav {
+  background: linear-gradient(180deg, #FBFDFC, #CFDDD5 48%, #EDF4F0);
+  border: 1px solid #9FB8AA;
+  box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -3px 6px rgba(31, 60, 45, 0.18), 0 14px 30px -22px rgba(21, 48, 34, 0.6);
+}
+
+html[data-design="y2k-chrome"] .tab-indicator {
+  background: linear-gradient(180deg, #5BC98E, #1F6D4B 55%, #2F8F5B);
+  border: 1px solid #164832;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 14px -8px rgba(20, 60, 42, 0.8);
+}
+
+html[data-design="y2k-chrome"] .siswa-card,
+html[data-design="y2k-chrome"] .info-card,
+html[data-design="y2k-chrome"] .medsos-card,
+html[data-design="y2k-chrome"] .polling-card,
+html[data-design="y2k-chrome"] .game-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F0EB 45%, #F9FCFA 100%);
+  border: 1px solid #A9C0B3;
+  box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -3px 0 #C4D5CB, 0 12px 22px -18px rgba(21, 48, 34, 0.55);
+}
+
+html[data-design="y2k-chrome"] .picker-card {
+  background: linear-gradient(180deg, #F4FAF6, #D8E8DE);
+  border: 1px solid #A9C0B3;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 12px 22px -18px rgba(21, 48, 34, 0.5);
+}
+
+html[data-design="y2k-chrome"] .btn-primary {
+  background: linear-gradient(180deg, #5BC98E, #1F6D4B 60%, #2F8F5B);
+  border: 1px solid #164832;
+  color: #FFFFFF;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 16px -10px rgba(20, 60, 42, 0.75);
+}
+
+html[data-design="y2k-chrome"] .btn-secondary {
+  background: linear-gradient(180deg, #FFFFFF, #DCE7E0);
+  border: 1px solid #8FA99B;
+  box-shadow: inset 0 1px 0 #FFFFFF;
+}
+
+html[data-design="y2k-chrome"] .modal-box,
+html[data-design="y2k-chrome"] .theme-option {
+  background: linear-gradient(180deg, #FFFFFF, #E7EFEA);
+  border: 1px solid #A9C0B3;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 16px 30px -24px rgba(21, 48, 34, 0.55);
+}
+
+html[data-design="y2k-chrome"] .theme-toggle,
+html[data-design="y2k-chrome"] .sound-toggle,
+html[data-design="y2k-chrome"] .account-toggle,
+html[data-design="y2k-chrome"] .apk-download {
+  background: linear-gradient(180deg, #FFFFFF, #D8E4DD);
+  border: 1px solid #A9C0B3;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 8px 16px -12px rgba(21, 48, 34, 0.5);
+}
+
+html[data-design="y2k-chrome"] .footer { border-top: 1px solid #A9C0B3; }
+
+/* =====================================================================
+   10. BAUHAUS
+   Geometris, garis hitam tebal, warna primer.
+===================================================================== */
+html[data-design="bauhaus"]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #141414;
+  --emerald: #2F8F5B;
+  --mint: #F4E9CE;
+  --paper: #F7F1E2;
+  --ink: #141414;
+  --muted: #5A5750;
+  --line: #141414;
+  --white: #FFFDF6;
+  --radius-s: 0;
+  --radius-m: 0;
+  --radius-l: 0;
+  --shadow: 6px 6px 0 #141414;
+  --font-display: "Inter", "Arial Black", sans-serif;
+}
+
+html[data-design="bauhaus"] body { background: #F6EFDF; }
+
+html[data-design="bauhaus"] .hero {
+  background:
+    radial-gradient(circle at 84% 24%, #F2C230 0 62px, transparent 63px),
+    radial-gradient(circle at 10% 82%, #E03A2F 0 46px, transparent 47px),
+    linear-gradient(0deg, #1F4FA8 0 10px, transparent 10px),
+    #F7F1E2;
+}
+
+html[data-design="bauhaus"] .hero-title {
+  color: #141414;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+html[data-design="bauhaus"] .hero-eyebrow,
+html[data-design="bauhaus"] .stat-label { color: #4A463E; }
+
+html[data-design="bauhaus"] .stat-number { color: #141414; }
+
+html[data-design="bauhaus"] .stat-divider { background: #141414; }
+
+html[data-design="bauhaus"] h1,
+html[data-design="bauhaus"] h2,
+html[data-design="bauhaus"] h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+html[data-design="bauhaus"] nav.page-nav {
+  background: #FFFDF6;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 #141414;
+}
+
+html[data-design="bauhaus"] .tab-indicator {
+  background: #F2C230;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #141414;
+}
+
+html[data-design="bauhaus"] .page-tab-btn.active { color: #141414; }
+
+html[data-design="bauhaus"] .section-head h2::after {
+  background: #E03A2F;
+  height: 6px;
+  width: 64px;
+  border-radius: 0;
+}
+
+html[data-design="bauhaus"] .siswa-card,
+html[data-design="bauhaus"] .info-card,
+html[data-design="bauhaus"] .medsos-card,
+html[data-design="bauhaus"] .polling-card,
+html[data-design="bauhaus"] .game-card,
+html[data-design="bauhaus"] .picker-card {
+  background: #FFFDF6;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #141414;
+}
+
+html[data-design="bauhaus"] .game-card { border-radius: 0; }
+
+html[data-design="bauhaus"] .game-card::after { display: none; }
+
+html[data-design="bauhaus"] .picker-card { background: #F2C230; }
+
+html[data-design="bauhaus"] .btn-primary {
+  background: #1F4FA8;
+  color: #FFFFFF;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #141414;
+}
+
+html[data-design="bauhaus"] .btn-primary:hover { background: #173C80; }
+
+html[data-design="bauhaus"] .btn-secondary {
+  background: #F2C230;
+  color: #141414;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #141414;
+}
+
+html[data-design="bauhaus"] .btn-secondary:not(:disabled):hover { background: #F7D465; }
+
+html[data-design="bauhaus"] .modal-box,
+html[data-design="bauhaus"] .theme-option {
+  background: #FFFDF6;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #141414;
+}
+
+html[data-design="bauhaus"] .theme-option.is-active {
+  background: #F2C230;
+  border-color: #141414;
+  box-shadow: 6px 6px 0 #141414;
+}
+
+html[data-design="bauhaus"] .theme-option.is-active .theme-check {
+  background: #141414;
+  border-color: #141414;
+  color: #F2C230;
+}
+
+html[data-design="bauhaus"] .theme-toggle,
+html[data-design="bauhaus"] .sound-toggle,
+html[data-design="bauhaus"] .account-toggle,
+html[data-design="bauhaus"] .apk-download {
+  background: #FFFDF6;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #141414;
+}
+
+html[data-design="bauhaus"] .footer {
+  border-top: 2px solid #141414;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* =====================================================================
+   11. PIXEL ART
+   Kotak-kotak piksel, garis tebal, gaya game retro.
+===================================================================== */
+html[data-design="pixel-art"]:not([data-design="normal"]) {
+  color-scheme: light;
+  --forest: #123824;
+  --emerald: #2E9B5F;
+  --mint: #DDF3E4;
+  --paper: #E8F6EC;
+  --ink: #0F2A1B;
+  --muted: #4C6B59;
+  --line: #2E6B47;
+  --white: #F4FCF6;
+  --radius-s: 0;
+  --radius-m: 0;
+  --radius-l: 0;
+  --shadow: 4px 4px 0 #123824;
+  --font-display: ui-monospace, "Cascadia Mono", "Courier New", monospace;
+  --font-body: ui-monospace, "Cascadia Mono", "Courier New", monospace;
+}
+
+html[data-design="pixel-art"] body {
+  background:
+    repeating-linear-gradient(90deg, rgba(18, 56, 36, 0.05) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(0deg, rgba(18, 56, 36, 0.05) 0 2px, transparent 2px 8px),
+    #E8F6EC;
+}
+
+html[data-design="pixel-art"] .hero {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 4px, transparent 4px 12px),
+    linear-gradient(160deg, #0E2F1E, #1C5437 60%, #2E9B5F 130%);
+}
+
+html[data-design="pixel-art"] .hero-title {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+}
+
+html[data-design="pixel-art"] h1,
+html[data-design="pixel-art"] h2,
+html[data-design="pixel-art"] h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+html[data-design="pixel-art"] nav.page-nav {
+  background: #F4FCF6;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #123824;
+}
+
+html[data-design="pixel-art"] .tab-indicator {
+  background: #2E9B5F;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px #123824;
+}
+
+html[data-design="pixel-art"] .page-tab-btn.active { color: #FFFFFF; }
+
+html[data-design="pixel-art"] .section-head h2::after {
+  height: 6px;
+  width: 72px;
+  border-radius: 0;
+  background: repeating-linear-gradient(90deg, #2E9B5F 0 8px, #123824 8px 16px);
+}
+
+html[data-design="pixel-art"] .siswa-card,
+html[data-design="pixel-art"] .info-card,
+html[data-design="pixel-art"] .medsos-card,
+html[data-design="pixel-art"] .polling-card,
+html[data-design="pixel-art"] .game-card,
+html[data-design="pixel-art"] .picker-card {
+  background: #F4FCF6;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #123824;
+}
+
+html[data-design="pixel-art"] .siswa-card:hover,
+html[data-design="pixel-art"] .siswa-card:focus-visible,
+html[data-design="pixel-art"] .game-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #123824;
+}
+
+html[data-design="pixel-art"] .game-card::after { display: none; }
+
+html[data-design="pixel-art"] .game-icon {
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #123824;
+  background: #DDF3E4;
+}
+
+html[data-design="pixel-art"] .btn-primary {
+  background: #2E9B5F;
+  color: #FFFFFF;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #123824;
+}
+
+html[data-design="pixel-art"] .btn-primary:hover { background: #268350; }
+
+html[data-design="pixel-art"] .btn-secondary {
+  background: #F4FCF6;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #123824;
+}
+
+html[data-design="pixel-art"] .btn-primary:not(:disabled):active,
+html[data-design="pixel-art"] .btn-secondary:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 #123824;
+}
+
+html[data-design="pixel-art"] .modal-box,
+html[data-design="pixel-art"] .theme-option {
+  background: #F4FCF6;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #123824;
+}
+
+html[data-design="pixel-art"] .theme-option.is-active {
+  background: #DDF3E4;
+  border-color: #123824;
+  box-shadow: 6px 6px 0 #123824;
+}
+
+html[data-design="pixel-art"] .theme-toggle,
+html[data-design="pixel-art"] .sound-toggle,
+html[data-design="pixel-art"] .account-toggle,
+html[data-design="pixel-art"] .apk-download {
+  background: #F4FCF6;
+  border: 3px solid #123824;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #123824;
+}
+
+html[data-design="pixel-art"] .footer {
+  border-top: 3px solid #123824;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+/* =====================================================================
+   12. AURORA GRADIENT
+   Langit malam bergradasi hijau-ungu, kaca gelap bercahaya.
+===================================================================== */
+html[data-design="aurora"]:not([data-design="normal"]) {
+  color-scheme: dark;
+  --forest: #D9FFEA;
+  --emerald: #5BE0A8;
+  --mint: #10281E;
+  --paper: #05100C;
+  --ink: #E8FFF4;
+  --muted: #9CC9B6;
+  --line: rgba(130, 255, 200, 0.2);
+  --white: #0A1B14;
+  --radius-s: 12px;
+  --radius-m: 20px;
+  --radius-l: 28px;
+  --shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.9);
+}
+
+html[data-design="aurora"] body {
+  background:
+    radial-gradient(60vw 45vw at 10% 0%, rgba(64, 255, 170, 0.16), transparent 60%),
+    radial-gradient(50vw 40vw at 88% 8%, rgba(124, 108, 246, 0.2), transparent 62%),
+    radial-gradient(45vw 40vw at 50% 100%, rgba(54, 224, 200, 0.16), transparent 60%),
+    #05100C;
+  background-attachment: fixed;
+}
+
+html[data-design="aurora"] .hero {
+  background:
+    radial-gradient(50% 80% at 20% 10%, rgba(91, 224, 168, 0.35), transparent 60%),
+    radial-gradient(45% 70% at 80% 0%, rgba(124, 108, 246, 0.4), transparent 65%),
+    linear-gradient(150deg, #07160F, #0A2318 55%, #123B2A 130%);
+  border-bottom: 1px solid rgba(130, 255, 200, 0.18);
+}
+
+html[data-design="aurora"] .hero-title {
+  background: linear-gradient(100deg, #E9FFF4, #5BE0A8 45%, #B9A8FF 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 26px rgba(91, 224, 168, 0.25));
+}
+
+html[data-design="aurora"] nav.page-nav {
+  background: rgba(8, 24, 17, 0.82);
+  border: 1px solid rgba(130, 255, 200, 0.18);
+  box-shadow: 0 20px 44px -30px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+}
+
+html[data-design="aurora"] .tab-indicator {
+  background: linear-gradient(120deg, #2F8F5B, #5BE0A8 55%, #7C6CF6);
+  box-shadow: 0 8px 24px -12px rgba(91, 224, 168, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+html[data-design="aurora"] .page-tab-btn.active { color: #05100C; }
+
+html[data-design="aurora"] .section-head h2::after {
+  background: linear-gradient(90deg, #5BE0A8, #7C6CF6);
+  border-radius: 999px;
+}
+
+html[data-design="aurora"] .siswa-card,
+html[data-design="aurora"] .info-card,
+html[data-design="aurora"] .medsos-card,
+html[data-design="aurora"] .polling-card,
+html[data-design="aurora"] .game-card,
+html[data-design="aurora"] .picker-card {
+  background: linear-gradient(160deg, rgba(14, 38, 27, 0.88), rgba(8, 22, 16, 0.82));
+  border: 1px solid rgba(130, 255, 200, 0.16);
+  box-shadow: 0 22px 44px -34px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+html[data-design="aurora"] .game-card::after {
+  background: radial-gradient(circle, rgba(124, 108, 246, 0.2), transparent 70%);
+}
+
+html[data-design="aurora"] .game-icon {
+  background: linear-gradient(160deg, #123B2A, #0A2418);
+  border-color: rgba(130, 255, 200, 0.22);
+}
+
+html[data-design="aurora"] .btn-primary {
+  background: linear-gradient(120deg, #2F8F5B, #5BE0A8 55%, #7C6CF6);
+  color: #04110B;
+  box-shadow: 0 14px 30px -18px rgba(91, 224, 168, 0.55);
+}
+
+html[data-design="aurora"] .btn-secondary {
+  background: rgba(10, 28, 20, 0.7);
+  border-color: rgba(130, 255, 200, 0.35);
+  color: #D9FFEA;
+}
+
+html[data-design="aurora"] .modal-box,
+html[data-design="aurora"] .theme-option {
+  background: linear-gradient(160deg, rgba(12, 34, 24, 0.96), rgba(7, 20, 14, 0.96));
+  border: 1px solid rgba(130, 255, 200, 0.2);
+}
+
+html[data-design="aurora"] .theme-option.is-active {
+  background: rgba(16, 46, 33, 0.95);
+  box-shadow: inset 0 0 0 1px #5BE0A8;
+}
+
+html[data-design="aurora"] .theme-toggle,
+html[data-design="aurora"] .sound-toggle,
+html[data-design="aurora"] .account-toggle,
+html[data-design="aurora"] .apk-download {
+  background: rgba(9, 26, 18, 0.86);
+  border: 1px solid rgba(130, 255, 200, 0.22);
+  color: #D9FFEA;
+}
+
+html[data-design="aurora"] .footer {
+  border-top: 1px solid rgba(130, 255, 200, 0.18);
+  color: #9CC9B6;
+}
+
+/* =====================================================================
+   13. VAPORWAVE
+   Neon pink-cyan, grid retro, suasana 80-an.
+===================================================================== */
+html[data-design="vaporwave"]:not([data-design="normal"]) {
+  color-scheme: dark;
+  --forest: #FFE6FB;
+  --emerald: #FF6AD5;
+  --mint: #2A1246;
+  --paper: #120620;
+  --ink: #F6E9FF;
+  --muted: #C6A6DE;
+  --line: rgba(255, 106, 213, 0.35);
+  --white: #1B0B30;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+  --shadow: 0 18px 40px -26px rgba(255, 106, 213, 0.45);
+}
+
+html[data-design="vaporwave"] body {
+  background:
+    radial-gradient(70vw 50vw at 80% 0%, rgba(108, 243, 255, 0.12), transparent 60%),
+    radial-gradient(60vw 50vw at 12% 8%, rgba(255, 106, 213, 0.16), transparent 62%),
+    #120620;
+}
+
+html[data-design="vaporwave"] .hero {
+  background:
+    repeating-linear-gradient(0deg, rgba(108, 243, 255, 0.12) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(255, 106, 213, 0.1) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, #2B0B44 0%, #6A1E6E 55%, #FF6AD5 130%);
+}
+
+html[data-design="vaporwave"] .hero-title {
+  font-style: italic;
+  color: #FFF1FC;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 10px rgba(255, 106, 213, 0.9), 0 0 28px rgba(108, 243, 255, 0.6);
+}
+
+html[data-design="vaporwave"] .hero-eyebrow,
+html[data-design="vaporwave"] .stat-label {
+  color: #9FF6FF;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+html[data-design="vaporwave"] nav.page-nav {
+  background: rgba(18, 6, 32, 0.9);
+  border: 1px solid rgba(255, 106, 213, 0.5);
+  box-shadow: 0 0 0 1px rgba(108, 243, 255, 0.15), 0 16px 40px -26px rgba(255, 106, 213, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+html[data-design="vaporwave"] .tab-indicator {
+  background: linear-gradient(120deg, #FF6AD5, #B967FF 60%, #6CF3FF);
+  box-shadow: 0 0 18px rgba(255, 106, 213, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+html[data-design="vaporwave"] .page-tab-btn.active { color: #1B0B30; }
+
+html[data-design="vaporwave"] .section-head h2::after {
+  background: linear-gradient(90deg, #FF6AD5, #6CF3FF);
+  border-radius: 999px;
+}
+
+html[data-design="vaporwave"] .siswa-card,
+html[data-design="vaporwave"] .info-card,
+html[data-design="vaporwave"] .medsos-card,
+html[data-design="vaporwave"] .polling-card,
+html[data-design="vaporwave"] .game-card,
+html[data-design="vaporwave"] .picker-card {
+  background: linear-gradient(160deg, rgba(43, 11, 68, 0.9), rgba(24, 8, 40, 0.92));
+  border: 1px solid rgba(255, 106, 213, 0.35);
+  box-shadow: 0 14px 30px -22px rgba(255, 106, 213, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-design="vaporwave"] .game-card::before {
+  background: linear-gradient(115deg, transparent 38%, rgba(108, 243, 255, 0.16) 50%, transparent 62%);
+}
+
+html[data-design="vaporwave"] .game-card::after {
+  background: radial-gradient(circle, rgba(108, 243, 255, 0.16), transparent 70%);
+}
+
+html[data-design="vaporwave"] .game-icon {
+  background: linear-gradient(160deg, #2A1246, #180828);
+  border-color: rgba(108, 243, 255, 0.35);
+}
+
+html[data-design="vaporwave"] .btn-primary {
+  background: linear-gradient(120deg, #FF6AD5, #B967FF);
+  color: #1B0B30;
+  box-shadow: 0 12px 28px -16px rgba(255, 106, 213, 0.7);
+}
+
+html[data-design="vaporwave"] .btn-secondary {
+  background: transparent;
+  border-color: rgba(108, 243, 255, 0.55);
+  color: #9FF6FF;
+}
+
+html[data-design="vaporwave"] .modal-box,
+html[data-design="vaporwave"] .theme-option {
+  background: linear-gradient(160deg, rgba(36, 10, 57, 0.98), rgba(20, 7, 34, 0.98));
+  border: 1px solid rgba(255, 106, 213, 0.4);
+}
+
+html[data-design="vaporwave"] .theme-option.is-active {
+  background: rgba(52, 16, 80, 0.95);
+  box-shadow: inset 0 0 0 1px #FF6AD5;
+}
+
+html[data-design="vaporwave"] .theme-toggle,
+html[data-design="vaporwave"] .sound-toggle,
+html[data-design="vaporwave"] .account-toggle,
+html[data-design="vaporwave"] .apk-download {
+  background: rgba(27, 11, 48, 0.9);
+  border: 1px solid rgba(255, 106, 213, 0.45);
+  color: #FFE6FB;
+}
+
+html[data-design="vaporwave"] .footer {
+  border-top: 1px solid rgba(255, 106, 213, 0.35);
+  color: #C6A6DE;
+}
+
 /* ---------- perangkat kecil ---------- */
 @media (max-width: 460px) {
   .design-preview { width: 34px; height: 34px; padding: 5px; }
@@ -1122,3 +2162,169 @@ html[data-design="manga"] .footer {
     transition: none;
   }
 }
+
+/* =====================================================================
+   DESIGN MENEMBUS KE DALAM GAME
+   Shell, kartu, HUD, dan panel game mengikuti bahasa desain aktif.
+===================================================================== */
+
+html[data-design] {
+  --d-game-surface: var(--white);
+  --d-game-line: var(--line);
+  --d-game-border-w: 1.5px;
+  --d-game-radius: var(--radius-l, 24px);
+  --d-game-shadow: var(--shadow);
+  --d-game-blur: none;
+}
+
+/* Aksen per desain. */
+html[data-design="modern"] {
+  --d-game-shadow: 0 10px 24px -18px rgba(23, 57, 42, 0.22);
+}
+
+html[data-design="hand-drawn"] {
+  --d-game-radius: 26px 30px 24px 28px / 28px 24px 30px 26px;
+}
+
+html[data-design="cartoon"] {
+  --d-game-line: #14392A;
+  --d-game-border-w: 2.5px;
+  --d-game-shadow: 0 6px 0 #14392A;
+}
+
+html[data-design="manga"] {
+  --d-game-line: #101613;
+  --d-game-border-w: 2px;
+}
+
+html[data-design="liquid-glass"] {
+  --d-game-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(232, 248, 239, 0.48));
+  --d-game-line: rgba(255, 255, 255, 0.75);
+  --d-game-shadow: 0 20px 45px -28px rgba(12, 50, 34, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  --d-game-blur: blur(16px) saturate(150%);
+}
+
+html[data-design="terminal"] {
+  --d-game-border-w: 1px;
+  --d-game-shadow: 0 0 0 1px #071A0F, 0 14px 30px -20px #000, inset 0 0 26px rgba(76, 224, 124, 0.06);
+}
+
+html[data-design="y2k-chrome"] {
+  --d-game-surface: linear-gradient(135deg, #FFFFFF, #D9E7DE 48%, #F8FBF9);
+  --d-game-line: #AFC4B8;
+}
+
+html[data-design="bauhaus"] {
+  --d-game-line: #141414;
+  --d-game-border-w: 2px;
+}
+
+html[data-design="pixel-art"] {
+  --d-game-border-w: 2px;
+}
+
+html[data-design="aurora"] {
+  --d-game-line: rgba(130, 255, 200, 0.28);
+  --d-game-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.9), 0 0 38px -20px rgba(91, 224, 168, 0.55);
+}
+
+html[data-design="vaporwave"] {
+  --d-game-line: rgba(255, 106, 213, 0.45);
+  --d-game-shadow: 0 18px 40px -26px rgba(255, 106, 213, 0.5), 0 0 28px -14px rgba(108, 243, 255, 0.45);
+}
+
+/* Permukaan utama game. */
+html[data-design]:not([data-design="normal"]) .timer-shell,
+html[data-design]:not([data-design="normal"]) .streak-card,
+html[data-design]:not([data-design="normal"]) .streak-locked-card,
+html[data-design]:not([data-design="normal"]) .quiz-hero,
+html[data-design]:not([data-design="normal"]) .quiz-mapel,
+html[data-design]:not([data-design="normal"]) .quiz-tema-card,
+html[data-design]:not([data-design="normal"]) .quiz-question,
+html[data-design]:not([data-design="normal"]) .quiz-result-card,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-gate-card,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-game-card,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-lobby-main,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-lobby-side,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-active-card,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-stat-card,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-profile-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-join-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-room-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-setup-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-result-card,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-play-card {
+  background: var(--d-game-surface);
+  border: var(--d-game-border-w) solid var(--d-game-line);
+  border-radius: var(--d-game-radius);
+  box-shadow: var(--d-game-shadow);
+  color: var(--ink);
+  backdrop-filter: var(--d-game-blur);
+  -webkit-backdrop-filter: var(--d-game-blur);
+}
+
+/* HUD dan chip di dalam game. */
+html[data-design]:not([data-design="normal"]) .timer-modes,
+html[data-design]:not([data-design="normal"]) .timer-preset,
+html[data-design]:not([data-design="normal"]) .timer-btn-ghost,
+html[data-design]:not([data-design="normal"]) .streak-kind,
+html[data-design]:not([data-design="normal"]) .streak-chip,
+html[data-design]:not([data-design="normal"]) .streak-actions .btn-secondary,
+html[data-design]:not([data-design="normal"]) .pet-actions .btn-secondary,
+html[data-design]:not([data-design="normal"]) .quiz-rank-chip,
+html[data-design]:not([data-design="normal"]) .quiz-play-score,
+html[data-design]:not([data-design="normal"]) .quiz-topic-tag,
+html[data-design]:not([data-design="normal"]) .quiz-mini-admin,
+html[data-design]:not([data-design="normal"]) .quiz-repeat-note,
+html[data-design]:not([data-design="normal"]) .quiz-result-poin,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-player,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-code-input,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-mini-btn,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-copy-btn,
+html[data-design]:not([data-design="normal"]) #game-guesscolor-view .gtc-btn-ghost,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-stat,
+html[data-design]:not([data-design="normal"]) #game-tableverse-view .tv-room-code,
+html[data-design]:not([data-design="normal"]) #game-blockblast-view .bb-stat,
+html[data-design]:not([data-design="normal"]) #game-sudoku-view .sd-stat {
+  background: var(--white);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-m, 12px);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+/* Ikon dan elemen bulat mengikuti warna mint desain. */
+html[data-design]:not([data-design="normal"]) .timer-face {
+  background: var(--paper);
+}
+
+html[data-design]:not([data-design="normal"]) .timer-mode.is-active {
+  background: var(--white);
+  color: var(--forest);
+}
+
+html[data-design]:not([data-design="normal"]) .streak-locked-icon,
+html[data-design]:not([data-design="normal"]) .quiz-hero-emoji,
+html[data-design]:not([data-design="normal"]) .quiz-mapel-emoji {
+  background: var(--mint);
+  border: 1.5px solid var(--line);
+  box-shadow: none;
+}
+
+html[data-design]:not([data-design="normal"]) .streak-locked-card::before {
+  background: radial-gradient(circle, var(--mint), transparent 68%);
+}
+
+html[data-design]:not([data-design="normal"]) .streak-card::before {
+  background: radial-gradient(circle, var(--mint), transparent 68%);
+}
+
+/* Terminal dan pixel art: sudut tajam, tanpa kilau. */
+html[data-design="terminal"] .game-topbar .game-back,
+html[data-design="pixel-art"] .game-topbar .game-back,
+html[data-design="bauhaus"] .game-topbar .game-back { border-radius: 0; }
+
+/* Hand-drawn: kartu sedikit miring seperti catatan tangan. */
+html[data-design="hand-drawn"] .streak-card:nth-child(2n) { transform: rotate(0.35deg); }
+html[data-design="hand-drawn"] .streak-card:nth-child(2n+1) { transform: rotate(-0.35deg); }

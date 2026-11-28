@@ -3,7 +3,7 @@
 
   // Katalog Fishing versi browser (tanpa Blaze). Dipakai fishing-local.js.
 
-  const CATALOG_VERSION = 6;
+  const CATALOG_VERSION = 8;
 
   const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "mythic", "legend", "secret"];
 
@@ -28,8 +28,7 @@
     secret: 5,
   };
 
-  // Batas maksimum bobot setelah luck (secret 0.1%, legend 2%).
-  // Potion Luck menembus batas Secret: x2 jadi 0.2%, x3 jadi 0.3%.
+  // Batas maksimum bobot per rarity setelah luck (legend 2%, secret 0,5%).
   const RARITY_CAPS = {
     common: 9999,
     uncommon: 3500,
@@ -37,7 +36,7 @@
     epic: 1500,
     mythic: 600,
     legend: 200,
-    secret: 10,
+    secret: 50,
   };
 
   // [id, nama, rarity, nilai jual, berat(kg), bentuk, warna badan, warna perut, warna sirip, corak, deskripsi]
@@ -157,6 +156,122 @@
     ["raja-laut", "Raja Laut", "secret", 45000, 700, "dragon", "#d9b84f", "#fff6c9", "#4fa3d9", "glow", "Penguasa samudra yang hanya muncul sekali dalam seumur hidup."],
     ["fajar-laut", "Fajar Laut", "secret", 70000, 900, "whale", "#e05f8f", "#ffd9e8", "#f2c94f", "stars", "Ikan cahaya fajar yang dipercaya membawa harapan."],
     ["kosmos", "Kosmos", "secret", 120000, 1200, "dragon", "#5f3f9f", "#d9c9ff", "#4ff2d9", "stars", "Benda hidup dari luar dunia yang berdenyut seperti galaksi."],
+
+    // ── GELOMBANG BARU · COMMON (30) ────────────────────────────
+    ["teri-jengki", "Teri Jengki", "common", 9, 0.1, "slim", "#a9c9d8", "#f2fafd", "#6f9db2", "scales", "Teri kecil berkilau yang selalu datang berombongan."],
+    ["seluang", "Seluang", "common", 8, 0.12, "slim", "#c2d3b9", "#f3f9ee", "#8aa37c", "plain", "Seluang mungil yang gesit menyusuri tepi sungai."],
+    ["hampal", "Hampal", "common", 13, 0.4, "round", "#9aa878", "#eef3dd", "#6b7850", "spots", "Hampal bertubuh padat dengan bintik hijau samar."],
+    ["wader-batu", "Wader Batu", "common", 10, 0.22, "slim", "#b8a99a", "#f6efe8", "#8a7a69", "plain", "Suka bersembunyi di sela batu sungai yang jernih."],
+    ["sepat-hias", "Sepat Hias", "common", 14, 0.35, "fancy", "#c39ad1", "#f7edff", "#9a5fb2", "patches", "Sepat ungu muda dengan sirip yang berkibar lembut."],
+    ["gurame-putih", "Gurame Putih", "common", 26, 1.6, "round", "#a9b0a2", "#f2f4ee", "#75806c", "scales", "Gurame bertubuh putih pucat yang doyan daun muda."],
+    ["lele-lokal", "Lele Lokal", "common", 17, 1.2, "catfish", "#6d6754", "#d8d2bc", "#474232", "plain", "Lele kampung dengan kumis lentur dan kulit licin."],
+    ["baung", "Baung", "common", 19, 1.5, "catfish", "#6f6a5f", "#d9d4c6", "#494436", "spots", "Baung sungai yang aktif mencari makan saat senja."],
+    ["lais", "Lais", "common", 15, 0.8, "catfish", "#8c8f96", "#e8eaef", "#5c5f66", "plain", "Lais berbadan panjang dengan sirip punggung runcing."],
+    ["tapah-kecil", "Tapah Kecil", "common", 24, 2.0, "catfish", "#5f584c", "#cdc5b3", "#3a352b", "spots", "Tapah muda yang sudah punya kumis panjang."],
+    ["gabus-kecil", "Gabus Kecil", "common", 18, 0.8, "long", "#66745a", "#dfe7d5", "#44503a", "stripes", "Gabus kecil dengan corak belang yang mulai jelas."],
+    ["belanak", "Belanak", "common", 13, 0.5, "slim", "#a6bfc9", "#f0f8fb", "#708e9b", "stripes", "Belanak suka melompat di air payau yang tenang."],
+    ["bandeng-kecil", "Bandeng Kecil", "common", 22, 0.9, "slim", "#b3c6cf", "#f4f9fb", "#7e97a2", "plain", "Bandeng muda bertubuh perak dengan tulang halus."],
+    ["kerong-kerong", "Kerong-Kerong", "common", 20, 0.7, "round", "#c98f6f", "#ffe8dc", "#98603f", "stripes", "Kerong-Kerong dengan garis jingga dan mata besar."],
+    ["buntal-kecil", "Buntal Kecil", "common", 15, 0.6, "round", "#b8ad72", "#f5efcf", "#867c44", "spots", "Buntal mungil yang mengembang saat merasa terancam."],
+    ["lemuru", "Lemuru", "common", 12, 0.3, "slim", "#9fc0cf", "#f2fafd", "#6b90a2", "scales", "Lemuru bergerombol rapat membentuk awan perak."],
+    ["selar-kecil", "Selar Kecil", "common", 13, 0.35, "slim", "#d4bf63", "#fff6d0", "#a08c34", "stripes", "Selar mungil dengan garis kuning yang ceria."],
+    ["tongkol-kecil", "Tongkol Kecil", "common", 24, 1.8, "tuna", "#637f92", "#e0eef5", "#425f72", "stripes", "Tongkol muda dengan tenaga yang sudah kuat."],
+    ["tenggiri-muda", "Tenggiri Muda", "common", 28, 1.5, "long", "#7c8f9c", "#e4ebf0", "#516370", "stripes", "Tenggiri muda bertubuh panjang dan giginya tajam."],
+    ["kakap-putih", "Kakap Putih", "common", 29, 2.0, "round", "#b9c3c9", "#f5f8fa", "#7f8b93", "scales", "Kakap putih dengan sisik besar berkilau perak."],
+    ["kerapu-lumpur", "Kerapu Lumpur", "common", 26, 1.9, "grouper", "#82765f", "#eee6d5", "#5a4f3c", "spots", "Kerapu yang betah diam di dasar berlumpur."],
+    ["baronang-kecil", "Baronang Kecil", "common", 19, 1.0, "round", "#93a17a", "#eff4e2", "#64724c", "spots", "Baronang muda dengan bintik hijau seperti lumut."],
+    ["sembilang", "Sembilang", "common", 21, 1.3, "catfish", "#7a7568", "#dfdacc", "#514d41", "plain", "Sembilang berkumis panjang yang aktif di malam hari."],
+    ["pari-kecil", "Pari Kecil", "common", 25, 1.2, "ray", "#9a8e7c", "#eee6d8", "#6a5f4e", "spots", "Pari mungil yang melayang pelan di atas pasir."],
+    ["cucut-totol", "Cucut Totol", "common", 27, 2.2, "shark", "#89959f", "#e6ecf1", "#5b6771", "spots", "Cucut kecil bertotol yang masih penasaran."],
+    ["teri-nasi", "Teri Nasi", "common", 7, 0.08, "slim", "#c6dbe3", "#f6fbfd", "#94b4c0", "plain", "Teri sekecil butir nasi yang selalu datang berbondong."],
+    ["terbang-sirip", "Terbang Sirip", "common", 14, 0.35, "fancy", "#7fa9cf", "#ecf5ff", "#517aa3", "plain", "Sirip lebarnya membantunya meluncur di atas ombak."],
+    ["cucut-pasir", "Cucut Pasir", "common", 30, 3.0, "shark", "#a3a894", "#f0f2e9", "#747965", "plain", "Cucut pasir yang berpatroli malas di dasar pantai."],
+    ["kerapu-muda", "Kerapu Muda", "common", 23, 1.7, "grouper", "#8f8468", "#f0ead9", "#645a41", "spots", "Kerapu muda yang belum berani keluar dari karang."],
+    ["kakap-kuning", "Kakap Kuning", "common", 27, 1.9, "round", "#d9bc66", "#fff4cb", "#a68935", "scales", "Kakap kekuningan dengan sirip yang kemerahan."],
+
+    // ── GELOMBANG BARU · UNCOMMON (25) ──────────────────────────
+    ["tapah", "Tapah", "uncommon", 72, 5.0, "catfish", "#59544b", "#c7c1b5", "#34302a", "spots", "Tapah besar bermulut lebar yang menunggu di lubuk."],
+    ["toman-kecil", "Toman Kecil", "uncommon", 66, 3.5, "long", "#5c7a5d", "#dceae0", "#3b563d", "patches", "Toman muda yang sudah berani menyambar umpan."],
+    ["jelawat", "Jelawat", "uncommon", 74, 4.5, "round", "#9aa4a9", "#eef2f5", "#697379", "plain", "Jelawat perak dengan tenaga tarikan yang kuat."],
+    ["semah", "Semah", "uncommon", 68, 3.8, "carp", "#c9a15c", "#ffeac2", "#9a752f", "scales", "Semah bersisik keemasan dari sungai berarus deras."],
+    ["kancra", "Kancra", "uncommon", 70, 4.2, "carp", "#7d8f73", "#e9f1e2", "#55664d", "scales", "Kancra hijau zaitun yang disakralkan di beberapa daerah."],
+    ["baung-kuning", "Baung Kuning", "uncommon", 58, 2.0, "catfish", "#bfa95f", "#f7eecb", "#8e7b33", "plain", "Baung kekuningan dengan kumis yang sangat sensitif."],
+    ["juaro", "Juaro", "uncommon", 62, 2.6, "catfish", "#7b828a", "#e6e9ee", "#4f565e", "spots", "Juaro berbadan licin dengan totol samar di sisi."],
+    ["riu", "Riu", "uncommon", 64, 2.4, "long", "#9aa7ad", "#edf2f5", "#6a777d", "stripes", "Riu memanjang dengan garis tipis di sepanjang tubuh."],
+    ["kelabau", "Kelabau", "uncommon", 60, 2.2, "carp", "#b6b9a4", "#f3f4ea", "#848771", "scales", "Kelabau bersisik besar yang suka makan buah sungai."],
+    ["tambakan", "Tambakan", "uncommon", 48, 1.2, "round", "#a7a7a0", "#f2f2ee", "#77776f", "plain", "Tambakan bertubuh pipih dengan dahi menonjol."],
+    ["sepat-siam", "Sepat Siam", "uncommon", 46, 1.1, "fancy", "#8f9fa9", "#eef4f7", "#5f7079", "spots", "Sepat pendatang yang kini akrab di kolam warga."],
+    ["nila-gift", "Nila Gift", "uncommon", 56, 1.8, "round", "#8fa99c", "#eef7f2", "#5e7a6c", "scales", "Nila cepat tumbuh dengan sisik kehijauan."],
+    ["mujair-batu", "Mujair Batu", "uncommon", 61, 2.3, "round", "#84866d", "#eef0e0", "#5b5d45", "spots", "Mujair yang betah di air berbatu dan dingin."],
+    ["betok-hias", "Betok Hias", "uncommon", 50, 0.5, "round", "#8f7f9f", "#f0ebf7", "#665476", "spots", "Betok ungu dengan bintik yang berkilau di cahaya."],
+    ["belida", "Belida", "uncommon", 78, 2.8, "long", "#b9c3c0", "#f4f8f7", "#84908c", "plain", "Belida berbadan pita yang bahan kerupuknya terkenal."],
+    ["jalai", "Jalai", "uncommon", 52, 0.9, "slim", "#9fae8c", "#f0f6e8", "#6f7f5c", "stripes", "Jalai ramping yang lincah di arus sungai jernih."],
+    ["baung-putih", "Baung Putih", "uncommon", 63, 2.7, "catfish", "#a7a49a", "#f0efe9", "#777469", "plain", "Baung putih dengan kulit pucat dan kumis lentur."],
+    ["layaran", "Layaran", "uncommon", 82, 6.5, "marlin", "#6f93b3", "#e6f2fb", "#456a8a", "stripes", "Layaran biru dengan layar punggung yang megah."],
+    ["tongkol-abu", "Tongkol Abu", "uncommon", 69, 3.0, "tuna", "#7b8791", "#e5eaee", "#4f5c66", "stripes", "Tongkol abu-abu dengan otot tebal dan lincah."],
+    ["cucut-martil", "Cucut Martil", "uncommon", 86, 5.0, "shark", "#8b939b", "#e8ecf0", "#5c646c", "plain", "Kepala berbentuk martil membantunya mendeteksi mangsa."],
+    ["pari-totol", "Pari Totol", "uncommon", 76, 4.6, "ray", "#8f8374", "#ece4d7", "#5f5445", "spots", "Pari bertotol rapat yang bersembunyi di dasar laut."],
+    ["kakap-timah", "Kakap Timah", "uncommon", 71, 3.2, "round", "#a9b2b8", "#f1f4f6", "#758087", "scales", "Kakap kelabu seperti timah dengan mata bening."],
+    ["kerapu-merah", "Kerapu Merah", "uncommon", 80, 3.6, "grouper", "#b3584f", "#f7d9d5", "#7d3129", "spots", "Kerapu merah dengan mulut besar dan sisik tebal."],
+    ["buntal-duri", "Buntal Duri", "uncommon", 57, 1.5, "round", "#a89a5f", "#f4edd2", "#786c34", "spots", "Buntal berduri tajam yang mengembang saat kaget."],
+    ["swordfish-kecil", "Swordfish Kecil", "uncommon", 84, 4.0, "marlin", "#58758a", "#dfeef7", "#35566b", "plain", "Pedangnya belum panjang, tapi sudah cukup berani."],
+
+    // ── GELOMBANG BARU · RARE (20) ──────────────────────────────
+    ["arwana-pirus", "Arwana Pirus", "rare", 300, 4.5, "arowana", "#4fa39a", "#ddfaf6", "#2f7a72", "scales", "Arwana hijaunya berkilau seperti air pirus."],
+    ["arwana-banjar", "Arwana Banjar", "rare", 270, 3.6, "arowana", "#c96f5f", "#ffe3db", "#94422f", "scales", "Arwana kemerahan dengan sirip yang anggun."],
+    ["arwana-merah", "Arwana Merah", "rare", 290, 4.0, "arowana", "#b8443c", "#ffd9d4", "#822521", "scales", "Sisik merahnya memantulkan cahaya seperti bara."],
+    ["koi-showa", "Koi Showa", "rare", 180, 4.0, "carp", "#2f3138", "#e8e9ee", "#d9534f", "patches", "Koi hitam dengan corak merah dan putih yang berani."],
+    ["koi-sanke", "Koi Sanke", "rare", 175, 3.8, "carp", "#f2efe4", "#ffffff", "#d9534f", "patches", "Koi putih dengan bintik merah dan garis hitam."],
+    ["koi-bekko", "Koi Bekko", "rare", 160, 3.4, "carp", "#efe8d2", "#ffffff", "#2f3138", "patches", "Koi berbadan putih dengan totol hitam yang rapi."],
+    ["koi-tancho", "Koi Tancho", "rare", 210, 3.2, "carp", "#f6f3ea", "#ffffff", "#d93f3f", "spots", "Bintik merah di kepalanya menyerupai matahari."],
+    ["kerapu-sunuk", "Kerapu Sunuk", "rare", 265, 8.0, "grouper", "#b03f3f", "#f7d4d4", "#7a2020", "spots", "Kerapu merah berbintik biru yang terkenal mahal."],
+    ["kerapu-tikus", "Kerapu Tikus", "rare", 240, 7.0, "grouper", "#8a7a5f", "#ece0c9", "#5c4e36", "spots", "Coraknya seperti tikus tanah dengan bintik gelap."],
+    ["kakap-bambu", "Kakap Bambu", "rare", 205, 5.0, "round", "#c9b18f", "#f7ecd9", "#98805c", "scales", "Kakap kekuningan dengan garis seperti ruas bambu."],
+    ["kakap-hitam", "Kakap Hitam", "rare", 250, 7.5, "round", "#4f585f", "#c9d0d6", "#2f373d", "scales", "Kakap gelap dengan sisik besar dan gigi tajam."],
+    ["tenggiri", "Tenggiri", "rare", 300, 9.0, "long", "#6b7f8c", "#e0e9ef", "#41545f", "stripes", "Tenggiri dewasa yang jadi incaran pemancing laut."],
+    ["tuna-kuning", "Tuna Kuning", "rare", 285, 14, "tuna", "#3f6f8f", "#d4ecf9", "#234f6a", "gradient", "Tuna bersirip kuning dengan tenaga luar biasa."],
+    ["marlin-hitam", "Marlin Hitam", "rare", 315, 16, "marlin", "#2f3f4f", "#c9d6e0", "#17242f", "plain", "Marlin gelap yang melompat tinggi di laut terbuka."],
+    ["hiu-tokek", "Hiu Tokek", "rare", 260, 12, "shark", "#7f8a93", "#e2e9ee", "#525d66", "spots", "Hiu bertotol yang sering menempel di batu karang."],
+    ["pari-elang", "Pari Elang", "rare", 295, 18, "ray", "#4f5b6b", "#c9d2de", "#2f3a47", "spots", "Sayap lebarnya membuatnya melayang seperti elang."],
+    ["kerapu-karang", "Kerapu Karang", "rare", 235, 6.5, "grouper", "#5f8f7f", "#ddf3ea", "#3b6656", "patches", "Kerapu hijau yang bersembunyi di celah karang."],
+    ["barakuda-kuning", "Barakuda Kuning", "rare", 280, 7.0, "long", "#b0a45f", "#f4eecb", "#807534", "stripes", "Barakuda kekuningan dengan gigi yang berkilau."],
+    ["tenggiri-hitam", "Tenggiri Hitam", "rare", 275, 10, "long", "#3f4a53", "#c9d3da", "#1f272d", "stripes", "Tenggiri gelap yang menyambar umpan di pagi buta."],
+    ["kakap-ekor-kuning", "Kakap Ekor Kuning", "rare", 245, 6.0, "round", "#8fa2ad", "#f2f7fa", "#d9b84f", "scales", "Kakap perak dengan ekor kuning yang mencolok."],
+
+    // ── GELOMBANG BARU · EPIC (12) ──────────────────────────────
+    ["arwana-papua", "Arwana Papua", "epic", 950, 6.0, "arowana", "#4f6f9f", "#d9e6f7", "#2f4c7a", "scales", "Arwana biru Papua dengan sisik sebesar koin."],
+    ["koi-platinum", "Koi Platinum", "epic", 920, 7.0, "carp", "#dfe6e9", "#ffffff", "#a9b8bf", "gradient", "Seluruh tubuhnya berkilau seperti logam mulia."],
+    ["betta-giant", "Betta Giant", "epic", 780, 0.8, "betta", "#3f6fd9", "#dde9ff", "#e05fa8", "gradient", "Betta raksasa dengan sirip biru yang membentang."],
+    ["kerapu-kentang", "Kerapu Kentang", "epic", 980, 60, "grouper", "#6b5a3f", "#d9c9a8", "#453722", "patches", "Kerapu besar bercorak kentang yang hidup di palung."],
+    ["tuna-sirip-kuning", "Tuna Sirip Kuning", "epic", 900, 55, "tuna", "#2f5f7f", "#d4ecf9", "#d9b84f", "gradient", "Sirip kuningnya menandai perenang samudra sejati."],
+    ["hiu-maut", "Hiu Maut", "epic", 870, 70, "shark", "#5f6b75", "#d4dce3", "#37424b", "plain", "Hiu buas dengan tatapan yang membuat air terasa dingin."],
+    ["pari-manta", "Pari Manta", "epic", 940, 80, "ray", "#3f4859", "#b8c3d6", "#232d3d", "spots", "Sayapnya lebar dan gerakannya seperti melayang."],
+    ["hiu-tikus", "Hiu Tikus", "epic", 760, 40, "shark", "#7f7b6f", "#e8e4d9", "#514d41", "spots", "Hiu dasar laut dengan pola seperti bulu tikus."],
+    ["mahi-biru", "Mahi Biru", "epic", 820, 28, "mahi", "#3f7fbf", "#d9ecff", "#23598f", "spots", "Mahi-mahi biru yang berkilau saat melompat."],
+    ["kakap-raksasa", "Kakap Raksasa", "epic", 990, 65, "round", "#b03f3f", "#ffd4d4", "#7a2020", "scales", "Kakap merah berukuran raksasa yang menguasai karang."],
+    ["hiu-mako", "Hiu Mako", "epic", 930, 50, "shark", "#3f6f9f", "#d4e8f5", "#244a6b", "plain", "Hiu tercepat di laut dengan lompatan setinggi perahu."],
+    ["marlin-pasifik", "Marlin Pasifik", "epic", 960, 45, "marlin", "#2f4f6f", "#c9dcec", "#d9b84f", "stripes", "Marlin biru Pasifik dengan pedang panjang berkilau."],
+
+    // ── GELOMBANG BARU · MYTHIC (7) ─────────────────────────────
+    ["arwana-super-gold", "Arwana Super Gold", "mythic", 3600, 12, "arowana", "#e6c05a", "#fff7d6", "#b3902f", "scales", "Arwana emas penuh yang dipercaya membawa hoki besar."],
+    ["koi-sakura", "Koi Sakura", "mythic", 3400, 10, "carp", "#f2c9d9", "#fff2f7", "#d97a9f", "patches", "Corak merah mudanya seperti kelopak sakura."],
+    ["hiu-goblin", "Hiu Goblin", "mythic", 3100, 120, "shark", "#a68f8a", "#efe4e0", "#6f5651", "plain", "Hiu purba bermoncong panjang dari laut dalam."],
+    ["tuna-atlantik", "Tuna Atlantik", "mythic", 3800, 180, "tuna", "#1f4f6f", "#b8d9ec", "#0f3047", "gradient", "Tuna raksasa samudra dengan otot sekuat baja."],
+    ["oarfish-raksasa", "Oarfish Raksasa", "mythic", 2900, 160, "oarfish", "#c9d4dc", "#f4f8fb", "#e05f5f", "stripes", "Ikan pita sepanjang perahu yang jarang terlihat."],
+    ["hiu-putih-raksasa", "Hiu Putih Raksasa", "mythic", 3650, 150, "shark", "#8f99a1", "#eef2f5", "#4f5860", "plain", "Hiu putih sebesar kapal yang menguasai laut dalam."],
+    ["pari-raksasa", "Pari Raksasa", "mythic", 3300, 200, "ray", "#3f4859", "#b8c3d6", "#232d3d", "spots", "Pari selebar perahu yang melayang tanpa suara."],
+
+    // ── GELOMBANG BARU · LEGEND (5) ─────────────────────────────
+    ["naga-biru", "Naga Biru", "legend", 13500, 280, "dragon", "#2f6f9f", "#c9ecff", "#d9b84f", "glow", "Naga laut bersisik biru yang menjaga palung dalam."],
+    ["koi-dewa", "Koi Dewa", "legend", 16000, 240, "carp", "#e0b84f", "#fff6d1", "#d94f8f", "glow", "Koi emas berkilau yang hanya muncul saat air tenang."],
+    ["hiu-megalodon", "Hiu Megalodon", "legend", 19500, 480, "shark", "#4f565f", "#b8c0c9", "#2a3037", "stars", "Hiu raksasa purba dengan gigi sebesar telapak tangan."],
+    ["naga-langit", "Naga Langit", "legend", 17500, 360, "dragon", "#4f8fbf", "#d4ecff", "#e0c05f", "glow", "Naga yang turun dari awan saat badai menyapu laut."],
+    ["hiu-biru-raksasa", "Hiu Biru Raksasa", "legend", 18500, 420, "shark", "#2f5f8f", "#c9e0f0", "#1a3a5c", "gradient", "Hiu biru sepanjang belasan meter yang berenang tenang."],
+
+    // ── GELOMBANG BARU · SECRET (3) ─────────────────────────────
+    ["dewa-samudra", "Dewa Samudra", "secret", 150000, 1500, "dragon", "#4fd9c9", "#e0fff9", "#d9b84f", "glow", "Penjaga terakhir lautan yang hanya muncul sekali seumur hidup."],
+    ["raja-galaksi", "Raja Galaksi", "secret", 95000, 1100, "whale", "#4f3f9f", "#d9c9ff", "#f2c94f", "stars", "Ikan raksasa yang tubuhnya bertabur gugusan bintang."],
+    ["matahari-hitam", "Matahari Hitam", "secret", 110000, 1300, "dragon", "#1f1f2f", "#a9a9c9", "#e05f5f", "glow", "Bola hitam bercahaya yang menelan semua umpan di sekitarnya."],
   ];
 
   const FISH = FISH_RAW.map(([id, name, rarity, value, weight, shape, color, belly, fin, pattern, desc]) => ({
@@ -181,6 +296,11 @@
     ["meteor", "Joran Meteor", 10, 120000, 34, 580, 48, "#d96f3f", "#8f3f1f", "Tempaan batu meteor yang jatuh ke dasar samudra."],
     ["abyss", "Joran Abyss", 11, 200000, 40, 720, 60, "#2f2f4f", "#d94f8f", "Mengambil kekuatan dari palung yang tidak pernah tersentuh cahaya."],
     ["legenda", "Joran Sang Legenda", 12, 350000, 50, 900, 75, "#e0b84f", "#9f4fd9", "Joran mitos yang ditenun dari cahaya bintang dan air laut."],
+    ["aurora", "Joran Aurora", 13, 500000, 56, 1050, 85, "#5fd9c0", "#e060a8", "Cahaya aurora terperangkap di batangnya dan memikat ikan dari jauh."],
+    ["nebula", "Joran Nebula", 14, 800000, 62, 1200, 95, "#7f6fe0", "#3a2f9f", "Debu nebula membuat joran ini peka pada tarikan sekecil apa pun."],
+    ["void", "Joran Void", 15, 1250000, 68, 1400, 110, "#2a2f45", "#4ff2d9", "Batang dari ruang hampa; ringan, senyap, dan hampir mustahil patah."],
+    ["singularitas", "Joran Singularitas", 16, 1900000, 73, 1650, 130, "#4f2f8f", "#ffd84f", "Menarik keberuntungan seperti gravitasi menarik cahaya."],
+    ["dewa", "Joran Dewa Samudra", 17, 2800000, 78, 1900, 150, "#e0b84f", "#4fd9c9", "Ditenun dari karang terdalam, joran terkuat yang pernah ada."],
   ].map(([id, name, tier, price, luck, durability, repair, color, accent, desc]) => ({
     id, name, tier, price, luck, durability, repair, color, accent, desc,
   }));
@@ -199,6 +319,11 @@
     ["kunang", "Kunang-Kunang", 8, 200, 13, "Cahaya kecilnya terlihat jelas di air gelap."],
     ["permata", "Umpan Permata", 9, 320, 17, "Kristal umpan yang memantulkan warna pelangi."],
     ["bintang", "Umpan Bintang", 10, 500, 22, "Konon dibuat dari serpihan bintang yang jatuh ke laut."],
+    ["serpihan-aurora", "Umpan Aurora", 11, 650, 24, "Serpihan cahaya utara yang berkilau di dalam air."],
+    ["debu-nebula", "Umpan Nebula", 12, 900, 27, "Debu bintang ungu yang membuat ikan penasaran."],
+    ["meteorit", "Umpan Meteorit", 13, 1250, 30, "Pecahan batu langit yang hangat dan berbau asing."],
+    ["inti-hitam", "Umpan Lubang Hitam", 14, 1700, 34, "Sekecil kelereng, tapi menarik semua ikan di sekitarnya."],
+    ["supernova", "Umpan Supernova", 15, 2400, 40, "Ledakan bintang dalam genggaman; umpan paling menggila."],
   ].map(([id, name, tier, price, luck, desc]) => ({ id, name, tier, price, luck, desc }));
 
   const BAIT_BY_ID = Object.fromEntries(BAITS.map((b) => [b.id, b]));
@@ -209,12 +334,12 @@
     {
       cat: "luck", mult: 2, icon: "🍀", name: "Potion Luck x2",
       color: "#3f9e68", soft: "#e2f6e9",
-      desc: "Luck mancing jadi 2x dan batas Secret naik ke 0,2% selama potion aktif.",
+      desc: "Luck mancing jadi 2x selama potion aktif; peluang Rare ke atas ikut naik.",
     },
     {
       cat: "luck", mult: 3, icon: "🌟", name: "Potion Luck x3",
       color: "#d99a2b", soft: "#fff2cf",
-      desc: "Luck mancing jadi 3x dan batas Secret naik ke 0,3% selama potion aktif.",
+      desc: "Luck mancing jadi 3x selama potion aktif; peluang Rare ke atas ikut naik.",
     },
     {
       cat: "worker", mult: 2, icon: "⏩", name: "Potion Worker x2",
@@ -301,7 +426,7 @@
     { id: "species-10", name: "Kolektor Pemula", desc: "Temukan 10 spesies ikan.", icon: "📖", kind: "species", target: 10 },
     { id: "species-30", name: "Penjelajah Air", desc: "Temukan 30 spesies ikan.", icon: "🗺️", kind: "species", target: 30 },
     { id: "species-60", name: "Ahli Biologi Laut", desc: "Temukan 60 spesies ikan.", icon: "🔬", kind: "species", target: 60 },
-    { id: "species-all", name: "Ensiklopedia Hidup", desc: "Temukan semua 102 spesies ikan.", icon: "🏛️", kind: "species", target: 102 },
+    { id: "species-all", name: "Ensiklopedia Hidup", desc: "Temukan semua 204 spesies ikan.", icon: "🏛️", kind: "species", target: 204 },
     { id: "rare-1", name: "Sinar Langka", desc: "Tangkap ikan Rare pertamamu.", icon: "💎", kind: "rarity", target: 1, rarity: "rare" },
     { id: "epic-1", name: "Momen Epik", desc: "Tangkap ikan Epic pertamamu.", icon: "🔮", kind: "rarity", target: 1, rarity: "epic" },
     { id: "mythic-1", name: "Mitos Hidup", desc: "Tangkap ikan Mythic pertamamu.", icon: "🌌", kind: "rarity", target: 1, rarity: "mythic" },
@@ -314,15 +439,24 @@
     { id: "rods-5", name: "Kolektor Joran", desc: "Miliki 5 joran berbeda.", icon: "🎣", kind: "rods", target: 5 },
   ];
 
+  // Bobot Secret hanya ditentukan luck joran + umpan (potion tidak menembusnya).
+  // Gear lama (luck maksimal 72) berhenti di 0,1%; gear baru membuka sampai 0,5%.
+  function bobotSecret(luckGear) {
+    if (luckGear <= 72) return RARITY_BASE_WEIGHT.secret + Math.floor((luckGear / 72) * 5);
+    return Math.min(RARITY_CAPS.secret, 10 + Math.floor(((luckGear - 72) / 28) * 40));
+  }
+
   function hitungBobotRarity(luck, secretMult) {
-    const l = Math.max(0, Math.min(100, Number(luck) || 0));
     const mult = Math.max(1, Math.min(3, Math.floor(Number(secretMult) || 1)));
+    const hasil = Math.max(0, Number(luck) || 0);
+    const gearLuck = Math.min(160, hasil / mult);
+    const efektif = Math.min(160, hasil);
     const boost = {
-      secret: Math.min(RARITY_CAPS.secret - RARITY_BASE_WEIGHT.secret, Math.floor(l * 0.16)),
-      legend: Math.min(RARITY_CAPS.legend - RARITY_BASE_WEIGHT.legend, Math.round(l * 1.0)),
-      mythic: Math.min(RARITY_CAPS.mythic - RARITY_BASE_WEIGHT.mythic, Math.round(l * 2.5)),
-      epic: Math.min(RARITY_CAPS.epic - RARITY_BASE_WEIGHT.epic, Math.round(l * 5)),
-      rare: Math.min(RARITY_CAPS.rare - RARITY_BASE_WEIGHT.rare, Math.round(l * 8)),
+      secret: bobotSecret(gearLuck) - RARITY_BASE_WEIGHT.secret,
+      legend: Math.min(RARITY_CAPS.legend - RARITY_BASE_WEIGHT.legend, Math.round(efektif * 1.0)),
+      mythic: Math.min(RARITY_CAPS.mythic - RARITY_BASE_WEIGHT.mythic, Math.round(efektif * 2.5)),
+      epic: Math.min(RARITY_CAPS.epic - RARITY_BASE_WEIGHT.epic, Math.round(efektif * 5)),
+      rare: Math.min(RARITY_CAPS.rare - RARITY_BASE_WEIGHT.rare, Math.round(efektif * 8)),
     };
     const naik = boost.secret + boost.legend + boost.mythic + boost.epic + boost.rare;
     const w = { ...RARITY_BASE_WEIGHT };
@@ -337,23 +471,6 @@
       sisa -= ambilUncommon;
     }
     if (sisa > 0) w.common += sisa; // pengaman, seharusnya tidak pernah terjadi
-
-    // Potion Luck menembus batas Secret. Bobot tambahannya diambil dari
-    // common/uncommon supaya total tetap 10.000 dan ikan langka lain tidak hilang.
-    const tambahanSecret = w.secret * (mult - 1);
-    if (tambahanSecret > 0) {
-      let sisaSecret = tambahanSecret;
-      const ambilCommonSecret = Math.min(sisaSecret, w.common - 1200);
-      w.common -= ambilCommonSecret;
-      sisaSecret -= ambilCommonSecret;
-      if (sisaSecret > 0) {
-        const ambilUncommonSecret = Math.min(sisaSecret, w.uncommon - 800);
-        w.uncommon -= ambilUncommonSecret;
-        sisaSecret -= ambilUncommonSecret;
-      }
-      if (sisaSecret > 0) w.common -= sisaSecret;
-      w.secret += tambahanSecret;
-    }
     return w;
   }
 

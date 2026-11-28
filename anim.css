@@ -194,15 +194,28 @@
   to { transform: translate3d(5%, 6%, 0) scale(1.12); }
 }
 
-/* Parallax kecil di hero mengikuti kursor */
+/* Parallax hero: kursor + scroll */
 .hero-inner {
-  transform: translate3d(var(--hero-px, 0px), var(--hero-py, 0px), 0);
+  transform: translate3d(
+    var(--hero-px, 0px),
+    calc(var(--hero-py, 0px) + var(--paralaks, 0px) * 0.12),
+    0
+  );
   transition: transform 0.25s ease-out;
 }
 
 .hero-leaf {
-  transform: translate3d(calc(var(--hero-px, 0px) * -1.6), calc(var(--hero-py, 0px) * -1.6), 0);
+  transform: translate3d(
+    calc(var(--hero-px, 0px) * -1.6),
+    calc(var(--hero-py, 0px) * -1.6 + var(--paralaks, 0px) * 0.32),
+    0
+  );
   transition: transform 0.3s ease-out;
+}
+
+.anim-aurora {
+  transform: translate3d(0, calc(var(--paralaks, 0px) * 0.2), 0);
+  transition: transform 0.2s linear;
 }
 
 /* ---------- Mouse: kursor bulat + dot ---------- */
@@ -269,7 +282,8 @@ body.anim-cursor-hide .anim-cursor-dot { opacity: 0; }
   .anim-tilt,
   .anim-tilt.is-tilting,
   .hero-inner,
-  .hero-leaf {
+  .hero-leaf,
+  .anim-aurora {
     transform: none;
     transition: none;
   }

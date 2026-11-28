@@ -377,7 +377,9 @@ html[data-theme]:not([data-theme="light"]) .absent-item:has(input:checked) {
 
 html[data-theme]:not([data-theme="light"]) .modal-overlay { background: var(--t-overlay); }
 
-/* ---------- area game tetap terang ---------- */
+/* ---------- area game mengikuti tema ----------
+   Permukaan game memakai token tema, sedangkan --ink/--forest/--emerald
+   dibiarkan warisan html supaya teks tetap kontras di tema gelap. */
 
 html[data-theme]:not([data-theme="light"]) .gtc-app,
 html[data-theme]:not([data-theme="light"]) #gtc-locked,
@@ -390,16 +392,13 @@ html[data-theme]:not([data-theme="light"]) #quiz-content,
 html[data-theme]:not([data-theme="light"]) #quiz-locked,
 html[data-theme]:not([data-theme="light"]) #tv-modal-root,
 html[data-theme]:not([data-theme="light"]) #tv-toast-root {
-  color-scheme: light;
-  --paper: #FBFCFA;
-  --white: #FFFFFF;
-  --mint: #E8F5EC;
-  --ink: #16241C;
-  --muted: #5C7268;
-  --line: #D8E8DE;
-  --forest: #17392A;
-  --emerald: #2F8F5B;
-  --shadow: 0 14px 30px -18px rgba(23, 57, 42, 0.35);
+  --paper: var(--t-surface);
+  --white: var(--t-card-a);
+  --mint: var(--t-soft-b);
+  --line: var(--t-surface-line);
+  --game-edge: var(--t-card-edge);
+  --game-edge-deep: var(--t-surface-line);
+  --shadow: 0 14px 30px -18px var(--t-card-under);
 }
 
 /* ---------- perbaikan kontras teks ---------- */
@@ -418,47 +417,414 @@ html[data-theme]:not([data-theme="light"]) .like-siapa {
   border-color: var(--t-surface-line);
 }
 
-/* Tombol urutan game memakai permukaan terang tetap. */
+/* Tombol urutan game ikut permukaan tema. */
 html[data-theme]:not([data-theme="light"]) .games-order-btn {
-  background: #F4FBF6;
-  border-color: #CFE6D8;
-  color: #1F6D52;
-}
-
-html[data-theme]:not([data-theme="light"]) .games-order-btn:hover:not(:disabled) {
-  background: #E3F4EA;
-}
-
-/* Teks toolbar Quiz berada langsung di atas latar halaman gelap. */
-html[data-theme="forest"] #quiz-content .quiz-toolbar { --ink: #EAF6EE; --muted: #B3CDBD; }
-html[data-theme="dark"] #quiz-content .quiz-toolbar { --ink: #E7F2EA; --muted: #9DB8A8; }
-html[data-theme="dark-forest"] #quiz-content .quiz-toolbar { --ink: #DDEBE2; --muted: #8FA99A; }
-
-/* Panel semi-transparan Guess the Color dibuat solid di tema gelap. */
-html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-rules,
-html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-reveal {
-  background: #F4FBF7;
-}
-
-/* TableVerse: judul di atas permukaan terang tetap, teks section ikut tema. */
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-hero-copy h1,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-game-top h3,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-active-info h2,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-profile-head h2,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-gate-card h2,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-lobby-main h3,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-result h3 {
-  color: #17352C;
-}
-
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-section-head .tv-kicker {
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
   color: var(--emerald);
 }
 
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-section-head p,
-html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-foot {
-  color: var(--muted);
+html[data-theme]:not([data-theme="light"]) .games-order-btn:hover:not(:disabled) {
+  background: var(--t-soft-b);
 }
+
+/* Teks toolbar Quiz mengikuti tema. */
+html[data-theme]:not([data-theme="light"]) #quiz-content .quiz-toolbar { color: var(--muted); }
+html[data-theme]:not([data-theme="light"]) #quiz-content .quiz-toolbar strong { color: var(--ink); }
+
+/* ===================================================
+   TEMA MENEMBUS KE DALAM GAME
+   Kartu, panel, HUD, dan tombol di setiap game memakai
+   token tema supaya warna ikut sampai ke akar.
+=================================================== */
+
+/* ---------- kartu terkunci (Streak, Quiz, Guess the Color, Fishing, Chat) ---------- */
+
+html[data-theme]:not([data-theme="light"]) .streak-locked-card {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 7px 0 var(--t-card-edge), 0 26px 40px -30px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-locked-card::before {
+  background: radial-gradient(circle, var(--t-soft-b), transparent 68%);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-locked-icon {
+  background: linear-gradient(160deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--t-soft-line);
+  box-shadow: inset 0 2px 0 var(--t-card-inset), inset 0 -6px 0 rgba(0, 0, 0, 0.16), 0 8px 14px -10px var(--t-card-under);
+}
+
+/* ---------- Timer ---------- */
+
+html[data-theme]:not([data-theme="light"]) .timer-shell {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 7px 0 var(--t-card-edge), 0 26px 40px -30px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-shell::after {
+  background: radial-gradient(circle, var(--t-soft-b), transparent 70%);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-modes {
+  background: var(--t-soft-a);
+  box-shadow: inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-mode { color: var(--muted); }
+
+html[data-theme]:not([data-theme="light"]) .timer-mode.is-active {
+  color: var(--emerald);
+  background: var(--t-card-a);
+  box-shadow: 0 3px 8px -4px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-ring {
+  background: conic-gradient(from -90deg, var(--emerald) calc(var(--p) * 1%), var(--t-soft-b) 0);
+  box-shadow: 0 18px 32px -22px var(--t-card-under), inset 0 0 0 1px var(--t-card-sheen);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-ring.is-hurry {
+  background: conic-gradient(from -90deg, var(--t-danger-line) calc(var(--p) * 1%), var(--t-danger-bg) 0);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-ring.is-finished {
+  background: conic-gradient(from -90deg, var(--t-danger-line) 100%, var(--t-danger-bg) 0);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-face {
+  background: radial-gradient(circle at 50% 32%, var(--t-card-a), var(--t-soft-a) 62%, var(--t-soft-b));
+  box-shadow: inset 0 2px 0 var(--t-card-inset), inset 0 -10px 24px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-display { color: var(--forest); }
+html[data-theme]:not([data-theme="light"]) .timer-display.is-running { color: var(--emerald); }
+
+html[data-theme]:not([data-theme="light"]) .timer-ring.is-hurry .timer-display,
+html[data-theme]:not([data-theme="light"]) .timer-ring.is-finished .timer-display {
+  color: var(--t-danger-ink);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-preset {
+  color: var(--muted);
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-preset:hover {
+  color: var(--emerald);
+  border-color: var(--emerald);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-preset.is-active {
+  color: var(--emerald);
+  background: linear-gradient(180deg, var(--t-active-a), var(--t-active-b));
+  border-color: var(--emerald);
+  box-shadow: inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-custom {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-custom-field input {
+  color: var(--ink);
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-btn-ghost {
+  color: var(--emerald);
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+  box-shadow: 0 5px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .timer-btn-ghost:hover { background: var(--t-soft-b); }
+
+/* ---------- Streak ---------- */
+
+html[data-theme]:not([data-theme="light"]) .streak-card {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 7px 0 var(--t-card-edge), 0 26px 40px -30px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-card::before {
+  background: radial-gradient(circle, var(--t-soft-b), transparent 68%);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-card:hover {
+  border-color: var(--emerald);
+  box-shadow: 0 11px 0 var(--t-card-edge), 0 34px 46px -32px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-kind {
+  background: linear-gradient(180deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--t-soft-line);
+  color: var(--emerald);
+  box-shadow: 0 2px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-chip {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  color: var(--ink);
+  box-shadow: 0 3px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-notice.show {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 4px 0 var(--t-card-edge), 0 12px 20px -18px var(--t-card-under);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-actions .btn-secondary,
+html[data-theme]:not([data-theme="light"]) .pet-actions .btn-secondary {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  color: var(--forest);
+  box-shadow: 0 5px 0 var(--t-card-edge), 0 12px 18px -16px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .streak-actions .btn-secondary:not(:disabled):hover,
+html[data-theme]:not([data-theme="light"]) .pet-actions .btn-secondary:not(:disabled):hover {
+  background: linear-gradient(180deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--emerald);
+}
+
+/* ---------- Quiz ---------- */
+
+html[data-theme]:not([data-theme="light"]) .quiz-hero,
+html[data-theme]:not([data-theme="light"]) .quiz-mapel,
+html[data-theme]:not([data-theme="light"]) .quiz-tema-card,
+html[data-theme]:not([data-theme="light"]) .quiz-question,
+html[data-theme]:not([data-theme="light"]) .quiz-result-card {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 7px 0 var(--t-card-edge), 0 28px 42px -30px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-mapel:hover,
+html[data-theme]:not([data-theme="light"]) .quiz-tema-card:hover {
+  border-color: var(--emerald);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-hero-emoji,
+html[data-theme]:not([data-theme="light"]) .quiz-mapel-emoji {
+  background: linear-gradient(160deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--t-soft-line);
+  box-shadow: inset 0 2px 0 var(--t-card-inset), 0 9px 16px -12px var(--t-card-under);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-empty {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-mini-admin {
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--t-card-edge);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-rank-chip {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  color: var(--forest);
+  box-shadow: 0 2px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-rank-chip.is-active {
+  background: linear-gradient(180deg, #3aa76d, var(--emerald));
+  border-color: #25724b;
+  color: #FFFFFF;
+  box-shadow: 0 3px 0 #1c5c39, inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-play-score,
+html[data-theme]:not([data-theme="light"]) .quiz-topic-tag {
+  background: linear-gradient(180deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--t-soft-line);
+  color: var(--emerald);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-repeat-note {
+  background: var(--t-catatan-bg);
+  border-color: var(--t-catatan-line);
+  color: var(--ink);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-opsi {
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 4px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-opsi:hover:not(:disabled) {
+  border-color: var(--emerald);
+  box-shadow: 0 6px 0 var(--t-card-edge), 0 12px 18px -16px var(--t-card-under);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-opsi-ab {
+  background: linear-gradient(180deg, var(--t-soft-a), var(--t-soft-b));
+  border-color: var(--t-soft-line);
+  color: var(--emerald);
+  box-shadow: inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-opsi.benar {
+  background: var(--t-active-b);
+  border-color: var(--emerald);
+  box-shadow: 0 4px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-opsi.salah {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-line);
+  box-shadow: 0 4px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-feedback.benar {
+  background: var(--t-active-b);
+  border-color: var(--emerald);
+  color: var(--ink);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-feedback.salah {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-line);
+  color: var(--ink);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-result-score { color: var(--emerald); }
+
+html[data-theme]:not([data-theme="light"]) .quiz-result-poin {
+  background: var(--t-catatan-bg);
+  border-color: var(--t-catatan-line);
+  box-shadow: 0 4px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-result-poin strong { color: var(--ink); }
+html[data-theme]:not([data-theme="light"]) .quiz-result-poin span { color: var(--muted); }
+
+html[data-theme]:not([data-theme="light"]) .quiz-review { border-top-color: var(--t-surface-line); }
+
+html[data-theme]:not([data-theme="light"]) .quiz-review li.benar {
+  background: var(--t-active-b);
+  border-color: var(--t-soft-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-review li.salah {
+  background: var(--t-danger-bg);
+  border-color: var(--t-danger-line);
+}
+
+html[data-theme]:not([data-theme="light"]) .quiz-review-correct { color: var(--emerald); }
+
+html[data-theme]:not([data-theme="light"]) .quiz-admin-block,
+html[data-theme]:not([data-theme="light"]) #quiz-content .quiz-soal-form input,
+html[data-theme]:not([data-theme="light"]) #quiz-content .quiz-soal-form select,
+html[data-theme]:not([data-theme="light"]) #quiz-content .quiz-admin-form input {
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+  color: var(--ink);
+}
+
+/* ---------- Guess the Color ---------- */
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-app {
+  --gtc-line: var(--t-surface-line);
+  --gtc-soft: var(--t-soft-a);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-join-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-room-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-setup-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-result-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-play-card,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-locked-card {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 6px 0 var(--t-card-edge), 0 24px 36px -28px var(--t-card-under), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-player {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-soft-a));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 3px 0 var(--t-card-edge), inset 0 1px 0 var(--t-card-inset);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-code-input,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-mini-btn,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-copy-btn {
+  background: var(--t-card-a);
+  border-color: var(--t-surface-line);
+  color: var(--ink);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-btn-ghost {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+  color: var(--emerald);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-empty,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-rules,
+html[data-theme]:not([data-theme="light"]) #game-guesscolor-view .gtc-reveal {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+/* ---------- TableVerse ---------- */
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view {
+  --tv-ink: var(--ink);
+  --tv-ink-soft: var(--muted);
+  --tv-cream: var(--t-soft-a);
+  --tv-paper: var(--t-card-a);
+  --tv-line: var(--t-surface-line);
+  --tv-shadow: 0 18px 40px -22px var(--t-card-under);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-hero {
+  background:
+    radial-gradient(420px 180px at 100% -10%, rgba(240, 185, 74, 0.18), transparent 65%),
+    linear-gradient(140deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-stat {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-gate-card,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-game-card,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-lobby-main,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-lobby-side,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-active-card,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-stat-card,
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-profile-card {
+  background: linear-gradient(180deg, var(--t-card-a), var(--t-card-b));
+  border-color: var(--t-surface-line);
+  box-shadow: 0 6px 0 var(--t-card-edge), 0 24px 36px -28px var(--t-card-under);
+}
+
+html[data-theme]:not([data-theme="light"]) #game-tableverse-view .tv-room-code {
+  background: var(--t-soft-a);
+  border-color: var(--t-soft-line);
+}
+
+/* ---------- Fishing (kartu terkunci sudah di atas) ---------- */
+
+html[data-theme]:not([data-theme="light"]) #game-fishing-view .fishing-app { color: var(--fish-ink, var(--ink)); }
 
 /* ---------- Fishing ikut tema ---------- */
 

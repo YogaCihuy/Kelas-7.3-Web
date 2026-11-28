@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="style.css?v=22">
 <link rel="stylesheet" href="polish.css?v=11">
 <link rel="stylesheet" href="streak3d.css?v=2">
 <link rel="stylesheet" href="timer.css?v=1">
@@ -22,9 +22,9 @@
 <link rel="stylesheet" href="fishing.css?v=6">
 <link rel="stylesheet" href="tableverse.css?v=10">
 <link rel="stylesheet" href="kisi-kisi.css?v=5">
-<link rel="stylesheet" href="theme.css?v=8">
-<link rel="stylesheet" href="design.css?v=1">
-<link rel="stylesheet" href="anim.css?v=1">
+<link rel="stylesheet" href="theme.css?v=9">
+<link rel="stylesheet" href="design.css?v=4">
+<link rel="stylesheet" href="anim.css?v=2">
 <link rel="icon" type="image/png" href="Images/7.3Icon.png">
 <link rel="apple-touch-icon" href="Images/7.3Icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -39,7 +39,9 @@
     dark: "#0A2418",
     "dark-forest": "#050F09"
   };
-  var daftarDesain = ["normal", "modern", "hand-drawn", "cartoon", "manga"];
+  var daftarDesain = ["normal", "modern", "hand-drawn", "cartoon", "manga",
+    "liquid-glass", "material-you", "terminal", "y2k-chrome", "bauhaus",
+    "pixel-art", "aurora", "vaporwave"];
   var desain = "normal";
   try { desain = localStorage.getItem("kelas73-design") || "normal"; } catch (e) {}
   if (daftarDesain.indexOf(desain) === -1) desain = "normal";
@@ -1153,7 +1155,7 @@
 
   <footer class="footer">
     <p>Created by Yoga</p>
-    <button class="footer-link" type="button" data-open-updates>Version 2.24.0</button>
+    <button class="footer-link" type="button" data-open-updates>Version 2.28.0</button>
     <button class="footer-link" type="button" data-open-updates>Last Update (28/11/26)</button>
   </footer>
 
@@ -1683,7 +1685,7 @@
         <span class="theme-subhead-badge" aria-hidden="true">&#9999;&#65039;</span>
         <div class="theme-subhead-copy">
           <strong>Design</strong>
-          <small>Semua design pakai warna putih-hijau seperti Normal.</small>
+          <small>Pilih gaya tampilan favoritmu. Warna tema tetap bisa diganti kapan saja.</small>
         </div>
       </div>
       <div id="design-list" class="theme-list theme-list-design" role="radiogroup" aria-label="Pilihan design"></div>
@@ -1704,11 +1706,11 @@
 <script src="data.js?v=2"></script>
 <script src="guru.js?v=3"></script>
 <script src="streak3d.js?v=2"></script>
-<script src="script.js?v=76"></script>
+<script src="script.js?v=80"></script>
 <script src="guess-color.js?v=2"></script>
-<script src="fishing-catalog.js?v=7"></script>
+<script src="fishing-catalog.js?v=9"></script>
 <script src="fishing-local.js?v=11"></script>
-<script src="fishing.js?v=16"></script>
+<script src="fishing.js?v=18"></script>
 <script src="tableverse-config.js?v=2"></script>
 <script src="tableverse-chess.js?v=1"></script>
 <script src="tableverse-boards.js?v=11"></script>
@@ -1727,6 +1729,6 @@
 <script src="haunted.js?v=3"></script>
 <script src="chat.js?v=5"></script>
 <script src="native-notif.js?v=5"></script>
-<script src="anim.js?v=1"></script>
+<script src="anim.js?v=2"></script>
 </body>
 </html>

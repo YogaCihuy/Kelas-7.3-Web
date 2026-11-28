@@ -70,23 +70,27 @@ async function tangkap(absen) {
 
 (async () => {
   const cat = await panggil(1, "catalog");
-  cek(cat.catalog.fish.length === 102, "katalog berisi 102 ikan", String(cat.catalog.fish.length));
-  cek(cat.catalog.rods.length === 12, "katalog berisi 12 joran");
-  cek(cat.catalog.baits.length === 10, "katalog berisi 10 umpan");
+  cek(cat.catalog.fish.length === 204, "katalog berisi 204 ikan", String(cat.catalog.fish.length));
+  cek(cat.catalog.rods.length === 17, "katalog berisi 17 joran");
+  cek(cat.catalog.baits.length === 15, "katalog berisi 15 umpan");
 
   const Cat = global.FishingCatalog;
   const bobotTotal = (w) => Object.values(w).reduce((a, b) => a + b, 0);
   const bobotDasar = Cat.hitungBobotRarity(0);
-  const bobotMaks = Cat.hitungBobotRarity(100);
-  const bobotLuck2 = Cat.hitungBobotRarity(100, 2);
-  const bobotLuck3 = Cat.hitungBobotRarity(100, 3);
+  const bobotLama = Cat.hitungBobotRarity(72);
+  const bobotBaru = Cat.hitungBobotRarity(100);
+  const bobotPuncak = Cat.hitungBobotRarity(78 + 40);
+  const bobotLamaPotion = Cat.hitungBobotRarity(72 * 3, 3);
   cek(cat.catalog.rarityBaseWeight.secret === 5, "Secret dasar 0,05%", String(cat.catalog.rarityBaseWeight.secret));
-  cek(cat.catalog.rarityCaps.secret === 10, "batas Secret tanpa potion 0,1%", String(cat.catalog.rarityCaps.secret));
+  cek(cat.catalog.rarityCaps.secret === 50, "batas Secret 0,5%", String(cat.catalog.rarityCaps.secret));
   cek(bobotDasar.secret === 5, "bobot Secret dasar 5 per 10.000", String(bobotDasar.secret));
-  cek(bobotMaks.secret === 10, "luck tinggi mentok di batas 0,1%", String(bobotMaks.secret));
-  cek(bobotLuck2.secret === 20, "Potion Luck x2 menembus batas jadi 0,2%", String(bobotLuck2.secret));
-  cek(bobotLuck3.secret === 30, "Potion Luck x3 menembus batas jadi 0,3%", String(bobotLuck3.secret));
-  cek(bobotTotal(bobotLuck2) === 10000 && bobotTotal(bobotLuck3) === 10000, "total bobot tetap 10.000 setelah break limit");
+  cek(bobotLama.secret === 10, "gear lama (luck 72) mentok di 0,1%", String(bobotLama.secret));
+  cek(bobotBaru.secret === 50, "gear baru (luck 100) sampai 0,5%", String(bobotBaru.secret));
+  cek(bobotPuncak.secret === 50, "joran + umpan terbaru tetap di batas 0,5%", String(bobotPuncak.secret));
+  cek(bobotLamaPotion.secret === 10, "Potion tidak menembus batas Secret gear lama", String(bobotLamaPotion.secret));
+  cek([bobotDasar, bobotLama, bobotBaru, bobotPuncak, bobotLamaPotion].every((w) => bobotTotal(w) === 10000), "total bobot tetap 10.000");
+  cek(Cat.ROD_BY_ID.dewa.luck > Cat.ROD_BY_ID.legenda.luck, "joran baru lebih OP dari Joran Sang Legenda");
+  cek(Cat.BAIT_BY_ID.supernova.luck > Cat.BAIT_BY_ID.bintang.luck, "umpan baru lebih OP dari Umpan Bintang");
 
   const awal = await panggil(1, "ensure");
   cek(awal.ok === true, "ensure sukses");
@@ -219,7 +223,7 @@ async function tangkap(absen) {
   // ── AUTO SELL ─────────────────────────────────────
   const totalTas = (s) => Object.values(s.fish || {}).reduce((a, b) => a + b, 0);
   cek(cat.catalog.worker && cat.catalog.worker.price === 3000, "katalog worker harga 3000");
-  cek(cat.catalog.worker.max === 4, "katalog maksimal 4 worker");
+  cek(cat.catalog.worker.max === 3, "katalog maksimal 3 worker");
   cek(cat.catalog.worker.baseSpeedMs === 3600000 && cat.catalog.worker.minSpeedMs === 900000 && cat.catalog.worker.stepMs === 300000, "worker 1 jam bisa upgrade sampai 15 menit");
 
   await cekError("ambang auto sell negatif ditolak", "invalid-argument", () =>
@@ -279,9 +283,7 @@ async function tangkap(absen) {
   const w2id = w2.worker.id;
   const w3 = await panggil(2, "buyWorker", { name: "Budi", gender: "laki", look: "keren" });
   cek(w3.state.workers.length === 3, "tiga worker terdaftar");
-  const w4 = await panggil(2, "buyWorker", { name: "Dodi" });
-  cek(w4.state.workers.length === 4, "empat worker terdaftar");
-  await cekError("worker kelima ditolak", "failed-precondition", () => panggil(2, "buyWorker", { name: "Eka" }));
+  await cekError("worker keempat ditolak", "failed-precondition", () => panggil(2, "buyWorker", { name: "Dodi" }));
 
   const upd = await panggil(2, "updateWorker", { workerId: w1id, name: "Sari Laut", gender: "lainnya", look: "nenek" });
   cek(upd.worker.name === "Sari Laut" && upd.worker.gender === "lainnya" && upd.worker.look === "nenek", "custom worker bisa diubah");
@@ -439,10 +441,24 @@ async function tangkap(absen) {
   const castP = await panggil(1, "cast");
   cek(castP.cast.luck === Math.round((50 + 22) * 2), "luck potion menggandakan luck lemparan", `${castP.cast.luck} vs ${(50 + 22) * 2}`);
   cek(castP.cast.secretMult === 2, "multiplier Secret tersimpan di lemparan", String(castP.cast.secretMult));
-  cek(castP.cast.odds.secret === 0.2, "peluang Secret x2 tampil 0,2%", String(castP.cast.odds.secret));
+  cek(castP.cast.odds.secret === 0.1, "Potion tidak menembus Secret gear lama (tetap 0,1%)", String(castP.cast.odds.secret));
   const stBatal = db.__get("fishing", "1");
   stBatal.activeCast = null;
   db.__set("fishing", "1", stBatal);
+
+  const stDewa = db.__get("fishing", "1");
+  stDewa.rods = stDewa.rods.filter((r) => r.id !== "dewa");
+  stDewa.rods.push({ id: "dewa", durability: 1900 });
+  stDewa.equippedRod = "dewa";
+  stDewa.baits = { supernova: 50 };
+  stDewa.equippedBait = "supernova";
+  db.__set("fishing", "1", stDewa);
+  const castDewa = await panggil(1, "cast");
+  cek(castDewa.cast.luck === (78 + 40) * 2, "luck gear baru ikut potion", String(castDewa.cast.luck));
+  cek(castDewa.cast.odds.secret === 0.5, "gear baru tampil peluang Secret 0,5%", String(castDewa.cast.odds.secret));
+  const stDewaBatal = db.__get("fishing", "1");
+  stDewaBatal.activeCast = null;
+  db.__set("fishing", "1", stDewaBatal);
 
   const stP2 = db.__get("fishing", "1");
   stP2.potions["luck-2-10"] = 1;
@@ -541,7 +557,7 @@ async function tangkap(absen) {
   db.__set("fishing", "2", stLama);
   const akhir = await panggil(2, "ensure");
   cek(!("fieldVersiLama" in akhir.state), "field sisa versi lama dibuang saat ensure");
-  cek(akhir.state.workers.length === 4, "worker tersimpan setelah ensure ulang");
+  cek(akhir.state.workers.length === 3, "worker tersimpan setelah ensure ulang");
   cek(akhir.state.autoSell.enabled === true, "auto sell tersimpan setelah ensure ulang");
 
   Date.now = NOW_ASLI;

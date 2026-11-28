@@ -257,7 +257,6 @@
           </span>
           <span class="guru-kelola-aksi">
             <button type="button" class="btn-secondary btn-kecil" data-guru-edit="${guru.absen}">Edit</button>
-            <button type="button" class="btn-secondary btn-kecil btn-hapus" data-guru-hapus="${guru.absen}">Hapus</button>
           </span>
         </div>`
       )

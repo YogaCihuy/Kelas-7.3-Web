@@ -151,7 +151,7 @@ service cloud.firestore {
         && d.coins <= 1000000000
         && d.rods is list
         && d.rods.size() >= 1
-        && d.rods.size() <= 12
+        && d.rods.size() <= 17
         && d.equippedRod is string
         && d.baits is map
         && d.equippedBait is string
