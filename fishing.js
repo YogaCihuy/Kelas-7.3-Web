@@ -34,6 +34,7 @@
     seq: null,
     modalConfirm: null,
     subs: [],
+    subBoard: null,
     subAbsen: null,
     annSiap: false,
     serverOffset: 0,
@@ -608,8 +609,41 @@
   function hentikanLangganan() {
     FC.subs.forEach((un) => { try { un(); } catch (err) { /* ignore */ } });
     FC.subs = [];
+    hentikanLanggananBoard();
     FC.subAbsen = null;
     FC.annSiap = false;
+  }
+
+  // Papan peringkat berisi 50 dokumen, dan Firestore menagih ulang SELURUH
+  // hasil query setiap ada satu dokumen fishing berubah. Kalau langganan ini
+  // hidup terus, kuota baca harian cepat habis. Jadi hanya dipasang saat
+  // panel Peringkat benar-benar dibuka.
+  function hentikanLanggananBoard() {
+    if (FC.subBoard) {
+      try { FC.subBoard(); } catch (err) { /* ignore */ }
+      FC.subBoard = null;
+    }
+  }
+
+  function mulaiLanggananBoard() {
+    if (FC.subBoard || typeof db === "undefined" || !db) return;
+    try {
+      FC.subBoard = db.collection("fishing").orderBy("totalValue", "desc").limit(50).onSnapshot((snap) => {
+        FC.board = snap.docs.map((d) => {
+          const data = d.data() || {};
+          return {
+            absen: Number(d.id),
+            name: data.name || namaSiswa(d.id),
+            totalValue: Math.max(0, Number(data.totalValue) || 0),
+            totalCaught: Math.max(0, Number(data.totalCaught) || 0),
+            species: Object.keys(data.collection || {}).length,
+          };
+        });
+        if (FC.aktif && FC.panel === "peringkat") render();
+      }, (err) => console.warn("Fishing leaderboard listener:", err));
+    } catch (err) {
+      console.warn("Fishing leaderboard gagal:", err);
+    }
   }
 
   function mulaiLangganan(absen) {
@@ -627,21 +661,6 @@
         jadwalkanAutoPotion();
       }, (err) => console.warn("Fishing state listener:", err));
       FC.subs.push(unState);
-
-      const unBoard = db.collection("fishing").orderBy("totalValue", "desc").limit(50).onSnapshot((snap) => {
-        FC.board = snap.docs.map((d) => {
-          const data = d.data() || {};
-          return {
-            absen: Number(d.id),
-            name: data.name || namaSiswa(d.id),
-            totalValue: Math.max(0, Number(data.totalValue) || 0),
-            totalCaught: Math.max(0, Number(data.totalCaught) || 0),
-            species: Object.keys(data.collection || {}).length,
-          };
-        });
-        if (FC.aktif && FC.panel === "peringkat") render();
-      }, (err) => console.warn("Fishing leaderboard listener:", err));
-      FC.subs.push(unBoard);
 
       const unMeta = db.doc("fishingMeta/firstCatches").onSnapshot((snap) => {
         const raw = snap.exists ? snap.data() : {};
@@ -2864,6 +2883,8 @@
       batalkanSekuens();
     }
     FC.panel = id;
+    if (id === "peringkat") mulaiLanggananBoard();
+    else hentikanLanggananBoard();
     SFX.click();
     render();
     const panel = document.getElementById("fishing-panel");
@@ -3048,6 +3069,7 @@
       FC.errMsg = "";
       render();
       mulaiTicker();
+      if (FC.panel === "peringkat") mulaiLanggananBoard();
       if (FC.panel === "area" && FC.state && FC.state.activeCast) lanjutkanCastAktif();
     } catch (err) {
       FC.membuka = false;

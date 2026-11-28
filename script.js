@@ -215,7 +215,8 @@ let streakNamaJenis = "pohon";
 let pollingCache = [];       // cache data polling terbaru buat referensi klik vote/setting
 const sosialState = {        // like & komentar biodata siswa
   likes: {},
-  likesUnsub: null,
+  likesMuat: 0,
+  likesBusy: false,
   komentar: [],
   komentarUnsub: null,
   balas: null,               // { id, nama } komentar yang sedang dibalas
@@ -1017,20 +1018,31 @@ function terapkanBadgeLike() {
   });
 }
 
-function muatLikeSosial() {
-  if (sosialState.likesUnsub) return;
+// Dulu ini onSnapshot ke SELURUH koleksi profilLikes: setiap satu like baru
+// membuat Firestore menagih ulang ±64 dokumen ke semua siswa yang buka web.
+// Sekarang cukup ambil sekali (dan saat profil dibuka), lalu update lokal.
+function muatLikeSosial(paksa) {
+  const sekarang = Date.now();
+  if (sosialState.likesBusy) return;
+  if (!paksa && sosialState.likesMuat && sekarang - sosialState.likesMuat < 15000) return;
+  sosialState.likesMuat = sekarang;
+  sosialState.likesBusy = true;
   try {
-    sosialState.likesUnsub = db.collection("profilLikes").onSnapshot((snap) => {
-      const next = {};
-      snap.forEach((doc) => {
-        const data = doc.data() || {};
-        next[doc.id] = { count: Number(data.count) || 0, users: data.users || {} };
-      });
-      sosialState.likes = next;
-      terapkanBadgeLike();
-      renderLikeDetail();
-    }, (err) => console.warn("Like biodata:", err));
+    db.collection("profilLikes").get()
+      .then((snap) => {
+        const next = {};
+        snap.forEach((doc) => {
+          const data = doc.data() || {};
+          next[doc.id] = { count: Number(data.count) || 0, users: data.users || {} };
+        });
+        sosialState.likes = next;
+        terapkanBadgeLike();
+        renderLikeDetail();
+      })
+      .catch((err) => console.warn("Like biodata:", err))
+      .finally(() => { sosialState.likesBusy = false; });
   } catch (err) {
+    sosialState.likesBusy = false;
     console.warn("Like biodata:", err);
   }
 }
@@ -1102,6 +1114,7 @@ function bukaSosialDetail(absen) {
   renderLikeDetail();
   renderKomentar();
   muatKomentar(absen);
+  muatLikeSosial(true);
   if (!currentUser) setSosialHint("Login dulu buat like & komentar.");
 }
 
@@ -1117,15 +1130,22 @@ async function toggleLikeProfil() {
   const target = Number(detailAbsenAktif);
   const ref = db.collection("profilLikes").doc(String(target));
   const key = String(currentUser.absen);
+  let usersLokal = null;
   try {
-    await db.runTransaction(async (tx) => {
+    usersLokal = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const lama = snap.exists ? snap.data() || {} : {};
       const users = Object.assign({}, lama.users || {});
       if (users[key]) delete users[key];
       else users[key] = true;
       tx.set(ref, { users, count: Object.keys(users).length, updatedAt: Date.now() });
+      return users;
     });
+    if (usersLokal) {
+      sosialState.likes[String(target)] = { users: usersLokal, count: Object.keys(usersLokal).length };
+      terapkanBadgeLike();
+      renderLikeDetail();
+    }
     SoundFX.likePop();
     setSosialHint("");
   } catch (err) {
@@ -1389,7 +1409,10 @@ function renderSosialKarenaLogin() {
   terapkanBadgeLike();
   renderLikeDetail();
   renderKomentar();
-  if (currentUser) setSosialHint("");
+  if (currentUser) {
+    setSosialHint("");
+    muatLikeSosial(true);
+  }
   else if (detailAbsenAktif) setSosialHint("Login dulu buat like & komentar.");
 }
 
@@ -1971,6 +1994,9 @@ function setupPageTabs() {
           p.classList.add("panel-enter");
         }
       });
+      if (target === "games") {
+        if (currentUser) gameLanggananPeringkat();
+      } else gameHentikanPeringkat();
       SoundFX.tabSwitch();
     });
     if (idx === 0) requestAnimationFrame(() => moveIndicator(btn));
@@ -3634,6 +3660,11 @@ function gameLangganan(absen) {
   );
 }
 
+function panelGamesTerlihat() {
+  const p = document.querySelector('[data-page-panel="games"]');
+  return !!p && !p.hidden;
+}
+
 function gameLanggananPeringkat() {
   if (gamePeringkatUnsub) return;
   gamePeringkatSiap = false;
@@ -3915,7 +3946,9 @@ function updateGamesAccount() {
   gameQuizConfig = quizMuatConfigCache() || gameQuizConfig || quizNormalisasiConfig(null);
   renderGames();
   gameLangganan(absen);
-  gameLanggananPeringkat();
+  // Peringkat membaca SELURUH koleksi games (bisa 60+ dokumen) dan diulang
+  // setiap ada satu dokumen berubah. Cukup hidupkan saat tab Games dibuka.
+  if (panelGamesTerlihat()) gameLanggananPeringkat();
   quizLanggananConfig();
 }
 
@@ -4229,6 +4262,9 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.30.2 Kuota Baca Firestore Ditekan: Papan Peringkat Fishing, Like Biodata, dan Peringkat Games Tidak Lagi Membaca Ulang Seluruh Data Setiap Ada Perubahan",
+      "Version 2.30.2 Papan Peringkat Fishing Hanya Memuat Data Saat Panel Peringkat Dibuka, Jadi Mancing Biasa Tidak Lagi Memakan Kuota",
+      "Version 2.30.2 Like Biodata Diambil Sekali Saat Halaman Dimuat dan Saat Profil Dibuka, Jadi Like Ramai-Ramai Tidak Menghabiskan Kuota",
       "Version 2.30.1 Worker Keempat dan Potion Bisa Dipakai Lagi: Rules Fishing Diringankan supaya Firestore Tidak Menolak Simpanan Kru 4/4",
       "Version 2.30.1 Perbaikan Permission-Denied: Penyebabnya Batas Evaluasi Rules Firestore Terlampaui saat 4 Worker + 3 Potion Aktif, Bukan karena Belum di-Publish",
       "Version 2.30.1 Pesan Error Firestore Tidak Lagi Menyuruh Publish Ulang Rules, Cukup Muat Ulang Halaman",
