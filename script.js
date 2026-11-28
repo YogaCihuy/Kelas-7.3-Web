@@ -998,6 +998,11 @@ function setupDetailModal() {
     if (detailAbsenAktif) bukaAlbum(detailAbsenAktif);
   });
 
+  // Komentar hanya perlu didengar selama modal biodata terbuka.
+  new MutationObserver(() => {
+    if (modal.hidden) hentikanKomentar();
+  }).observe(modal, { attributes: true, attributeFilter: ["hidden"] });
+
   setupModalDismiss(modal);
 }
 
@@ -1182,6 +1187,14 @@ function muatKomentar(absen) {
   } catch (err) {
     console.warn("Komentar biodata:", err);
   }
+}
+
+function hentikanKomentar() {
+  if (sosialState.komentarUnsub) {
+    try { sosialState.komentarUnsub(); } catch (err) { /* abaikan */ }
+    sosialState.komentarUnsub = null;
+  }
+  sosialState.komentar = [];
 }
 
 function waktuRelatif(ts) {
@@ -1998,9 +2011,10 @@ function setupPageTabs() {
           p.classList.add("panel-enter");
         }
       });
-      if (target === "games") {
-        if (currentUser) gameLanggananPeringkat();
-      } else gameHentikanPeringkat();
+      if (target === "games") perbaruiLanggananPeringkatGame();
+      else gameHentikanPeringkat();
+      if (target === "polling") pollingMulaiLangganan();
+      else pollingHentikanLangganan();
       SoundFX.tabSwitch();
     });
     if (idx === 0) requestAnimationFrame(() => moveIndicator(btn));
@@ -3240,23 +3254,45 @@ async function handleEditMedsosSubmit(e) {
 /* ===================================================
    11. TAB POLLING (Admin & Owner bikin, semua vote)
 =================================================== */
-function setupPollingTab() {
-  renderSkeletonPolling();
-  db.collection("polling")
-    .orderBy("createdAt", "desc")
-    .onSnapshot(
-      (snap) => {
-        const daftar = [];
-        snap.forEach((doc) => daftar.push({ id: doc.id, ...doc.data() }));
-        pollingCache = daftar;
-        renderPollingList(daftar);
-      },
-      (err) => {
-        console.error("Gagal ambil polling:", err);
-        renderPollingList([]);
-      }
-    );
+let pollingLanggananUnsub = null;
+let pollingLanggananJalan = false;
 
+// Dulu listener polling dipasang sejak halaman dibuka, jadi setiap ada vote
+// baru semua siswa yang membuka web ikut membaca ulang datanya. Sekarang
+// listener hanya hidup selama tab Polling benar-benar dibuka.
+function pollingMulaiLangganan() {
+  if (pollingLanggananJalan) return;
+  pollingLanggananJalan = true;
+  renderSkeletonPolling();
+  try {
+    pollingLanggananUnsub = db.collection("polling")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(
+        (snap) => {
+          const daftar = [];
+          snap.forEach((doc) => daftar.push({ id: doc.id, ...doc.data() }));
+          pollingCache = daftar;
+          renderPollingList(daftar);
+        },
+        (err) => {
+          console.error("Gagal ambil polling:", err);
+          renderPollingList([]);
+        }
+      );
+  } catch (err) {
+    pollingLanggananJalan = false;
+  }
+}
+
+function pollingHentikanLangganan() {
+  pollingLanggananJalan = false;
+  if (pollingLanggananUnsub) {
+    try { pollingLanggananUnsub(); } catch (err) { /* abaikan */ }
+    pollingLanggananUnsub = null;
+  }
+}
+
+function setupPollingTab() {
   document.getElementById("btn-buat-polling").addEventListener("click", () => openBuatPollingModal(null));
   document.getElementById("btn-tambah-opsi").addEventListener("click", () => {
     const list = document.getElementById("polling-opsi-list");
@@ -3779,6 +3815,21 @@ function gameHentikanPeringkat() {
   gamePeringkatGagal = false;
 }
 
+// Peringkat membaca seluruh koleksi games (60+ dokumen). Supaya kuota tidak
+// habis, listener hanya hidup saat panel yang memang menampilkan peringkat
+// (Streak atau Quiz) benar-benar terbuka.
+function peringkatGameTerlihat() {
+  if (!currentUser) return false;
+  const streak = document.getElementById("game-streak-view");
+  const quiz = document.getElementById("game-quiz-view");
+  return !!((streak && !streak.hidden) || (quiz && !quiz.hidden));
+}
+
+function perbaruiLanggananPeringkatGame() {
+  if (peringkatGameTerlihat()) gameLanggananPeringkat();
+  else gameHentikanPeringkat();
+}
+
 function gamePetaSemua() {
   const peta = {};
 
@@ -4015,8 +4066,9 @@ function updateGamesAccount() {
   renderGames();
   gameLangganan(absen);
   // Peringkat membaca SELURUH koleksi games (bisa 60+ dokumen) dan diulang
-  // setiap ada satu dokumen berubah. Cukup hidupkan saat tab Games dibuka.
-  if (panelGamesTerlihat()) gameLanggananPeringkat();
+  // setiap ada satu dokumen berubah. Cukup hidupkan saat panel Streak/Quiz
+  // (tempat peringkat ditampilkan) sedang terbuka.
+  if (peringkatGameTerlihat()) gameLanggananPeringkat();
   quizLanggananConfig();
 }
 
@@ -4330,6 +4382,10 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.32.0 Spanduk Status Server Muncul Sendiri di Semua Halaman dan Game Begitu Kuota Harian Firebase Habis, Jadi Tidak Perlu Buka Game Satu-Satu untuk Tahu",
+      "Version 2.32.0 Tombol Coba Lagi di Spanduk: Begitu Server Pulih, Spanduk Menghilang dan Game Bisa Dipakai Lagi",
+      "Version 2.32.0 Kuota Lebih Hemat: Peringkat Games Hanya Dimuat Saat Peringkat Streak/Quiz Dibuka, Polling Hanya Saat Tabnya Aktif, dan Komentar Biodata Berhenti Saat Modal Ditutup",
+      "Version 2.32.0 Guess the Color dan TableVerse Berhenti Baca/Tulis di Latar Belakang Saat Layarnya Tidak Dibuka",
       "Version 2.31.0 Browser Baru Sekarang Dibuka dengan Guest Screen: Menu Utama Baru Muncul Setelah Login atau Memilih Login as Guest",
       "Version 2.31.0 Guest Screen Berisi Login Username & Password Siswa atau Guru, Plus Tombol Login as Guest",
       "Version 2.31.0 Pilihan Login as Guest Diingat per Browser, dan Logout Akan Mengembalikan ke Guest Screen",
@@ -7436,6 +7492,13 @@ function setupGamesTab() {
 
   renderGames();
   setupGamesListExtras();
+
+  ["game-streak-view", "game-quiz-view"].forEach((id) => {
+    const view = document.getElementById(id);
+    if (!view) return;
+    new MutationObserver(() => perbaruiLanggananPeringkatGame())
+      .observe(view, { attributes: true, attributeFilter: ["hidden"] });
+  });
 
   document.getElementById("btn-game-back").addEventListener("click", () => {
     document.getElementById("game-streak-view").hidden = true;

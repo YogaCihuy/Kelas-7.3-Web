@@ -2411,7 +2411,9 @@
   function mulaiTimer() {
     if (!st.syncTimer) st.syncTimer = window.setInterval(syncRingan, 25000);
     if (!st.inviteTimer) st.inviteTimer = window.setInterval(() => {
-      if (st.visible) refreshInvites();
+      // Kalau listener realtime tvInvites hidup, polling ini cuma menambah
+      // 2 query Firestore tiap 20 detik tanpa hasil baru.
+      if (st.visible && !st.snapshotInvites) refreshInvites();
     }, 20000);
     if (!st.pollTimer) st.pollTimer = window.setInterval(() => {
       if (st.visible && st.roomId && !st.roomSnapshotOk) muatState(true);

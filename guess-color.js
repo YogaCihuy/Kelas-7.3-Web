@@ -1676,6 +1676,9 @@
     const user = getCurrentUser();
     if (!state.user || (user && String(user.absen) !== myAbsen())) {
       akunBerubah(user);
+    } else {
+      mulaiPresence();
+      mulaiPlayers();
     }
     gtcRender();
   }
@@ -1684,6 +1687,13 @@
     state.viewOpen = false;
     const view = $("game-guesscolor-view");
     if (view) view.hidden = true;
+    // Presence menulis tiap 30 detik dan daftar pemain membaca seluruh koleksi;
+    // keduanya cuma berguna selama layar Guess the Color terbuka.
+    if (state.presenceTimer) { clearInterval(state.presenceTimer); state.presenceTimer = null; }
+    if (state.playersUnsub) {
+      try { state.playersUnsub(); } catch (err) { /* abaikan */ }
+      state.playersUnsub = null;
+    }
   }
 
   function akunBerubah(user) {
@@ -1700,9 +1710,11 @@
       gtcRender();
       return;
     }
-    mulaiPresence();
-    mulaiPlayers();
     mulaiInvites();
+    if (state.viewOpen) {
+      mulaiPresence();
+      mulaiPlayers();
+    }
     restoreRoom();
     cleanupLama();
     gtcRender();
