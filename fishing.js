@@ -13,9 +13,8 @@
   const CAT_KEY = "kelas73-fishing-catalog-v6";
   const TOKEN_KEY = (absen) => `kelas73-fishing-token-${absen}`;
   const RINGKAS_KEY = "kelas73-fishing-ringkas";
-  // Potion disimpan sementara: mesin & data tetap jalan, tampilannya saja yang
-  // disembunyikan. Ubah ke true kalau mau memunculkan lagi.
-  const TAMPILKAN_POTION = false;
+  // Potion tampil penuh: drop dari tangkapan, tab Tas, efek aktif, dan Auto Pakai.
+  const TAMPILKAN_POTION = true;
 
   const FC = {
     aktif: false,

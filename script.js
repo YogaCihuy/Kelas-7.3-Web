@@ -4229,6 +4229,8 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.30.0 Fitur Potion Tampil Lagi: Drop dari Mancing dan Worker Masuk Tas, Tinggal Tekan Pakai",
+      "Version 2.30.0 Potion Luck x2/x3, Kecepatan Worker x2, dan Koin x2 Punya Timer Aktif, Bisa Diganti, dan Ada Auto Pakai",
       "Version 2.29.0 Worker Maksimal 4 Lagi: Kru Keempat Bisa Direkrut dan Dipasangi Joran Sendiri",
       "Version 2.29.0 Rules Fishing Diperbarui supaya Empat Worker per Akun Tersimpan dengan Aman",
       "Version 2.28.0 Lima Joran Baru: Aurora, Nebula, Void, Singularitas, dan Dewa Samudra dengan Luck Jauh Lebih Tinggi",
