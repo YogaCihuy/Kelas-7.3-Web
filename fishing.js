@@ -2175,7 +2175,7 @@
       if (typeof onGagal === "function") {
         try { onGagal(err); } catch (err2) { /* tetap tampilkan toast */ }
       }
-      toast(esc(err.message || "Aksi gagal."), "error");
+      toast(esc(teksGalat(err, "Aksi gagal.")), "error");
       if (String(err.code || "").includes("unauthenticated")) {
         try { await bukaSesi(true); } catch (err2) { /* tampil pesan dari error berikutnya */ }
       }
@@ -2244,7 +2244,7 @@
       FC.seq = null;
       FC.tahanRender = false;
       render();
-      toast(esc(err.message || "Gagal melempar pancing."), "error");
+      toast(esc(teksGalat(err, "Gagal melempar pancing.")), "error");
       if (String(err.code || "").includes("unauthenticated")) {
         try { await bukaSesi(true); } catch (err2) { /* ignore */ }
       }
@@ -2366,7 +2366,7 @@
       FC.resumeId = null;
       FC.tahanRender = false;
       render();
-      toast(esc(err.message || "Gagal menarik pancing."), "error");
+      toast(esc(teksGalat(err, "Gagal menarik pancing.")), "error");
       if (String(err.code || "").includes("unauthenticated")) {
         try { await bukaSesi(true); } catch (err2) { /* ignore */ }
       } else {
@@ -2625,7 +2625,7 @@
       toast(`Ikan terjual · <b>+💰 ${angka(res.total)}</b>`, "ok");
       if (res.achievements && res.achievements.length) toastPencapaian(res.achievements);
     } catch (err) {
-      toast(esc(err.message || "Gagal menjual ikan."), "error");
+      toast(esc(teksGalat(err, "Gagal menjual ikan.")), "error");
       if (el.isConnected) el.disabled = false;
     } finally {
       FC.aksi = false;
@@ -2689,7 +2689,10 @@
     console.warn("Rekrut Worker gagal:", detail);
     const el = document.getElementById("worker-error");
     if (!el) return;
-    el.innerHTML = `${esc(pesanGalat(err))}<small class="fishing-form-error-detail">${esc(detail)}</small>`;
+    const kuota = /resource-exhausted/i.test(String((err && err.code) || "")) || /quota exceeded/i.test(String((err && err.message) || ""));
+    el.innerHTML = kuota
+      ? esc(pesanGalat(err))
+      : `${esc(pesanGalat(err))}<small class="fishing-form-error-detail">${esc(detail)}</small>`;
     el.hidden = false;
   }
 
@@ -3047,9 +3050,16 @@
       return "Tidak bisa menghubungi Firestore. Cek koneksi/jaringan lalu coba lagi.";
     }
     if (kode.includes("resource-exhausted") || /quota exceeded/i.test(teks)) {
-      return "Kuota baca harian Firebase (50.000/hari) sedang habis. Kuota pulih otomatis sekitar jam 15:00 WIB — setelah itu muat ulang halaman dan coba lagi.";
+      return "Server sedang ditutup, kembali jam 15:00 WIB";
     }
     return teks || "Gagal membuka Fishing.";
+  }
+
+  function teksGalat(err, cadangan) {
+    if (/resource-exhausted/i.test(String((err && err.code) || "")) || /quota exceeded/i.test(String((err && err.message) || ""))) {
+      return "Server sedang ditutup, kembali jam 15:00 WIB";
+    }
+    return String((err && err.message) || cadangan || "Aksi gagal.");
   }
 
   async function bukaGame(paksa) {
