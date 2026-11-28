@@ -4229,6 +4229,9 @@ const UPDATE_LOG = [
   {
     tanggal: "28/11/26",
     items: [
+      "Version 2.30.1 Worker Keempat dan Potion Bisa Dipakai Lagi: Rules Fishing Diringankan supaya Firestore Tidak Menolak Simpanan Kru 4/4",
+      "Version 2.30.1 Perbaikan Permission-Denied: Penyebabnya Batas Evaluasi Rules Firestore Terlampaui saat 4 Worker + 3 Potion Aktif, Bukan karena Belum di-Publish",
+      "Version 2.30.1 Pesan Error Firestore Tidak Lagi Menyuruh Publish Ulang Rules, Cukup Muat Ulang Halaman",
       "Version 2.30.0 Fitur Potion Tampil Lagi: Drop dari Mancing dan Worker Masuk Tas, Tinggal Tekan Pakai",
       "Version 2.30.0 Potion Luck x2/x3, Kecepatan Worker x2, dan Koin x2 Punya Timer Aktif, Bisa Diganti, dan Ada Auto Pakai",
       "Version 2.29.0 Worker Maksimal 4 Lagi: Kru Keempat Bisa Direkrut dan Dipasangi Joran Sendiri",

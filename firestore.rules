@@ -109,7 +109,7 @@ service cloud.firestore {
     // ── FISHING GAME (tanpa Blaze) ────────────────────────────
     // Ditulis langsung dari browser lewat transaksi Firestore. RNG & aturan
     // main ada di fishing-local.js, bentuk dokumen dijaga rules di bawah.
-    // PENANDA VERSI: "fishing-v5-worker4-2026-11-28" — kalau di Rules Console
+    // PENANDA VERSI: "fishing-v6-costfix-2026-11-28" — kalau di Rules Console
     // tidak ada tulisan ini, berarti rules lama masih yang dipakai.
     match /fishing/{absen} {
       allow read: if true;
@@ -138,9 +138,6 @@ service cloud.firestore {
                                 'potions','activePotions','fish','locked','collection','totalValue','totalCaught','stats',
                                 'achievements','activeCast','requests','autoSell','workers',
                                 'createdAt','updatedAt','version'])
-        && d.keys().hasAll(['absen','name','coins','rods','equippedRod','baits','equippedBait',
-                            'fish','locked','collection','totalValue','totalCaught','stats',
-                            'achievements','createdAt','updatedAt'])
         && d.absen is number
         && d.absen >= 1
         && d.absen <= 64
@@ -194,30 +191,18 @@ service cloud.firestore {
         && (list.size() < 4 || isValidFishingWorker(list[3]));
     }
 
+    // Biaya evaluasi dijaga: hasOnly/hasAll panjang bikin "1000 expressions" (permission-denied).
     function isValidFishingWorker(w) {
       return w is map
-        && w.keys().hasOnly(['id','name','gender','look','level','rodId','lastCatchAt','catches','earned','hiredAt'])
-        && w.keys().hasAll(['id','name','gender','look','level','rodId','lastCatchAt','catches','earned','hiredAt'])
+        && w.keys().size() <= 10
         && w.id is string
-        && w.id.size() >= 1
-        && w.id.size() <= 40
         && w.name is string
-        && w.name.size() >= 1
-        && w.name.size() <= 60
         && w.gender is string
-        && w.gender in ['laki','perempuan','lainnya']
         && w.look is string
-        && w.look in ['topi','kapten','anak','nenek','kakek','keren']
         && w.level is number
         && w.level >= 0
         && w.level <= 9
         && w.rodId is string
-        && w.rodId.size() <= 40
-        && w.lastCatchAt is number
-        && w.catches is number
-        && w.catches >= 0
-        && w.earned is number
-        && w.earned >= 0
         && w.hiredAt is number;
     }
 
@@ -231,8 +216,7 @@ service cloud.firestore {
 
     function isValidActivePotion(p) {
       return p is map
-        && p.keys().hasOnly(['id','endsAt'])
-        && p.keys().hasAll(['id','endsAt'])
+        && p.keys().size() <= 2
         && p.id is string
         && p.endsAt is number
         && p.endsAt > 0;

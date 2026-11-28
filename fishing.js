@@ -3020,7 +3020,7 @@
     const kode = String((err && err.code) || "").toLowerCase();
     const teks = String((err && err.message) || "");
     if (kode.includes("permission-denied") || /insufficient permissions|permission denied/i.test(teks)) {
-      return "Firestore menolak akses. Firestore Rules Fishing belum di-Publish ke project kelas73-web (disimpan saja belum cukup).";
+      return "Firestore menolak akses (permission-denied). Coba muat ulang halaman dulu; kalau masih terjadi, lapor admin.";
     }
     if (kode.includes("unavailable") || /network|offline|failed to fetch|timeout|unreachable/i.test(teks)) {
       return "Tidak bisa menghubungi Firestore. Cek koneksi/jaringan lalu coba lagi.";
